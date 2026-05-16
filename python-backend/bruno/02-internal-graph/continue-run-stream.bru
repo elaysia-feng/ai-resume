@@ -1,0 +1,26 @@
+meta {
+  name: Continue Run Stream
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/internal/graph/runs/1001/continue/stream
+  body: json
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "answers": [
+      {
+        "fieldKey": "company_name",
+        "value": "OpenAI"
+      }
+    ]
+  }
+}

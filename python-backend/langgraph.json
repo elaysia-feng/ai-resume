@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "resume_agent": "./src/agent/graph.py:graph"
+  },
+  "env": "./.env.langgraph",
+  "python_version": "3.11"
+}

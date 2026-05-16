@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# IDEs
+.idea/
+.vscode/
+.omc
+.claude
+
+# Java
+*.class
+target/
+*.jar
+*.war
+
+# Frontend
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+dist/
+.eggs/
+*.egg
+
+# Misc
+*.swp
+*.swo
+.cache/

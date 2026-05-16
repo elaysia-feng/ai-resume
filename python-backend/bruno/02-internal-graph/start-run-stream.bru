@@ -1,0 +1,27 @@
+meta {
+  name: Start Run Stream
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/internal/graph/runs/stream
+  body: json
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "runId": 1001,
+    "sessionId": 2001,
+    "resumeId": 3001,
+    "sceneCode": "JD_CUSTOMIZE",
+    "userInput": "请帮我优化简历中的项目经历。",
+    "jobDescription": "负责后端接口开发、性能优化和系统稳定性。",
+    "targetSectionId": 1
+  }
+}

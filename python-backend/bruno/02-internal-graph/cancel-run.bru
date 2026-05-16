@@ -1,0 +1,13 @@
+meta {
+  name: Cancel Run
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/internal/graph/runs/1001/cancel
+}
+
+headers {
+  Accept: application/json
+}

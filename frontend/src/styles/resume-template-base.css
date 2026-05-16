@@ -1,0 +1,189 @@
+.resume-page-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.resume-page-status {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+}
+
+.resume-page-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.resume-page-status__badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.resume-page-status__badge--warning {
+  background: rgba(249, 115, 22, 0.14);
+  color: #c2410c;
+}
+
+.resume-page {
+  width: 794px;
+  min-height: 1123px;
+  background: #ffffff;
+  border: 1px solid #d9e0ea;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+}
+
+.resume-page--overflow {
+  border-color: rgba(249, 115, 22, 0.45);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(249, 115, 22, 0.08);
+}
+
+.resume-page__content {
+  width: 100%;
+}
+
+.resume-template {
+  --resume-font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Helvetica Neue', Arial, sans-serif;
+  --resume-color-page: #ffffff;
+  --resume-color-text: #1f2937;
+  --resume-color-text-soft: #475569;
+  --resume-color-text-faint: #6b7280;
+  --resume-color-heading: #0f172a;
+  --resume-color-accent: #1d4ed8;
+  --resume-color-accent-soft: rgba(29, 78, 216, 0.12);
+  --resume-color-border: #dbe3ef;
+  --resume-color-surface: #f8fafc;
+  --resume-color-surface-strong: #eff6ff;
+  --resume-shadow-card: 0 8px 20px rgba(15, 23, 42, 0.04);
+  --resume-font-name: 26px;
+  --resume-font-title: 12px;
+  --resume-font-contact: 10px;
+  --resume-font-pill: 10px;
+  --resume-section-title-size: 10px;
+  --resume-text-size: 9px;
+  --resume-meta-size: 9px;
+  --resume-title-size: 11px;
+  --resume-date-size: 9px;
+  --resume-chip-size: 9px;
+  font-family: var(--resume-font-body);
+  color: var(--resume-color-text);
+  background: var(--resume-color-page);
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.resume-template *,
+.resume-template *::before,
+.resume-template *::after {
+  box-sizing: border-box;
+}
+
+.resume-template a {
+  color: inherit;
+}
+
+.resume-basic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resume-basic-header__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.resume-basic-header__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.resume-basic-header__name {
+  margin: 0;
+  color: var(--resume-color-heading);
+  font-size: var(--resume-font-name);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+}
+
+.resume-basic-header__title {
+  margin: 8px 0 0;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-font-title);
+  font-weight: 600;
+}
+
+.resume-basic-header__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 14px;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-font-contact);
+}
+
+.resume-basic-header__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.resume-basic-header__contact-label {
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
+}
+
+.resume-basic-header__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: #f8fafc;
+}
+
+.resume-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--resume-color-accent-soft);
+  color: var(--resume-color-accent);
+  font-size: var(--resume-font-pill);
+  font-weight: 600;
+}
+
+.resume-meta-pill__label {
+  opacity: 0.78;
+}
+
+.resume-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--resume-color-border);
+}

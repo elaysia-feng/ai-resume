@@ -1,0 +1,80 @@
+package com.airesumeforge.dto.agent.session.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Agent会话详情响应
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AgentSessionDetailResponse {
+
+    /**
+     * 会话ID
+     */
+    private Long id;
+
+    /**
+     * 当前会话关联的简历ID
+     */
+    private Long resumeId;
+
+    /**
+     * 会话场景编码，例如 JD_CUSTOMIZE
+     */
+    private String sceneCode;
+
+    /**
+     * 会话标题，用于前端会话列表展示
+     */
+    private String sessionTitle;
+
+    /**
+     * 当前会话复用的目标岗位JD
+     */
+    private String jobDescription;
+
+    /**
+     * 当前会话长期记忆摘要，用于压缩旧消息后继续提供上下文
+     */
+    private String summary;
+
+    /**
+     * 派生来源会话ID，New Session 复制JD时记录来源
+     */
+    private Long parentSessionId;
+
+    /**
+     * 会话状态：ACTIVE / ARCHIVED / DELETED
+     */
+    private String status;
+
+    /**
+     * 最后一条消息时间，用于会话列表排序
+     */
+    private LocalDateTime lastMessageAt;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createdAt;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updatedAt;
+
+    /**
+     * 会话消息列表，详情页返回
+     */
+    private List<AgentMessageResponse> messages;
+}
+

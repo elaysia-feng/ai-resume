@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Local notes / docs
+docs/
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Project-specific subdirectories
+java-backend/代码问题/
+
+# Markdown - allow only README.md
+*.md
+!README.md
+
+# IDEs
+.idea/
+.vscode/
+.claude/
+.omc/
+
+# Java
+*.class
+target/
+*.jar
+*.war
+application.yml
+application.yaml
+!application.example.yml
+!application.example.yaml
+
+# Frontend
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.key
+*api_key*.txt
+*token*.txt
+*secret*.txt
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.eggs/
+*.egg
+.pytest_cache/
+pytest-cache-files-*/
+.langgraph_api/
+.template-check/
+
+# Misc
+*.swp
+*.swo
+.cache/
+tmp/
+temp/

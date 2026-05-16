@@ -1,0 +1,23 @@
+.editor-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.editor-main {
+  flex: 1;
+  overflow: auto;
+  background: linear-gradient(180deg, #f5f7f9 0%, #edf2f7 100%);
+  padding: 24px;
+}
+
+.resume-preview-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: auto;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+  background: transparent;
+  box-shadow: none;
+}
