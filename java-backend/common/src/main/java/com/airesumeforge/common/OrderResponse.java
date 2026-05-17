@@ -12,6 +12,11 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OrderResponse {
     /**
+     * 用户号
+     */
+    private Long userId;
+
+    /**
      * 订单号
      */
     private String orderNo;

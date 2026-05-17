@@ -10,13 +10,16 @@ import com.airesumeforge.mq.MqConstants;
 import com.airesumeforge.mq.MqProducer;
 import com.airesumeforge.mq.MultiDelayMessage;
 import com.airesumeforge.mq.OrderMessage;
+import com.airesumeforge.notification.service.NotificationService;
 import com.rabbitmq.client.Channel;
-import lombok.AllArgsConstructor;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,10 +28,11 @@ import java.util.Map;
 
 @Slf4j
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class MqConsumer {
     private final OrderClient orderClient;
     private final MqProducer mqProducer;
+    private final NotificationService notificationService;
 
     // 更新支付成功的queue
     @RabbitListener(queues = MqConstants.PAID_QUEUE)
@@ -36,22 +40,21 @@ public class MqConsumer {
         log.info("收到消息 - orderNo: {}, eventType: {}", message.getOrderNo(), message.getEventType());
 
         try{
-            // 1. 幂等判断 - 避免重复处理
+            // 幂等检查
             if (!canUpdateOrder(message.getOrderNo())) {
-                log.warn("订单状态已更新，跳过");
-                // 处理完了，删消息
                 channel.basicAck(channelId, false);
+                return;
             }
 
-            if (!PayStatus.PAID.getStatus().equals(message.getEventType())) {
-                throw BusinessException.business("订单状态错误");
-            }
-            // 2. 更新订单状态
-            orderClient.updateOrderStatus(message.getOrderNo(), message.getEventType());
-            log.info("订单状态更新成功");
+            // 下游业务：发短信、开通会员、记录日志等
+            // 1. 发邮件通知用户
+            notificationService.sendPaidSms(message.getUserId(), message.getOrderNo());
 
-            // 3. 成功 → ACK，删除消息
-            // 确认
+            // 2. 开通会员/增加额度
+            orderClient.createQuota(message.getPlanId(), message.getOrderNo());
+            // 3. 发站内信/推送
+             notificationService.sendPaidNotice(message.getUserId(), message.getOrderNo());
+
             channel.basicAck(channelId, false);
         } catch (IOException e) {
             // 4. 失败 → NACK，重新入队（requeue=true）

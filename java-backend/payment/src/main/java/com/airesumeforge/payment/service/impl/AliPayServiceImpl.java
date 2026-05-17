@@ -73,6 +73,11 @@ public class AliPayServiceImpl implements AlipayService {
         return response.getBody();
     }
 
+    /**
+     *  这是支付宝的回调
+     * @param request 支付宝的请求
+     * @return 返回 success表示支付宝认为你处理成功，停止重试, 返回fail → 支付宝认为你处理失败，会隔段时间重试
+     */
     @Override
     public String handleAlipayCallback(AlipayCallbackRequest request) {
         // 1. 验签失败直接返回
@@ -95,13 +100,21 @@ public class AliPayServiceImpl implements AlipayService {
             log.error("订单不存在 - outTradeNo: {}", request.getOutTradeNo());
             return "fail";
         }
+        // 4. 幂等检查：已经是PAID的直接返回
+        if (PayStatus.PAID.getStatus().equals(order.getStatus())) {
+            log.info("订单已支付，无需重复处理 - orderNo: {}", request.getOutTradeNo());
+            return "success";
+        }
 
-        // 4. 通知mq
+        // 5. 直接更新订单状态为PAID（同步调用，不需要MQ）
+        orderClient.updateOrderStatus(request.getOutTradeNo(), PayStatus.PAID.getStatus());
+
+        // 6. 发MQ通知下游业务（开通会员、发通知等）
         OrderMessage message = OrderMessage.builder()
                 .orderNo(order.getOrderNo())
                 .eventType(PayStatus.PAID.getStatus())
                 .planId(order.getPlanId())
-                .userId(UserContext.verifyGetUserId())
+                .userId(order.getUserId())
                 .build();
         mqProducer.sendOrderStatusUpdate(MqConstants.ROUTING_KEY_PAID, message);
 

@@ -1,5 +1,6 @@
 package com.airesumeforge.auth.service.impl;
 
+import com.airesumeforge.client.NotificationClient;
 import com.airesumeforge.common.OssProperties;
 import com.airesumeforge.common.UserInfoDTO;
 import com.airesumeforge.context.UserContext;
@@ -10,7 +11,6 @@ import com.airesumeforge.exception.BusinessException;
 import com.airesumeforge.auth.mapper.UserMapper;
 import com.airesumeforge.security.JwtUtil;
 import com.airesumeforge.auth.service.AuthService;
-import com.airesumeforge.auth.service.VerificationCodeService;
 import com.airesumeforge.auth.dto.response.AuthResponse;
 import com.airesumeforge.auth.dto.response.CurrentUserResponse;
 import com.aliyun.oss.ClientException;
@@ -45,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final VerificationCodeService verificationCodeService;
+    private final NotificationClient notificationClient;
     private final OSS ossClient;
     private final OssProperties ossProperties;
 
@@ -131,7 +131,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse loginByCode(String email, String code) {
         log.info("[验证码登录] 收到请求, email={}", email);
 
-        if (!verificationCodeService.verify(email, code)) {
+        if (!notificationClient.verifyCode(email, code).getData()) {
             log.warn("[验证码登录] 验证码错误或已过期, email={}", email);
             throw BusinessException.badRequest("Invalid or expired verification code");
         }
@@ -162,7 +162,7 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        verificationCodeService.sendCode(email, fromEmail);
+        notificationClient.sendCode(email, fromEmail);
         log.info("[发送验证码] 发送成功, email={}, type={}", email, type);
     }
 
@@ -173,7 +173,7 @@ public class AuthServiceImpl implements AuthService {
     public String verifyCode(String email, String code) {
         log.info("[验证验证码] 收到请求, email={}, code={}", email, code);
 
-        if (!verificationCodeService.verify(email, code)) {
+        if (!notificationClient.verifyCode(email, code).getData()) {
             log.warn("[验证验证码] 验证码错误或已过期, email={}", email);
             throw BusinessException.badRequest("Invalid or expired verification code");
         }

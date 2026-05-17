@@ -5,6 +5,7 @@ import com.airesumeforge.common.OrderResponse;
 import jakarta.validation.Valid;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -17,4 +18,11 @@ public interface OrderClient {
     @PutMapping("/api/orders/status")
     ApiResponse<Void> updateOrderStatus(@RequestParam String orderNo,
                                         @RequestParam String status);
+
+    /**
+     * 创建配额
+     * @return Void
+     */
+    @PostMapping("/api/subscriptions/create")
+    ApiResponse<Void> createQuota(@Valid @RequestParam Long planId,  @RequestParam(required = false) String orderId);
 }

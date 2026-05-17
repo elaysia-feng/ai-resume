@@ -2,7 +2,6 @@ package com.airesumeforge.interview.service.impl;
 
 import com.airesumeforge.agent.service.AgentRunJobProducer;
 import com.airesumeforge.client.AgentClient;
-import com.airesumeforge.common.AgentRunStage;
 import com.airesumeforge.common.AgentRunStatus;
 import com.airesumeforge.common.AgentSceneCode;
 import com.airesumeforge.common.ApiResponse;
