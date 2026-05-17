@@ -1,10 +1,11 @@
 package com.airesumeforge.resume.service;
 
 import com.airesumeforge.common.dto.agent.internal.request.AiVersionSaveRequest;
-import com.airesumeforge.resume.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.response.ResumeSnapshotResponse;
 import com.airesumeforge.resume.dto.request.ResumePatchPreviewRequest;
 import com.airesumeforge.common.dto.agent.internal.response.AiVersionSaveResponse;
-import com.airesumeforge.resume.dto.response.ResumePatchApplyResponse;
+import com.airesumeforge.common.dto.response.ResumePatchApplyResponse;
 import com.airesumeforge.resume.dto.response.ResumePatchPreviewResponse;
 
 /**
@@ -12,6 +13,14 @@ import com.airesumeforge.resume.dto.response.ResumePatchPreviewResponse;
  * ServiceImpl 负责 patch 预览、冲突检测、应用和 AI 版本保存
  */
 public interface ResumePatchService {
+
+    /**
+     * 获取简历快照
+     *
+     * @param resumeId 简历ID
+     * @return 简历快照
+     */
+    ResumeSnapshotResponse getSnapshot(Long resumeId);
 
     /**
      * 预览 patch 应用效果

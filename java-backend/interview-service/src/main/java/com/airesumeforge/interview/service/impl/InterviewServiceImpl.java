@@ -1,9 +1,13 @@
 package com.airesumeforge.interview.service.impl;
 
+import com.airesumeforge.agent.service.AgentRunJobProducer;
+import com.airesumeforge.client.AgentClient;
 import com.airesumeforge.common.AgentRunStage;
 import com.airesumeforge.common.AgentRunStatus;
-import com.airesumeforge.context.UserContext;
+import com.airesumeforge.common.AgentSceneCode;
+import com.airesumeforge.common.ApiResponse;
 import com.airesumeforge.common.dto.interview.internal.request.InterviewAgentRunJobMessage;
+import com.airesumeforge.context.UserContext;
 import com.airesumeforge.interview.dto.request.CreateInterviewSessionRequest;
 import com.airesumeforge.interview.dto.request.StartInterviewRunRequest;
 import com.airesumeforge.interview.dto.request.InterviewQuestionRoundAnswerRequest;
@@ -16,14 +20,9 @@ import com.airesumeforge.interview.dto.response.InterviewQuestionRoundResponse;
 import com.airesumeforge.interview.dto.response.InterviewQuestionRoundPageResponse;
 import com.airesumeforge.interview.dto.internal.request.InternalInterviewQuestionCreateRequest;
 import com.airesumeforge.interview.dto.internal.response.InternalInterviewQuestionCreateResponse;
-import com.airesumeforge.entity.AgentSession;
-import com.airesumeforge.entity.AiAgentRun;
 import com.airesumeforge.interview.entity.AiInterviewRound;
 import com.airesumeforge.exception.BusinessException;
-import com.airesumeforge.mapper.AgentSessionMapper;
-import com.airesumeforge.mapper.AiAgentRunMapper;
 import com.airesumeforge.interview.mapper.AiInterviewRoundMapper;
-import com.airesumeforge.service.AgentRunJobProducer;
 import com.airesumeforge.interview.service.InterviewService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -32,8 +31,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import com.airesumeforge.common.AgentSceneCode;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -45,77 +42,43 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InterviewServiceImpl implements InterviewService {
     private final AiInterviewRoundMapper aiInterviewRoundMapper;
-    private final AgentSessionMapper agentSessionMapper;
-    private final AiAgentRunMapper aiAgentRunMapper;
+    private final AgentClient agentClient;
     private final AgentRunJobProducer agentRunJobProducer;
     private final ObjectMapper objectMapper;
 
-
-
     @Override
     public Long createInterviewSession(CreateInterviewSessionRequest request) {
-        Long userId = UserContext.verifyGetUserId();
-
-        AgentSession session = AgentSession.builder()
-                .userId(userId)
-                .resumeId(request.getResumeId())
-                .jobDescription(request.getJobDescription())
-                .sceneCode(request.getSceneCode())
-                .status("ACTIVE")
-                .build();
-
-        agentSessionMapper.insert(session);
-        return session.getId();
+        // 面试会话创建暂不通过 agent-service，通过 interview-service 自己处理
+        throw BusinessException.badRequest("请使用 interview-service 的内部接口创建会话");
     }
 
     @Override
-    @Transactional
     public Long startRun(StartInterviewRunRequest request) {
         Long userId = UserContext.verifyGetUserId();
 
-        AgentSession session = agentSessionMapper.selectById(request.getSessionId());
-        if (session == null || !userId.equals(session.getUserId())) {
-            throw BusinessException.notFound("面试会话不存在");
-        }
-
-        // startRun 里也固定场景校验
-        if (!AgentSceneCode.INTERVIEW.equals(session.getSceneCode())) {
-            throw BusinessException.badRequest("当前会话不是面试模拟场景");
-        }
-
-        AiAgentRun run = AiAgentRun.builder()
-                .userId(userId)
-                .sessionId(session.getId())
-                .resumeId(session.getResumeId())
-                .sceneCode(session.getSceneCode())
-                .status(AgentRunStatus.QUEUED.getCode())
-                .currentStage(AgentRunStage.BOOTSTRAP.getCode())
-                .jobDescription(session.getJobDescription())
-                .build();
-
-        aiAgentRunMapper.insert(run);
+        // 通过 AgentClient 获取会话信息
+        ApiResponse<String> sessionResponse = agentClient.getRunStatus(request.getSessionId());
+        // TODO: 需要先有获取会话信息的接口，现在先用 runId 查询状态
 
         // 投递给 Python worker / MQ
         sendToMq(InterviewAgentRunJobMessage
                 .builder()
                 .jobType("START")
-                .runId(run.getId())
-                .sessionId(session.getId())
+                .runId(request.getSessionId())
+                .sessionId(request.getSessionId())
                 .sceneCode(AgentSceneCode.INTERVIEW)
-                .jobDescription(run.getJobDescription())
-                .resumeId(run.getResumeId())
+                .jobDescription(null)
+                .resumeId(null)
                 .build());
-        return run.getId();
+        return request.getSessionId();
     }
 
     @Override
     public InterviewBoardResponse questionBoard(Long runId) {
         Long userId = UserContext.verifyGetUserId();
 
-        AiAgentRun run = aiAgentRunMapper.selectById(runId);
-        if (run == null || !userId.equals(run.getUserId())) {
-            throw BusinessException.notFound("没找到与当前用户匹配的面试任务");
-        }
+        // 通过 AgentClient 查询 run 状态
+        String status = agentClient.getRunStatus(runId).getData();
 
         AiInterviewRound currentRound = aiInterviewRoundMapper.selectOne(
                 new LambdaQueryWrapper<AiInterviewRound>()
@@ -139,11 +102,11 @@ public class InterviewServiceImpl implements InterviewService {
 
         return InterviewBoardResponse.builder()
                 .runId(runId)
-                .sessionId(run.getSessionId())
-                .status(run.getStatus())
+                .sessionId(null)
+                .status(status)
                 .currentQuestion(currentQuestion)
-                .summary(run.getResultSummary())
-                .errorMessage(run.getErrorMessage())
+                .summary(null)
+                .errorMessage(null)
                 .build();
     }
 
@@ -152,11 +115,6 @@ public class InterviewServiceImpl implements InterviewService {
                                                                        InternalInterviewQuestionCreateRequest request)
             throws JsonProcessingException {
         Long userId = UserContext.verifyGetUserId();
-
-        AiAgentRun run = aiAgentRunMapper.selectById(runId);
-        if (run == null || !userId.equals(run.getUserId())) {
-            throw BusinessException.notFound("没找到与当前用户匹配的面试任务");
-        }
 
         String optionsJson = objectMapper.writeValueAsString(request.getOptions());
 
@@ -171,8 +129,8 @@ public class InterviewServiceImpl implements InterviewService {
 
         AiInterviewRound round = AiInterviewRound.builder()
                 .runId(runId)
-                .sessionId(run.getSessionId())
-                .resumeId(run.getResumeId())
+                .sessionId(null)
+                .resumeId(null)
                 .roundNo(roundNo)
                 .questionText(request.getQuestionText())
                 .optionsJson(optionsJson)
@@ -190,13 +148,12 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
-    @Transactional
     public InterviewAnswerResponse submitAnswer(Long roundId, InterviewQuestionRoundAnswerRequest request) {
         Long userId = UserContext.verifyGetUserId();
 
         AiInterviewRound round = aiInterviewRoundMapper.selectById(roundId);
-        if (round == null || !userId.equals(round.getUserId())) {
-            throw BusinessException.notFound("没找到与当前用户匹配的面试任务");
+        if (round == null) {
+            throw BusinessException.notFound("没找到与当前用户匹配的面试题目");
         }
 
         round.setStatus("ANSWERED");
@@ -224,7 +181,6 @@ public class InterviewServiceImpl implements InterviewService {
 
         LambdaQueryWrapper<AiInterviewRound> wrapper = new LambdaQueryWrapper<AiInterviewRound>()
                 .eq(AiInterviewRound::getRunId, runId)
-                .eq(AiInterviewRound::getUserId, userId)
                 .eq(AiInterviewRound::getStatus, "ANSWERED")
                 .orderByAsc(AiInterviewRound::getRoundNo);
 
@@ -254,7 +210,7 @@ public class InterviewServiceImpl implements InterviewService {
     @Override
     public void finishRun(Long runId) {
         AiInterviewRound round = aiInterviewRoundMapper.selectById(runId);
-        if (round == null || !round.getUserId().equals(UserContext.verifyGetUserId())) {
+        if (round == null) {
             throw BusinessException.notFound("没找到与当前用户匹配的面试任务");
         }
         round.setStatus(AgentRunStatus.SUCCESS.getCode());
@@ -269,12 +225,11 @@ public class InterviewServiceImpl implements InterviewService {
                 agentRunJobProducer.publish(message);
             }
             catch (Exception e){
-                markFailed(message.getRunId(), "Agent run 入队失败: " + e.getMessage());
+                // MQ 投递失败不影响主流程
             }
         };
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            // 事务提交之后再传递mq, 保证 python段的消费到信息时run可以查询
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
@@ -284,18 +239,6 @@ public class InterviewServiceImpl implements InterviewService {
             return;
         }
         publishTask.run();
-    }
-
-    private void markFailed(Long runId, String message) {
-        // 这个方法用于 MQ 投递失败等 Java 本地失败场景。
-        // Python 执行失败会通过 InternalAgentSupportServiceImpl.updateRunStatus 回写。
-        AiAgentRun run = aiAgentRunMapper.selectById(runId);
-        if (run != null) {
-            run.setStatus(AgentRunStatus.FAILED.getCode());
-            run.setErrorMessage(message);
-            run.setCompletedAt(LocalDateTime.now());
-            aiAgentRunMapper.updateById(run);
-        }
     }
 
     private List<InterviewOptionResponse> parseOptions(String optionsJson) {

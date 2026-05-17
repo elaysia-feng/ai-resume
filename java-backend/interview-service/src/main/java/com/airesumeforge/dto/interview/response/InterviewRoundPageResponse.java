@@ -1,5 +1,6 @@
 package com.airesumeforge.dto.interview.response;
 
+import com.airesumeforge.interview.dto.response.InterviewRoundResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,34 +1,34 @@
 package com.airesumeforge.agent.service.impl;
 
+import com.airesumeforge.client.ResumeClient;
 import com.airesumeforge.common.AgentRunStage;
 import com.airesumeforge.common.AgentRunStatus;
+import com.airesumeforge.common.ApiResponse;
+import com.airesumeforge.common.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.request.ResumeSectionPatchRequest;
+import com.airesumeforge.common.dto.response.ResumeDetailResponse;
+import com.airesumeforge.common.dto.response.ResumePatchApplyResponse;
 import com.airesumeforge.context.UserContext;
 import com.airesumeforge.agent.dto.run.request.AgentRunJobMessage;
 import com.airesumeforge.agent.dto.run.request.AgentApproveRequest;
 import com.airesumeforge.agent.dto.run.request.AgentCancelRequest;
 import com.airesumeforge.agent.dto.run.request.AgentContinueRequest;
 import com.airesumeforge.agent.dto.run.request.AgentRunStartRequest;
-import com.airesumeforge.dto.resume.request.ResumePatchApplyRequest;
-import com.airesumeforge.dto.resume.request.ResumeSectionPatchRequest;
 import com.airesumeforge.agent.entity.AgentMessage;
 import com.airesumeforge.agent.entity.AgentSession;
 import com.airesumeforge.agent.entity.AiAgentRun;
 import com.airesumeforge.agent.entity.AiRunEvent;
-import com.airesumeforge.entity.Resume;
 import com.airesumeforge.exception.BusinessException;
 import com.airesumeforge.agent.mapper.AgentMessageMapper;
 import com.airesumeforge.agent.mapper.AgentSessionMapper;
 import com.airesumeforge.agent.mapper.AiAgentRunMapper;
 import com.airesumeforge.agent.mapper.AiRunEventMapper;
-import com.airesumeforge.mapper.ResumeMapper;
 import com.airesumeforge.agent.service.AgentRunJobProducer;
 import com.airesumeforge.agent.service.AgentRunService;
-import com.airesumeforge.service.ResumePatchService;
 import com.airesumeforge.agent.dto.run.response.AgentApproveResponse;
 import com.airesumeforge.agent.dto.run.response.AgentEventResponse;
 import com.airesumeforge.agent.dto.run.response.AgentRunDetailResponse;
 import com.airesumeforge.agent.dto.run.response.AgentRunQueueResponse;
-import com.airesumeforge.dto.resume.response.ResumePatchApplyResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -93,8 +93,7 @@ public class AgentRunServiceImpl implements AgentRunService {
     private final AiRunEventMapper aiRunEventMapper;
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
-    private final ResumeMapper resumeMapper;
-    private final ResumePatchService resumePatchService;
+    private final ResumeClient resumeClient;
     private final AgentRunJobProducer agentRunJobProducer;
     private final ObjectMapper objectMapper;
     private final ThreadPoolTaskExecutor agentStreamTaskExecutor;
@@ -107,7 +106,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         // 2. 这样可以避免消息先发出，但 run 记录因为事务回滚而不存在。
         Long userId = UserContext.verifyGetUserId();
         AgentSession session = getOwnedSession(userId, sessionId);
-        Resume resume = getOwnedResume(userId, request.getResumeId());
+        ResumeDetailResponse resume = getOwnedResume(userId, request.getResumeId());
         if (!resume.getId().equals(session.getResumeId())) {
             throw BusinessException.badRequest("run 的 resumeId 必须和 session 关联简历一致");
         }
@@ -231,7 +230,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         }
 
         // 写库前由 ResumePatchService 做 section 归属和 schema 校验。
-        ResumePatchApplyResponse applyResponse = resumePatchService.applyPatch(run.getResumeId(), new ResumePatchApplyRequest(runId, patches));
+        ResumePatchApplyResponse applyResponse = resumeClient.applyPatch(run.getResumeId(), new ResumePatchApplyRequest(runId, patches));
         run.setStatus(AgentRunStatus.SUCCESS.getCode());
         run.setCompletedAt(LocalDateTime.now());
         run.setResultSummary(String.valueOf(approvalPayload.getOrDefault("summary", "已应用当前模块修改")));
@@ -415,8 +414,9 @@ public class AgentRunServiceImpl implements AgentRunService {
         return run;
     }
 
-    private Resume getOwnedResume(Long userId, Long resumeId) {
-        Resume resume = resumeMapper.selectById(resumeId);
+    private ResumeDetailResponse getOwnedResume(Long userId, Long resumeId) {
+        ApiResponse<ResumeDetailResponse> detailedResume = resumeClient.getDetailedResume(resumeId);
+        ResumeDetailResponse resume = detailedResume.getData();
         if (resume == null || !userId.equals(resume.getUserId())) {
             throw BusinessException.notFound("简历不存在或无权限访问");
         }

@@ -2,7 +2,7 @@ package com.airesumeforge.agent.service;
 
 import com.airesumeforge.agent.config.AgentRabbitProperties;
 import com.airesumeforge.agent.dto.run.request.AgentRunJobMessage;
-import com.airesumeforge.dto.interview.internal.request.InterviewAgentRunJobMessage;
+import com.airesumeforge.common.dto.interview.internal.request.InterviewAgentRunJobMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;

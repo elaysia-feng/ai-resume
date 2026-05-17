@@ -2,9 +2,8 @@ package com.airesumeforge.agent.service;
 
 import com.airesumeforge.common.AgentRunStatus;
 import com.airesumeforge.agent.config.AgentRabbitProperties;
-import com.airesumeforge.agent.dto.internal.request.RunEventBatchRequest;
-import com.airesumeforge.agent.dto.internal.request.RunStatusUpdateRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.airesumeforge.common.dto.agent.internal.request.RunEventBatchRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunStatusUpdateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +34,7 @@ public class AgentResultConsumer {
         MessageProperties props = amqpMessage.getMessageProperties();
         Integer retryCount = props.getHeader("retry-count");
         int attempts = (retryCount != null ? retryCount : 0) + 1;
+
 
         try {
             Map<String, Object> payload = objectMapper.readValue(
@@ -70,7 +70,8 @@ public class AgentResultConsumer {
                 rabbitTemplate.send(amqpMessage);
             } else {
                 log.error("重试 {} 次后仍失败，reject 到 DLQ", attempts, e);
-                rabbitTemplate.send(amqpMessage);  // reject → DLQ
+                // reject → DLQ
+                rabbitTemplate.send(amqpMessage);
             }
         }
     }

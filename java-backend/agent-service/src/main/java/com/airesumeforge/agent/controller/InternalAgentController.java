@@ -1,14 +1,15 @@
 package com.airesumeforge.agent.controller;
 
 import com.airesumeforge.common.ApiResponse;
-import com.airesumeforge.agent.dto.internal.request.InternalBootstrapRequest;
-import com.airesumeforge.agent.dto.internal.request.RunEventBatchRequest;
-import com.airesumeforge.agent.dto.internal.request.RunStatusUpdateRequest;
-import com.airesumeforge.dto.interview.internal.request.InternalInterviewBootstrapRequest;
-import com.airesumeforge.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
+import com.airesumeforge.common.dto.agent.internal.request.InternalBootstrapRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunEventBatchRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.airesumeforge.common.dto.agent.internal.response.InternalBootstrapResponse;
+import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
+import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
+import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewBootstrapResponse;
+import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
 import com.airesumeforge.agent.service.InternalAgentSupportService;
-import com.airesumeforge.dto.interview.internal.response.InternalInterviewBootstrapResponse;
-import com.airesumeforge.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class InternalAgentController {
      * @return 简历快照、schema、历史消息和约束
      */
     @PostMapping("/bootstrap")
-    public com.airesumeforge.agent.dto.internal.response.InternalBootstrapResponse bootstrap(@Valid @RequestBody InternalBootstrapRequest request) {
+    public InternalBootstrapResponse bootstrap(@Valid @RequestBody InternalBootstrapRequest request) {
         return internalAgentSupportService.bootstrap(request);
     }
 
@@ -91,5 +92,9 @@ public class InternalAgentController {
         return ApiResponse.ok(internalAgentSupportService.getQuestionAnswer(roundId));
     }
 
+    @GetMapping("/runs/{runId}/status")
+    public ApiResponse<String> getRunStatus(@PathVariable Long runId) {
+        return ApiResponse.ok(internalAgentSupportService.getRunStatus(runId));
+    }
 
 }

@@ -1,11 +1,13 @@
 package com.airesumeforge.resume.service.impl;
 
 import com.airesumeforge.common.SchemaValidator;
+import com.airesumeforge.common.dto.response.ResumeSnapshotResponse;
+import com.airesumeforge.common.dto.response.SectionResponse;
 import com.airesumeforge.context.UserContext;
 import com.airesumeforge.common.dto.agent.internal.request.AiVersionSaveRequest;
-import com.airesumeforge.resume.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.request.ResumePatchApplyRequest;
 import com.airesumeforge.resume.dto.request.ResumePatchPreviewRequest;
-import com.airesumeforge.resume.dto.request.ResumeSectionPatchRequest;
+import com.airesumeforge.common.dto.request.ResumeSectionPatchRequest;
 import com.airesumeforge.resume.entity.Resume;
 import com.airesumeforge.resume.entity.ResumeSection;
 import com.airesumeforge.resume.entity.ResumeVersion;
@@ -17,7 +19,7 @@ import com.airesumeforge.resume.mapper.ResumeVersionMapper;
 import com.airesumeforge.resume.mapper.ResumeVersionSectionMapper;
 import com.airesumeforge.resume.service.ResumePatchService;
 import com.airesumeforge.common.dto.agent.internal.response.AiVersionSaveResponse;
-import com.airesumeforge.resume.dto.response.ResumePatchApplyResponse;
+import com.airesumeforge.common.dto.response.ResumePatchApplyResponse;
 import com.airesumeforge.resume.dto.response.ResumePatchPreviewResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,6 +48,41 @@ public class ResumePatchServiceImpl implements ResumePatchService {
     private final ResumeVersionSectionMapper resumeVersionSectionMapper;
     private final ObjectMapper objectMapper;
     private final SchemaValidator schemaValidator;
+
+    @Override
+    public ResumeSnapshotResponse getSnapshot(Long resumeId) {
+        Resume resume = resumeMapper.selectById(resumeId);
+        if (resume == null) {
+            throw BusinessException.notFound("简历不存在");
+        }
+        List<ResumeSection> sections = resumeSectionMapper.selectList(
+                new LambdaQueryWrapper<ResumeSection>()
+                        .eq(ResumeSection::getResumeId, resumeId)
+                        .orderByAsc(ResumeSection::getSortOrder)
+        );
+        return ResumeSnapshotResponse.builder()
+                .id(resume.getId())
+                .title(resume.getTitle())
+                .template(resume.getTemplate())
+                .sections(sections.stream().map(this::buildSectionResponse).toList())
+                .build();
+    }
+
+    private SectionResponse buildSectionResponse(ResumeSection section) {
+        return SectionResponse.builder()
+                .id(section.getId())
+                .resumeId(section.getResumeId())
+                .sectionCode(section.getSectionCode())
+                .sectionTitle(section.getSectionTitle())
+                .sectionType(section.getSectionType())
+                .schemaType(section.getSchemaType())
+                .contentJson(section.getContentJson())
+                .visible(section.getVisible())
+                .sortOrder(section.getSortOrder())
+                .createdAt(section.getCreatedAt())
+                .updatedAt(section.getUpdatedAt())
+                .build();
+    }
 
     @Override
     public ResumePatchPreviewResponse previewPatch(Long resumeId, ResumePatchPreviewRequest request) {

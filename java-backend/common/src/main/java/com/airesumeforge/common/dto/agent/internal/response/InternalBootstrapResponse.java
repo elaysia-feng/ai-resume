@@ -1,4 +1,4 @@
-package com.airesumeforge.agent.dto.internal.response;
+package com.airesumeforge.common.dto.agent.internal.response;
 
 import com.airesumeforge.common.dto.response.ResumeSnapshotResponse;
 import lombok.AllArgsConstructor;

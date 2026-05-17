@@ -7,7 +7,7 @@ import com.airesumeforge.resume.dto.request.ResumeVersionSaveRequest;
 import com.airesumeforge.resume.dto.request.SectionCreateRequest;
 import com.airesumeforge.resume.dto.request.SectionUpdateRequest;
 import com.airesumeforge.resume.dto.request.SectionReorderRequest;
-import com.airesumeforge.resume.dto.response.ResumeDetailResponse;
+import com.airesumeforge.common.dto.response.ResumeDetailResponse;
 import com.airesumeforge.resume.service.ResumeService;
 import com.airesumeforge.resume.dto.response.ResumeAvatarUploadResponse;
 import com.airesumeforge.resume.dto.response.ResumeListResponse;

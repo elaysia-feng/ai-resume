@@ -1,6 +1,5 @@
-package com.airesumeforge.resume.dto.response;
+package com.airesumeforge.common.dto.response;
 
-import com.airesumeforge.common.dto.response.SectionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

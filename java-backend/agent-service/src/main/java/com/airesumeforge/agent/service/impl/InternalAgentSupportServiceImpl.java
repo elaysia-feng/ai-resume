@@ -1,26 +1,33 @@
 package com.airesumeforge.agent.service.impl;
 
+import com.airesumeforge.agent.mapper.AgentMessageMapper;
+import com.airesumeforge.agent.mapper.AgentSessionMapper;
+import com.airesumeforge.agent.mapper.AiAgentRunMapper;
+import com.airesumeforge.agent.mapper.AiRunEventMapper;
+import com.airesumeforge.client.InterviewClient;
+import com.airesumeforge.client.ResumeClient;
 import com.airesumeforge.common.AgentRunStatus;
 import com.airesumeforge.common.AgentSceneCode;
 import com.airesumeforge.common.SectionSchema;
-
-import com.airesumeforge.agent.dto.internal.request.InternalBootstrapRequest;
-import com.airesumeforge.agent.dto.internal.response.InternalBootstrapResponse;
-import com.airesumeforge.agent.dto.internal.request.RunEventBatchRequest;
-import com.airesumeforge.agent.dto.internal.request.RunStatusUpdateRequest;
-import com.airesumeforge.agent.dto.internal.request.RunEventRequest;
-import com.airesumeforge.agent.dto.internal.response.BootstrapConstraintsResponse;
-import com.airesumeforge.agent.dto.internal.response.HistoryMessageResponse;
-import com.airesumeforge.dto.interview.internal.request.InternalInterviewBootstrapRequest;
-import com.airesumeforge.dto.interview.internal.response.InternalInterviewBootstrapResponse;
-import com.airesumeforge.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
-import com.airesumeforge.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
-import com.airesumeforge.dto.interview.response.InterviewOptionResponse;
-import com.airesumeforge.dto.resume.response.SectionResponse;
-import com.airesumeforge.dto.resume.response.ResumeSnapshotResponse;
-import com.airesumeforge.entity.*;
+import com.airesumeforge.common.dto.agent.internal.request.InternalBootstrapRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunEventBatchRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.airesumeforge.common.dto.agent.internal.response.BootstrapConstraintsResponse;
+import com.airesumeforge.common.dto.agent.internal.response.HistoryMessageResponse;
+import com.airesumeforge.common.dto.agent.internal.response.InternalBootstrapResponse;
+import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
+import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
+import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewBootstrapResponse;
+import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
+import com.airesumeforge.common.dto.interview.response.InterviewOptionResponse;
+import com.airesumeforge.common.dto.response.ResumeSnapshotResponse;
+import com.airesumeforge.common.dto.response.SectionResponse;
+import com.airesumeforge.agent.entity.AiAgentRun;
+import com.airesumeforge.agent.entity.AiInterviewRound;
+import com.airesumeforge.agent.entity.AgentMessage;
+import com.airesumeforge.agent.entity.AgentSession;
 import com.airesumeforge.exception.BusinessException;
-import com.airesumeforge.mapper.*;
+import com.airesumeforge.agent.mapper.AiInterviewRoundMapper;
 import com.airesumeforge.agent.service.InternalAgentSupportService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,40 +64,27 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
     private final AiRunEventMapper aiRunEventMapper;
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
-    private final ResumeMapper resumeMapper;
-    private final ResumeSectionMapper resumeSectionMapper;
+    private final ResumeClient resumeClient;
     private final AiInterviewRoundMapper aiInterviewRoundMapper;
     private final ObjectMapper objectMapper;
 
     @Override
     public InternalBootstrapResponse bootstrap(InternalBootstrapRequest request) {
         // Python 启动 graph 时只带 ID；完整简历、schema、会话记忆都从 Java 权威库加载。
-        com.airesumeforge.agent.entity.AiAgentRun run = aiAgentRunMapper.selectById(request.getRunId());
-        com.airesumeforge.agent.entity.AgentSession session = agentSessionMapper.selectById(request.getSessionId());
-        Resume resume = resumeMapper.selectById(request.getResumeId());
+        AiAgentRun run = aiAgentRunMapper.selectById(request.getRunId());
+        AgentSession session = agentSessionMapper.selectById(request.getSessionId());
+        ResumeSnapshotResponse resume = resumeClient.getResumeSnapshot(request.getResumeId());
         if (run == null || session == null || resume == null) {
             throw BusinessException.notFound("Agent bootstrap 上下文不存在");
         }
 
-        // 保持简历模块顺序稳定，避免 Python 看到的 snapshot 和前端展示顺序不一致。
-        List<ResumeSection> sections = resumeSectionMapper.selectList(new LambdaQueryWrapper<ResumeSection>()
-                        .eq(ResumeSection::getResumeId, request.getResumeId()))
-                .stream()
-                .sorted(Comparator.comparing(ResumeSection::getSortOrder, Comparator.nullsLast(Integer::compareTo)).thenComparing(ResumeSection::getId))
-                .toList();
-
         return InternalBootstrapResponse.builder()
                 .runId(run.getId())
                 .sessionId(session.getId())
-                .resume(ResumeSnapshotResponse.builder()
-                        .id(resume.getId())
-                        .title(resume.getTitle())
-                        .template(resume.getTemplate())
-                        .sections(sections.stream().map(this::buildSectionResponse).toList())
-                        .build())
+                .resume(resume)
                 .jobDescription(session.getJobDescription() != null ? session.getJobDescription() : run.getJobDescription())
                 .summary(session.getSummary())
-                .schemas(buildSchemas(sections))
+                .schemas(buildSchemas(resume.getSections()))
                 .messages(listRecentMessages(session.getId()))
                 // v1 只允许单模块优化，所以只开放本次 targetSectionId。
                 .editableSectionIds(List.of(request.getTargetSectionId()))
@@ -108,7 +102,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
     public void saveRunEvents(Long runId, RunEventBatchRequest request) {
         // 事件表是前端断线重连的基础，所以这里按 run_id + event_seq 做幂等。
         // 即使 Python 重试批量上报，也不会生成重复的前端事件。
-        for (RunEventRequest event : request.getEvents()) {
+        for (com.airesumeforge.common.dto.agent.internal.request.RunEventRequest event : request.getEvents()) {
             // Python 流式重试时可能重复上报同一 eventSeq，这里做幂等落库。
             Long exists = aiRunEventMapper.selectCount(new LambdaQueryWrapper<com.airesumeforge.agent.entity.AiRunEvent>()
                     .eq(com.airesumeforge.agent.entity.AiRunEvent::getRunId, runId)
@@ -131,7 +125,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
     @Transactional
     public void updateRunStatus(Long runId, RunStatusUpdateRequest request) {
         // Java 表是前端展示的权威状态；Python 不直接改业务库，只通过这个内部接口回写。
-        com.airesumeforge.agent.entity.AiAgentRun run = aiAgentRunMapper.selectById(runId);
+        AiAgentRun run = aiAgentRunMapper.selectById(runId);
         if (run == null) {
             throw BusinessException.notFound("Agent run 不存在");
         }
@@ -160,7 +154,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
 
         if (request.getResultSummary() != null && !request.getResultSummary().isBlank()) {
             // summary 是 session 级长期记忆，Python 压缩后回写到 Java，后续 run 继续复用。
-            com.airesumeforge.agent.entity.AgentSession session = agentSessionMapper.selectById(run.getSessionId());
+            AgentSession session = agentSessionMapper.selectById(run.getSessionId());
             if (session != null) {
                 session.setSummary(request.getResultSummary());
                 agentSessionMapper.updateById(session);
@@ -170,24 +164,18 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
 
     @Override
     public InternalInterviewBootstrapResponse interviewBootstrap(InternalInterviewBootstrapRequest request) {
-        com.airesumeforge.agent.entity.AiAgentRun run = aiAgentRunMapper.selectById(request.getRunId());
-        com.airesumeforge.agent.entity.AgentSession session = agentSessionMapper.selectById(request.getSessionId());
-        Resume resume = resumeMapper.selectById(request.getResumeId());
+        AiAgentRun run = aiAgentRunMapper.selectById(request.getRunId());
+        AgentSession session = agentSessionMapper.selectById(request.getSessionId());
+        ResumeSnapshotResponse resume = resumeClient.getResumeSnapshot(request.getResumeId());
         if (run == null || session == null || resume == null) {
             throw BusinessException.notFound("上下文不存在");
         }
 
-        // 查询全部的section内容, 并按顺序返回
-        List<ResumeSection> sections = resumeSectionMapper.selectList(new LambdaQueryWrapper<ResumeSection>().eq(ResumeSection::getResumeId, request.getResumeId()))
-                .stream()
-                .sorted(Comparator.comparing(ResumeSection::getSortOrder, Comparator.naturalOrder()))
-                .toList();
-
-        return  InternalInterviewBootstrapResponse.builder()
+        return InternalInterviewBootstrapResponse.builder()
                 .runId(request.getRunId())
                 .sessionId(request.getSessionId())
                 .jobDescription(session.getJobDescription() != null ? session.getJobDescription() : run.getJobDescription())
-                .resume(ResumeSnapshotResponse.builder().sections(sections.stream().map(this::buildSectionResponse).toList()).build())
+                .resume(resume)
                 .summary(session.getSummary())
                 .build();
 
@@ -200,7 +188,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
             throw BusinessException.notFound("面试题目不存在");
         }
 
-        com.airesumeforge.agent.entity.AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
+        AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
         if (run == null || !AgentSceneCode.INTERVIEW.equals(run.getSceneCode())) {
             throw BusinessException.badRequest("面试任务状态不合法");
         }
@@ -219,7 +207,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
             throw BusinessException.notFound("面试题目不存在");
         }
 
-        com.airesumeforge.agent.entity.AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
+        AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
         if (run == null || !AgentSceneCode.INTERVIEW.equals(run.getSceneCode())) {
             throw BusinessException.badRequest("面试任务状态不合法");
         }
@@ -246,14 +234,23 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
                 .build();
     }
 
+    @Override
+    public String getRunStatus(Long runId) {
+        AiAgentRun run = aiAgentRunMapper.selectById(runId);
+        if (run == null) {
+            throw BusinessException.notFound("Agent run 不存在");
+        }
+        return run.getStatus();
+    }
+
     private List<HistoryMessageResponse> listRecentMessages(Long sessionId) {
         // 先按倒序取最近 N 条，再恢复为正序给 Python，保证对话阅读顺序正确。
-        return agentMessageMapper.selectList(new LambdaQueryWrapper<com.airesumeforge.agent.entity.AgentMessage>()
-                        .eq(com.airesumeforge.agent.entity.AgentMessage::getSessionId, sessionId)
-                        .orderByDesc(com.airesumeforge.agent.entity.AgentMessage::getSeqNo)
+        return agentMessageMapper.selectList(new LambdaQueryWrapper<AgentMessage>()
+                        .eq(AgentMessage::getSessionId, sessionId)
+                        .orderByDesc(AgentMessage::getSeqNo)
                         .last("limit " + RECENT_MESSAGE_LIMIT))
                 .stream()
-                .sorted(Comparator.comparing(com.airesumeforge.agent.entity.AgentMessage::getSeqNo))
+                .sorted(Comparator.comparing(AgentMessage::getSeqNo))
                 .map(message -> HistoryMessageResponse.builder()
                         .role(message.getRole())
                         .content(message.getContent())
@@ -261,32 +258,16 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
                 .toList();
     }
 
-    private Map<String, Map<String, Object>> buildSchemas(List<ResumeSection> sections) {
+    private Map<String, Map<String, Object>> buildSchemas(List<SectionResponse> sections) {
         // Python 根据 sectionCode 找 schema，用于约束 LLM 只能产出合法 contentJson。
         return sections.stream().collect(java.util.stream.Collectors.toMap(
                 // key : sectionCode
-                ResumeSection::getSectionCode,
+                SectionResponse::getSectionCode,
                 // value: schema map
                 section -> SectionSchema.getSchema(section.getSectionCode()),
                 // 这个是规则 -> 就是遇到重复的key的时候, 保留左边的, 舍弃右边的, 也就是只保留第一次出现的
                 (left, right) -> left
         ));
-    }
-
-    private SectionResponse buildSectionResponse(ResumeSection section) {
-        return SectionResponse.builder()
-                .id(section.getId())
-                .resumeId(section.getResumeId())
-                .sectionCode(section.getSectionCode())
-                .sectionTitle(section.getSectionTitle())
-                .sectionType(section.getSectionType())
-                .schemaType(section.getSchemaType())
-                .contentJson(section.getContentJson())
-                .visible(section.getVisible())
-                .sortOrder(section.getSortOrder())
-                .createdAt(section.getCreatedAt())
-                .updatedAt(section.getUpdatedAt())
-                .build();
     }
 
     private String writeJson(Object value) {

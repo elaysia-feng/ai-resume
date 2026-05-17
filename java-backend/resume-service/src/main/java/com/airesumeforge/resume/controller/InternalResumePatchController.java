@@ -1,24 +1,17 @@
 package com.airesumeforge.resume.controller;
 
 import com.airesumeforge.common.dto.agent.internal.request.AiVersionSaveRequest;
-import com.airesumeforge.resume.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.request.ResumePatchApplyRequest;
+import com.airesumeforge.common.dto.response.ResumeSnapshotResponse;
 import com.airesumeforge.resume.dto.request.ResumePatchPreviewRequest;
 import com.airesumeforge.resume.service.ResumePatchService;
 import com.airesumeforge.common.dto.agent.internal.response.AiVersionSaveResponse;
-import com.airesumeforge.resume.dto.response.ResumePatchApplyResponse;
+import com.airesumeforge.common.dto.response.ResumePatchApplyResponse;
 import com.airesumeforge.resume.dto.response.ResumePatchPreviewResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-/**
- * 简历 patch 内部接口控制器
- * 用于 Agent patch 预览、应用和 AI 版本保存
- */
 @RestController
 @RequestMapping("/internal/resumes")
 @RequiredArgsConstructor
@@ -27,11 +20,15 @@ public class InternalResumePatchController {
     private final ResumePatchService resumePatchService;
 
     /**
+     * 获取简历快照
+     */
+    @GetMapping("/{resumeId}/snapshot")
+    public ResumeSnapshotResponse getSnapshot(@PathVariable Long resumeId) {
+        return resumePatchService.getSnapshot(resumeId);
+    }
+
+    /**
      * 预览 patch 应用效果
-     *
-     * @param resumeId 简历ID
-     * @param request  预览请求
-     * @return 预览结果
      */
     @PostMapping("/{resumeId}/patch-preview")
     public ResumePatchPreviewResponse previewPatch(@PathVariable Long resumeId,

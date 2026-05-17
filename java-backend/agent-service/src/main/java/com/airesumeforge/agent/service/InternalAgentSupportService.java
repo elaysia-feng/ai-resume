@@ -1,13 +1,13 @@
 package com.airesumeforge.agent.service;
 
-import com.airesumeforge.agent.dto.internal.request.InternalBootstrapRequest;
-import com.airesumeforge.agent.dto.internal.response.InternalBootstrapResponse;
-import com.airesumeforge.agent.dto.internal.request.RunEventBatchRequest;
-import com.airesumeforge.agent.dto.internal.request.RunStatusUpdateRequest;
+import com.airesumeforge.common.dto.agent.internal.request.InternalBootstrapRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunEventBatchRequest;
+import com.airesumeforge.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.airesumeforge.common.dto.agent.internal.response.InternalBootstrapResponse;
 import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
+import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
 import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewBootstrapResponse;
 import com.airesumeforge.common.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
-import com.airesumeforge.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
 import jakarta.validation.Valid;
 
 /**
@@ -51,4 +51,9 @@ public interface InternalAgentSupportService {
     void updateQuestionAnalysis(Long roundId, @Valid InternalInterviewQuestionAnalysisRequest request);
 
     InternalInterviewRoundDetailResponse getQuestionAnswer(Long roundId);
+
+    /**
+     * 获取 run 状态
+     */
+    String getRunStatus(Long runId);
 }

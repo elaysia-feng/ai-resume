@@ -1,4 +1,4 @@
-package com.airesumeforge.agent.dto.internal.request;
+package com.airesumeforge.common.dto.agent.internal.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

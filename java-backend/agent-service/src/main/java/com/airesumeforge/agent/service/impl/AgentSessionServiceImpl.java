@@ -1,16 +1,17 @@
 package com.airesumeforge.agent.service.impl;
 
+import com.airesumeforge.client.ResumeClient;
+import com.airesumeforge.common.ApiResponse;
+import com.airesumeforge.common.dto.response.ResumeDetailResponse;
 import com.airesumeforge.context.UserContext;
 import com.airesumeforge.agent.dto.run.request.AgentMessageCreateRequest;
 import com.airesumeforge.agent.dto.session.request.AgentSessionCreateRequest;
 import com.airesumeforge.agent.dto.session.request.AgentSessionUpdateRequest;
 import com.airesumeforge.agent.entity.AgentMessage;
 import com.airesumeforge.agent.entity.AgentSession;
-import com.airesumeforge.entity.Resume;
 import com.airesumeforge.exception.BusinessException;
 import com.airesumeforge.agent.mapper.AgentMessageMapper;
 import com.airesumeforge.agent.mapper.AgentSessionMapper;
-import com.airesumeforge.mapper.ResumeMapper;
 import com.airesumeforge.agent.service.AgentSessionService;
 import com.airesumeforge.agent.dto.session.response.AgentMessageResponse;
 import com.airesumeforge.agent.dto.session.response.AgentSessionDetailResponse;
@@ -32,7 +33,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
 
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
-    private final ResumeMapper resumeMapper;
+    private final ResumeClient resumeClient;
 
     /**
      * 创建Agent会话
@@ -236,7 +237,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
             return;
         }
 
-        Resume resume = resumeMapper.selectById(resumeId);
+        ApiResponse<ResumeDetailResponse> detailedResume = resumeClient.getDetailedResume(resumeId);
+        ResumeDetailResponse resume = detailedResume.getData();
         if (resume == null || !userId.equals(resume.getUserId())) {
             throw BusinessException.notFound("简历不存在或无权限访问");
         }
