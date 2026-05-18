@@ -17,6 +17,7 @@ import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -79,6 +80,7 @@ public class AliPayServiceImpl implements AlipayService {
      * @return 返回 success表示支付宝认为你处理成功，停止重试, 返回fail → 支付宝认为你处理失败，会隔段时间重试
      */
     @Override
+    @GlobalTransactional(name = "paySuccess-updateOrder", rollbackFor = Exception.class)
     public String handleAlipayCallback(AlipayCallbackRequest request) {
         // 1. 验签失败直接返回
         if (!signVerified(request)) {

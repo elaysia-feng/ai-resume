@@ -73,6 +73,11 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- seata -->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+        </dependency>
 
     </dependencies>
 

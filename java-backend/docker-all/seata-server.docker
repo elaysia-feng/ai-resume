@@ -1,0 +1,14 @@
+docker run -d \
+--name seata-server \
+-p 8091:8091 \
+-e MODE=cluster \
+-e STORE_MODE=db \
+-e DB_HOST=127.0.0.1 \
+-e DB_PORT=3306 \
+-e DB_USER=root \
+-e DB_PASSWORD=@Feng050813 \
+-e DB_DATABASE=seata \
+-e NACOS_SERVER_ADDR=127.0.0.1:8848 \
+-e NACOS_NAMESPACE="" \
+-e NACOS_GROUP=DEFAULT_GROUP \
+seataio/seata-server:2.0.0

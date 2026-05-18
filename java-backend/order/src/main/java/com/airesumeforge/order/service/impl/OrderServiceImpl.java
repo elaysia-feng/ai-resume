@@ -17,8 +17,11 @@ import com.airesumeforge.order.mapper.PlanMapper;
 import com.airesumeforge.order.service.OrderService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.time.Duration;
 import java.time.LocalDateTime;
