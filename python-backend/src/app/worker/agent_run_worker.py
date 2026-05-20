@@ -86,6 +86,7 @@ async def run_worker() -> None:
             arguments={
                 "x-dead-letter-exchange": settings.agent_run_dead_letter_exchange,
                 "x-dead-letter-routing-key": settings.agent_run_dead_routing_key,
+                "x-queue-mode": "lazy",
             },
         )
         dead_letter_queue = await channel.declare_queue(settings.agent_run_dead_letter_queue, durable=True)

@@ -1,5 +1,5 @@
-from app.interview.state import InterviewAgentState
-from app.service.java_gateway_service import java_gateway_service
+from src.app.interview.state import InterviewAgentState
+from src.app.service.java_gateway_service import java_gateway_service
 
 
 async def answer_node(state: InterviewAgentState) -> dict:

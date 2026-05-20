@@ -1,0 +1,20 @@
+spring:
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://elias:779337@localhost:5672}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        retry:
+          enabled: true
+          max-attempts: 3

@@ -1,0 +1,17 @@
+oss:
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  bucket-name: ${OSS_BUCKET_NAME:elias-ai-resume}
+  endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+  domain: ${OSS_DOMAIN:https://elias-ai-resume.oss-cn-beijing.aliyuncs.com}
+  avatar-dir: avatar/
+  resume-avatar-dir: resume-avatar/
+
+alipay:
+  app-id: ${ALIPAY_APP_ID:}
+  private-key: ${ALIPAY_PRIVATE_KEY:}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+  notify-url: ${ALIPAY_NOTIFY_URL:http://localhost:8080/api/payment/callback/alipay}
+  return-url: ${ALIPAY_RETURN_URL:http://localhost:3000/order/result}
+  sign-type: RSA2

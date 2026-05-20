@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.internal_dto.resume_snapshot import ResumeSnapshot
+from src.app.internal_dto.resume_snapshot import ResumeSnapshot
 
 
 class InterviewBootstrapResponse(BaseModel):

@@ -1,2 +1,2 @@
-com.airesumeforge.mq.MqConfig
-com.airesumeforge.mq.RabbitMQErrorConfig
+com.elias.common.mq.MqConfig
+com.elias.common.mq.RabbitMQErrorConfig

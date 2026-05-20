@@ -1,0 +1,6 @@
+gateway:
+  white-list: /api/auth/login,/api/auth/register,/api/notification/code
+  dynamic-router:
+    data-id: gateway-routers.yaml
+    group: DEFAULT_GROUP
+    timeout-ms: 5000

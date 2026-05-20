@@ -1,4 +1,4 @@
-from app.interview.state import InterviewAgentState
+from src.app.interview.state import InterviewAgentState
 
 
 def route_after_analysis(state: InterviewAgentState) -> str:

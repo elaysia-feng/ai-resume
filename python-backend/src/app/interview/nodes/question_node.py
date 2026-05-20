@@ -1,11 +1,11 @@
 from langgraph.types import interrupt
 
-from app.interview.prompts import question_prompt
-from app.interview.state import InterviewAgentState
-from app.interview.types import InterviewQuestion
-from app.internal_dto.internal_interview_question_create_request import InternalInterviewQuestionCreateRequest
-from app.service.agent_factory import agent_factory
-from app.service.java_gateway_service import java_gateway_service
+from src.app.interview.prompts import question_prompt
+from src.app.interview.state import InterviewAgentState
+from src.app.interview.types import InterviewQuestion
+from src.app.internal_dto.internal_interview_question_create_request import InternalInterviewQuestionCreateRequest
+from src.app.service.agent_factory import agent_factory
+from src.app.service.java_gateway_service import java_gateway_service
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
 

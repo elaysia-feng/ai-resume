@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.internal_dto.clarification_answer import ClarificationAnswer
+from src.app.internal_dto.clarification_answer import ClarificationAnswer
 
 
 class InterviewGraphContinueRunRequest(BaseModel):

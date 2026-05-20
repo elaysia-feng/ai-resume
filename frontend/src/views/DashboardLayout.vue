@@ -23,6 +23,10 @@
           <span class="nav-icon">🕐</span>
           <span>Agent 会话</span>
         </router-link>
+        <router-link to="/dashboard/interview" class="nav-item" :class="{ active: isActive('/dashboard/interview') }">
+          <span class="nav-icon">💬</span>
+          <span>模拟面试</span>
+        </router-link>
         <router-link to="/dashboard/templates" class="nav-item" :class="{ active: isActive('/dashboard/templates') }">
           <span class="nav-icon">🎨</span>
           <span>模板管理</span>

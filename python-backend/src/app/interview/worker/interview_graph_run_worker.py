@@ -4,12 +4,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
-from app.agent.constants import AgentStatus, InterviewStage
-from app.config import get_settings
-from app.internal_dto.interview_graph_run_request import InterviewGraphRunRequest
-from app.internal_dto.run_status_update_request import RunStatusUpdateRequest
-from app.interview.graph import InterviewGraphService
-from app.service.java_gateway_service import java_gateway_service
+from src.app.agent.constants import AgentStatus, InterviewStage
+from src.app.config import get_settings
+from src.app.internal_dto.interview_graph_run_request import InterviewGraphRunRequest
+from src.app.internal_dto.run_status_update_request import RunStatusUpdateRequest
+from src.app.interview.graph import InterviewGraphService
+from src.app.service.java_gateway_service import java_gateway_service
 
 class InterviewRunJobMessage(BaseModel):
     """面试模拟 MQ 消息，和 Java InterviewAgentRunJobMessage 对齐。"""
@@ -35,7 +35,7 @@ async def interview_graph_run_worker() -> None:
 
     settings = get_settings()
     # 定义改worker的最大 run 的数量
-    max_runs = settings.python_agent_max_concurrent_runs if settings.python_agent_max_concurrent_runs is not None else 1
+    max_runs = max(1, settings.python_agent_max_concurrent_runs)
     limiter_run = asyncio.Semaphore(max_runs)
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
 
@@ -60,22 +60,25 @@ async def interview_graph_run_worker() -> None:
             aio_pika.ExchangeType.DIRECT,
             durable=True,
         )
-        # TODO 跟java端的队列对上
         # 声名队列
         queue = await channel.declare_queue(
-            "agent.run.queue",
+            settings.agent_run_queue,
             durable=True,
-            arguments={'x-dead-letter-queue': dead_letter_exchange, "x-dead-letter-routing-key": settings.agent_run_dead_letter_routing_key},
+            arguments={
+                "x-dead-letter-exchange": settings.agent_run_dead_letter_exchange,
+                "x-dead-letter-routing-key": settings.agent_run_dead_routing_key,
+                "x-queue-mode": "lazy",
+            },
         )
 
         dead_letter_queue = await channel.declare_queue(
-            "agent.interview.run.dlq",
+            settings.agent_run_dead_letter_queue,
             durable=True,
         )
 
-        await queue.bind(exchange, routing_key=settings.agent_run_routing_key)
-        await queue.bind(exchange, routing_key=settings.agent_run_continuation_routing_key)
-        await dead_letter_queue.bind(dead_letter_exchange, routing_key=settings.agent_run_dead_letter_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_run_start_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_run_continue_routing_key)
+        await dead_letter_queue.bind(dead_letter_exchange, routing_key=settings.agent_run_dead_routing_key)
 
         await queue.consume(lambda message: handle_message(message, limiter_run))
 
@@ -86,8 +89,8 @@ async def sync_run_status(run_id: int, status: str, result: dict) -> None:
     """把更新的状态回写给java"""
     if status == "WAITING_ANSWER":
         await java_gateway_service.update_run_status(
-            run_id=run_id,
-            reqeust=RunStatusUpdateRequest(
+            run_id,
+            RunStatusUpdateRequest(
                 status=AgentStatus.WAITING_USER,
                 current_stage=InterviewStage.WAITING_ANSWER,
                 clarification_payload=result,
@@ -102,8 +105,8 @@ async def sync_run_status(run_id: int, status: str, result: dict) -> None:
 
     # 还有个情况就是 出到最后一道题了, 调用了 continue_run的时候就直接 把整个图流程执行完了, 这样的话就完成了 Summary节点了, 就更新状态为 Summary就行了
     await java_gateway_service.update_run_status(
-        run_id=run_id,
-        reqeust=RunStatusUpdateRequest(
+        run_id,
+        RunStatusUpdateRequest(
             status=status,
             current_stage="SUMMARY",
             result_summary=json.dumps(result.get("summary", {}), ensure_ascii=False),
@@ -130,9 +133,9 @@ async def mark_failed(run_id: int, exc: Exception) -> None:
 
     try:
         await java_gateway_service.update_run_status(
-            run_id=run_id,
-            rqeust=RunStatusUpdateRequest(
-                status="FAILED",
+            run_id,
+            RunStatusUpdateRequest(
+                status=AgentStatus.FAILED,
                 error_message=str(exc),
             )
         )
@@ -145,7 +148,7 @@ async def handle_message(message, limiter_run: asyncio.Semaphore) -> None:
     try:
         payload = json.loads(message.body.decode("utf-8"))
         # 校验传递的message格式对不对
-        job = InterviewRunJobMessage.model_validate(message)
+        job = InterviewRunJobMessage.model_validate(payload)
     except (UnicodeDecodeError, json.JSONDecodeError, ValidationError):
         # 不对的话直接拒绝
         await message.reject(requeue=False)
@@ -155,7 +158,7 @@ async def handle_message(message, limiter_run: asyncio.Semaphore) -> None:
         await message.ack()
         return
     # 如果是的话就直接执行 把message里面的任务执行
-    async with limiter_run as limiter:
+    async with limiter_run:
         try:
             await execute_job(job)
         except Exception as e:

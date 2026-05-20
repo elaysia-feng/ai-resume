@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${INTERVIEW_DB_NAME:ai_resume_interview}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://elias:779337@localhost:5672}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        default-requeue-rejected: false
+
+python:
+  agent:
+    base-url: ${PYTHON_AGENT_BASE_URL:http://localhost:8000}
+    read-timeout-seconds: 300
+
+internal:
+  agent:
+    service-token: ${INTERNAL_AGENT_SERVICE_TOKEN:change-me}
+
+agent:
+  rabbitmq:
+    run-exchange: ${AGENT_RUN_EXCHANGE:agent.run.exchange}
+    run-queue: ${AGENT_RUN_QUEUE:agent.run.queue}
+    start-routing-key: ${AGENT_RUN_START_ROUTING_KEY:agent.run.start}
+    continue-routing-key: ${AGENT_RUN_CONTINUE_ROUTING_KEY:agent.run.continue}
+    dead-letter-exchange: ${AGENT_RUN_DLX:agent.run.dlx}
+    dead-letter-queue: ${AGENT_RUN_DLQ:agent.run.dlq}
+    dead-letter-routing-key: ${AGENT_RUN_DEAD_ROUTING_KEY:agent.run.dead}

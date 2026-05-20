@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.interview.types import InterviewOption
+from src.app.interview.types import InterviewOption
 
 
 class InternalInterviewQuestionCreateRequest(BaseModel):

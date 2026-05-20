@@ -1,10 +1,10 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
 
-from app.interview.prompts import analyst_prompt
-from app.interview.state import InterviewAgentState
-from app.interview.types import InterviewContext
-from app.service.agent_factory import agent_factory
+from src.app.interview.prompts import analyst_prompt
+from src.app.interview.state import InterviewAgentState
+from src.app.interview.types import InterviewContext
+from src.app.service.agent_factory import agent_factory
 
 
 async def analyst_node(state: InterviewAgentState) -> dict:

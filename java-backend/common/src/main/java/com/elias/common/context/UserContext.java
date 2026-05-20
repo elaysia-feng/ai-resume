@@ -1,0 +1,86 @@
+package com.elias.common.context;
+
+import com.alibaba.ttl.TransmittableThreadLocal;
+
+
+/**
+ * 用户上下文工具类
+ * 基于 TransmittableThreadLocal 存储当前请求的用户ID
+ * 在 JwtAuthFilter 中设置，Controller/Service 中获取
+ * <p>
+ * TransmittableThreadLocal 解决了线程池复用场景下的数据透传问题
+ *
+ * <pre>
+ * 用法：
+ *   // 获取当前用户ID（String）
+ *   String userId = UserContext.getUserId();
+ *
+ *   // 获取当前用户ID（Long）
+ *   Long id = UserContext.getUserIdLong();
+ *
+ *   // 在Filter中设置（JwtAuthFilter）
+ *   UserContext.setUserId(userIdStr);
+ *
+ *   // 请求结束后清理（重要！）
+ *   UserContext.clear();
+ * </pre>
+ */
+
+// TODO 因为现在的common并不是一个微服务, 我们无法取到 x-user-header里面的userId, 如果后面有强需要的话, 可以考虑加一个UserContextFilter, 其它服务通过扫描注册
+public final class UserContext {
+
+    private static final TransmittableThreadLocal<String> USER_ID = new TransmittableThreadLocal<>();
+    private static final TransmittableThreadLocal<Long> USER_ID_LONG = new TransmittableThreadLocal<>();
+
+    private UserContext() {}
+
+    /**
+     * 获取当前用户ID（String）
+     */
+    public static String getUserId() {
+        return USER_ID.get();
+    }
+
+    /**
+     * 获取当前用户ID（Long）
+     * 注意：仅当 User.id 为 Long 时使用
+     */
+    public static Long getUserIdLong() {
+        return USER_ID_LONG.get();
+    }
+
+    /**
+     * 设置当前用户ID（String）
+     */
+    public static void setUserId(String userId) {
+        USER_ID.set(userId);
+        if (userId != null) {
+            try {
+                USER_ID_LONG.set(Long.parseLong(userId));
+            } catch (NumberFormatException e) {
+                USER_ID_LONG.set(null);
+            }
+        } else {
+            USER_ID_LONG.set(null);
+        }
+    }
+
+    /**
+     * 清除上下文（每个请求结束后必须调用）
+     */
+    public static void clear() {
+        USER_ID.remove();
+        USER_ID_LONG.remove();
+    }
+
+    /**
+     * 得到并检验userId是否为空
+     */
+    public static Long verifyGetUserId(){
+        Long userIdLong = getUserIdLong();
+        if (userIdLong == null) {
+            throw new IllegalStateException("UserId has not been set");
+        }
+        return userIdLong;
+    }
+}

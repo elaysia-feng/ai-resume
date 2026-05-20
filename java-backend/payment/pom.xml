@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.airesumeforge</groupId>
+        <groupId>com.elias</groupId>
         <artifactId>ai-resume-forge-java-backend</artifactId>
         <version>0.1.0</version>
     </parent>
@@ -12,7 +12,7 @@
     <artifactId>payment</artifactId>
     <dependencies>
         <dependency>
-            <groupId>com.airesumeforge</groupId>
+            <groupId>com.elias</groupId>
             <artifactId>common</artifactId>
             <version>0.1.0</version>
         </dependency>
@@ -27,10 +27,18 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
-        <!-- seata -->
+        <!-- Loadbalancer for Feign client -->
         <dependency>
-            <groupId>io.seata</groupId>
-            <artifactId>seata-spring-boot-starter</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
     </dependencies>
 

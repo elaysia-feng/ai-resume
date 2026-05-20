@@ -3,11 +3,11 @@ from typing import Any
 
 import httpx
 
-from app.internal_dto.internal_interview_round_detail_response import InternalInterviewRoundDetailResponse
-from app.internal_dto.interview_bootstrap_request import InterviewBootstrapRequest
-from app.internal_dto.interview_bootstrap_response import InterviewBootstrapResponse
-from app.internal_dto.internal_interview_question_create_request import InternalInterviewQuestionCreateRequest
-from app.internal_dto.internal_interview_question_create_response import InternalInterviewQuestionCreateResponse
+from src.app.internal_dto.internal_interview_round_detail_response import InternalInterviewRoundDetailResponse
+from src.app.internal_dto.interview_bootstrap_request import InterviewBootstrapRequest
+from src.app.internal_dto.interview_bootstrap_response import InterviewBootstrapResponse
+from src.app.internal_dto.internal_interview_question_create_request import InternalInterviewQuestionCreateRequest
+from src.app.internal_dto.internal_interview_question_create_response import InternalInterviewQuestionCreateResponse
 from src.app.agent.constants import AgentStatus
 from src.app.agent.events import AgentEvent
 from src.app.config.settings import get_settings
@@ -53,11 +53,19 @@ class JavaGatewayService:
             import aio_pika
         except ImportError as exc:
             raise RuntimeError("缺少 aio-pika，请先安装 Python 依赖") from exc
-        connection = aio_pika.connect_robust(self.settings.rabbitmq_url)
+        connection = await aio_pika.connect_robust(self.settings.rabbitmq_url)
 
         async with connection:
             channel = await connection.channel()
-            queue = await channel.declare_queue(self.settings.agent_run_result_queue, durable=True)
+            queue = await channel.declare_queue(
+                self.settings.agent_run_result_queue,
+                durable=True,
+                arguments={
+                    "x-dead-letter-exchange": self.settings.agent_run_dead_letter_exchange,
+                    "x-dead-letter-routing-key": self.settings.agent_run_dead_routing_key,
+                    "x-queue-mode": "lazy",
+                },
+            )
             await channel.default_exchange.publish(
                 aio_pika.Message(body=json.dumps(message).encode("utf-8")),
                 routing_key=queue.name,

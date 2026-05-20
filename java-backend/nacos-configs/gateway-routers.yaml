@@ -1,0 +1,35 @@
+routes:
+  - id: auth-service
+    uri: lb://auth-service
+    predicates:
+      - Path=/api/auth/**
+
+  - id: resume-service
+    uri: lb://resume-service
+    predicates:
+      - Path=/api/resume/**
+
+  - id: agent-service
+    uri: lb://agent-service
+    predicates:
+      - Path=/api/agent/**
+
+  - id: interview-service
+    uri: lb://interview-service
+    predicates:
+      - Path=/api/interview/**
+
+  - id: order-service
+    uri: lb://order-service
+    predicates:
+      - Path=/api/order/**,/api/plan/**,/api/subscription/**
+
+  - id: payment-service
+    uri: lb://payment-service
+    predicates:
+      - Path=/api/payment/**
+
+  - id: notification-service
+    uri: lb://notification-service
+    predicates:
+      - Path=/api/notification/**

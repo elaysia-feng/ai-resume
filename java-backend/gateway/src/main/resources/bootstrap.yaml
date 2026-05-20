@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: gateway
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:nacos:gateway.yaml
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:}
+      password: ${NACOS_PASSWORD:}
+      discovery:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+
+gateway:
+  dynamic-router:
+    data-id: ${GATEWAY_ROUTES_DATA_ID:gateway-routers.yaml}
+    group: ${GATEWAY_ROUTES_GROUP:${NACOS_GROUP:DEFAULT_GROUP}}
+    timeout-ms: ${GATEWAY_ROUTES_TIMEOUT_MS:5000}

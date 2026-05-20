@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${RESUME_DB_NAME:ai_resume_resume}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://elias:779337@localhost:5672}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+
+python:
+  agent:
+    base-url: ${PYTHON_AGENT_BASE_URL:http://localhost:8000}
+    read-timeout-seconds: 300
+
+internal:
+  agent:
+    service-token: ${INTERNAL_AGENT_SERVICE_TOKEN:change-me}
+
+oss:
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  bucket-name: ${OSS_BUCKET_NAME:elias-ai-resume}
+  endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+  domain: ${OSS_DOMAIN:https://elias-ai-resume.oss-cn-beijing.aliyuncs.com}
+  avatar-dir: avatar/
+  resume-avatar-dir: resume-avatar/

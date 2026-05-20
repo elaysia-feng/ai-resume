@@ -49,3 +49,11 @@ export {
 export {
   getJavaHealth,
 } from './health.js';
+
+export {
+  finishInterviewRun,
+  getInterviewBoard,
+  getInterviewQuestionRounds,
+  startInterviewRun,
+  submitInterviewAnswer,
+} from './interview.js';

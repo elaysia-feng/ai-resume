@@ -3,17 +3,17 @@ from typing import Any
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 
-from app.agent.graph import build_checkpointer
-from app.internal_dto.interview_graph_run_request import InterviewGraphRunRequest
-from app.internal_dto.interview_run_response import InterviewStartResponse, InterviewContinueResponse
-from app.interview.nodes.analyst_answer_node import analyst_answer_node
-from app.interview.nodes.analyst_node import analyst_node
-from app.interview.nodes.answer_node import answer_node
-from app.interview.nodes.bootstrap_node import bootstrap_node
-from app.interview.nodes.question_node import question_node
-from app.interview.nodes.summary_node import summary_node
-from app.interview.routing import route_after_analysis
-from app.interview.state import InterviewAgentState
+from src.app.agent.graph import build_checkpointer
+from src.app.internal_dto.interview_graph_run_request import InterviewGraphRunRequest
+from src.app.internal_dto.interview_run_response import InterviewStartResponse, InterviewContinueResponse
+from src.app.interview.nodes.analyst_answer_node import analyst_answer_node
+from src.app.interview.nodes.analyst_node import analyst_node
+from src.app.interview.nodes.answer_node import answer_node
+from src.app.interview.nodes.bootstrap_node import bootstrap_node
+from src.app.interview.nodes.question_node import question_node
+from src.app.interview.nodes.summary_node import summary_node
+from src.app.interview.routing import route_after_analysis
+from src.app.interview.state import InterviewAgentState
 from langgraph.types import Command
 
 # 构建checkpoint
@@ -110,7 +110,7 @@ class InterviewGraphService:
         # }
 
         # 这个update返回的是state delta(也就是 增量更新的state)
-        async for update in interview_graph.astream(init_state, config, stream_mode="updates"):
+        async for update in self.graph.astream(init_state, config, stream_mode="updates"):
             for node_name, node_state in update.items():
                 if node_name == "__interrupt__":
                     payload = self._extract_interrupt_payload(node_state)
@@ -131,7 +131,7 @@ class InterviewGraphService:
             question={},
         )
 
-    async def continue_run(self, request: InterviewGraphRunRequest) -> InterviewStartResponse:
+    async def continue_run(self, request: InterviewGraphRunRequest) -> InterviewContinueResponse:
         """继续执行 graph图"""
         if request.status != "READY_ANSWER":
             return InterviewContinueResponse(status="IGNORED")
@@ -139,7 +139,8 @@ class InterviewGraphService:
         config = self._interview_graph_config(request.run_id)
 
         # 这个Command参数就会让 langgraph自动把checkpoint里面的数据传回给graph, 以达到恢复的目的
-        async for update in interview_graph.astream(Command(resume={"answer": True})
+        final_state: dict[str, Any] = {}
+        async for update in self.graph.astream(Command(resume={"answer": True})
                 , config
                 , stream_mode="updates"):
 
@@ -151,18 +152,29 @@ class InterviewGraphService:
                         status="WAITING_ANSWER",
                         round_id=payload.get("round_id"),
                         round_no=payload.get("round_no"),
+                        question=payload.get("question", {}),
                     )
+                if isinstance(node_state, dict):
+                    final_state.update(node_state)
 
-        return InterviewContinueResponse(status="SUCCESS")
+        return InterviewContinueResponse(
+            status="SUCCESS",
+            summary={
+                "summary": final_state.get("summary"),
+                "highlight": final_state.get("highlight"),
+                "improvement": final_state.get("improvement"),
+                "score": final_state.get("score"),
+            },
+        )
 
     # 取interrupt 的节点状态里面的值, 就是得到对象里面的value属性
-    def _extract_interrupt_payload(self, interrupt_state: Any) -> dict[str, Any] | None:
+    def _extract_interrupt_payload(self, interrupt_state: Any) -> dict[str, Any]:
         if isinstance(interrupt_state, (list, tuple)) and interrupt_state:
             payload = getattr(interrupt_state[0], "value", None)
         else:
             payload = getattr(interrupt_state, "value", None)
 
-        return payload if isinstance(payload, dict) else None
+        return payload if isinstance(payload, dict) else {}
 
 
 

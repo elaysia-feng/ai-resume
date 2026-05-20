@@ -1,7 +1,7 @@
-from app.internal_dto.interview_bootstrap_request import InterviewBootstrapRequest
-from app.internal_dto.interview_bootstrap_response import InterviewBootstrapResponse
-from app.interview.state import InterviewAgentState
-from app.service.java_gateway_service import java_gateway_service
+from src.app.internal_dto.interview_bootstrap_request import InterviewBootstrapRequest
+from src.app.internal_dto.interview_bootstrap_response import InterviewBootstrapResponse
+from src.app.interview.state import InterviewAgentState
+from src.app.service.java_gateway_service import java_gateway_service
 
 
 # 从 java 加载上下文

@@ -1,10 +1,10 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
 
-from app.interview.prompts import analyst_answer_prompt
-from app.interview.state import InterviewAgentState
-from app.interview.types import InterviewEvaluation
-from app.service.agent_factory import agent_factory
+from src.app.interview.prompts import analyst_answer_prompt
+from src.app.interview.state import InterviewAgentState
+from src.app.interview.types import InterviewEvaluation
+from src.app.service.agent_factory import agent_factory
 
 MAX_ROUNDS = 5
 

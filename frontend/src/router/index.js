@@ -41,6 +41,11 @@ const routes = [
         component: () => import('../views/HistoryView.vue'),
       },
       {
+        path: 'interview',
+        name: 'Interview',
+        component: () => import('../views/InterviewView.vue'),
+      },
+      {
         path: 'templates',
         name: 'Templates',
         component: () => import('../views/TemplatesView.vue'),
