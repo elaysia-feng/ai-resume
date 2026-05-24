@@ -42,11 +42,11 @@
           v-for="session in sessions"
           :key="session.id"
           class="session-item"
-          :class="{ active: selectedRunId === session.id }"
+          :class="{ active: selectedRunId === session.activeRunId }"
           @click="selectSession(session)"
         >
           <span class="session-title">{{ session.sessionTitle || `面试会话 #${session.id}` }}</span>
-          <span class="session-meta">{{ session.status }} · {{ formatDateTime(session.updatedAt || session.lastMessageAt) }}</span>
+          <span class="session-meta">{{ session.activeRunStatus || session.status }} · {{ formatDateTime(session.updatedAt || session.lastMessageAt) }}</span>
         </button>
       </aside>
 
@@ -185,6 +185,12 @@ async function loadInterviewSessions() {
   loadingSessions.value = true;
   try {
     sessions.value = await listAgentSessions({ sceneCode: 'INTERVIEW' });
+    if (!selectedRunId.value) {
+      const activeSession = sessions.value.find((session) => session.activeRunId);
+      if (activeSession) {
+        await selectSession(activeSession);
+      }
+    }
   } catch (err) {
     setStatus('', extractApiMessage(err, '加载面试会话失败'));
   } finally {
@@ -220,11 +226,21 @@ async function handleCreateAndStart() {
 }
 
 async function selectSession(session) {
-  selectedRunId.value = session.id;
+  if (!session.activeRunId) {
+    selectedRunId.value = null;
+    board.value = null;
+    rounds.value = [];
+    stopPolling();
+    setStatus('', '该会话暂无进行中的面试');
+    return;
+  }
+  selectedRunId.value = session.activeRunId;
   setStatus();
   await refreshBoard();
   await loadRounds();
-  startPolling();
+  if (shouldKeepPolling(board.value?.status)) {
+    startPolling();
+  }
 }
 
 async function refreshBoard() {
@@ -240,6 +256,9 @@ async function refreshBoard() {
       activeRoundId.value = nextRoundId;
     }
     board.value = nextBoard;
+    if (!shouldKeepPolling(nextBoard?.status)) {
+      stopPolling();
+    }
   } catch (err) {
     setStatus('', extractApiMessage(err, '加载当前题失败'));
   } finally {
@@ -283,7 +302,9 @@ async function handleSubmitAnswer() {
     });
     await refreshBoard();
     await loadRounds();
-    startPolling();
+    if (shouldKeepPolling(board.value?.status)) {
+      startPolling();
+    }
     setStatus('答案已提交');
   } catch (err) {
     setStatus('', extractApiMessage(err, '提交答案失败'));
@@ -313,6 +334,10 @@ function stopPolling() {
     window.clearInterval(pollTimer);
     pollTimer = null;
   }
+}
+
+function shouldKeepPolling(status) {
+  return !['SUCCESS', 'FAILED', 'CANCELLED'].includes(status || '');
 }
 
 function formatAnswer(rawAnswer) {

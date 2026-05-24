@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * 这组 Bean 只解决三件事：
  * 1. Java 创建 run 后把任务投递到主交换机。
- * 2. Python worker 从同一条 durable 队列消费 START / CONTINUE 任务。
+ * 2. Python resume / interview worker 分别从自己的 durable 队列消费任务。
  * 3. 坏消息被 reject 后进入 DLQ，避免卡住正常任务。
  */
 @Slf4j
@@ -63,14 +63,24 @@ public class AgentRabbitConfig {
         // 死信交换机：格式错误、无法处理的消息会被路由到这里。
         return new DirectExchange(agentRabbitProperties.getDeadLetterExchange(), true, false);
     }
-    // Agent运行的消息队列
+    // 简历优化 Agent 运行的消息队列
     @Bean
-    public Queue agentRunQueue() {
-        return QueueBuilder.durable(agentRabbitProperties.getRunQueue())
+    public Queue agentResumeRunQueue() {
+        return QueueBuilder.durable(agentRabbitProperties.getResumeRunQueue())
                 // worker reject 且不 requeue 时，消息会进入 DLQ，方便排查坏消息。
                 .deadLetterExchange(agentRabbitProperties.getDeadLetterExchange())
                 .deadLetterRoutingKey(agentRabbitProperties.getDeadLetterRoutingKey())
                 // 成为lazyQueue 这样就可以写入到磁盘里, 且可以持久化(其实在很多写入的时候, 这个方法更快, 因为mq对IO进行了优化)
+                .lazy()
+                .build();
+    }
+
+    // 面试模拟 Agent 运行的消息队列
+    @Bean
+    public Queue agentInterviewRunQueue() {
+        return QueueBuilder.durable(agentRabbitProperties.getInterviewRunQueue())
+                .deadLetterExchange(agentRabbitProperties.getDeadLetterExchange())
+                .deadLetterRoutingKey(agentRabbitProperties.getDeadLetterRoutingKey())
                 .lazy()
                 .build();
     }
@@ -82,19 +92,31 @@ public class AgentRabbitConfig {
     }
 
     @Bean
-    public Binding agentRunStartBinding() {
-        // START 和 CONTINUE 共用同一条队列，由消息体 jobType 区分执行入口。
-        return BindingBuilder.bind(agentRunQueue())
+    public Binding agentResumeRunStartBinding() {
+        return BindingBuilder.bind(agentResumeRunQueue())
                 .to(agentRunExchange())
-                .with(agentRabbitProperties.getStartRoutingKey());
+                .with(agentRabbitProperties.getResumeStartRoutingKey());
     }
 
     @Bean
-    public Binding agentRunContinueBinding() {
-        // 用户补充信息后重新入队，仍然让 Python worker 继续同一个 run。
-        return BindingBuilder.bind(agentRunQueue())
+    public Binding agentResumeRunContinueBinding() {
+        return BindingBuilder.bind(agentResumeRunQueue())
                 .to(agentRunExchange())
-                .with(agentRabbitProperties.getContinueRoutingKey());
+                .with(agentRabbitProperties.getResumeContinueRoutingKey());
+    }
+
+    @Bean
+    public Binding agentInterviewRunStartBinding() {
+        return BindingBuilder.bind(agentInterviewRunQueue())
+                .to(agentRunExchange())
+                .with(agentRabbitProperties.getInterviewStartRoutingKey());
+    }
+
+    @Bean
+    public Binding agentInterviewRunContinueBinding() {
+        return BindingBuilder.bind(agentInterviewRunQueue())
+                .to(agentRunExchange())
+                .with(agentRabbitProperties.getInterviewContinueRoutingKey());
     }
 
     @Bean

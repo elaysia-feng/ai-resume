@@ -65,7 +65,7 @@
       </div>
 
       <!-- Form -->
-      <form class="auth-form" @submit.prevent="handleSubmit" :class="{ 'shake': shaking }">
+      <form class="auth-form" novalidate @submit.prevent="handleSubmit" :class="{ 'shake': shaking }">
         <!-- Step 1: Send code -->
         <div class="step-panel" :class="{ 'slide-out-left': activeStep > 1, 'slide-in-right': activeStep === 1 && slideIn }" v-show="activeStep === 1">
           <div class="form-group">
@@ -75,7 +75,6 @@
                 v-model="form.email"
                 type="email"
                 placeholder=" "
-                required
                 autocomplete="email"
                 :disabled="countdown > 0"
                 @focus="labelFloat('email', true)"
@@ -135,7 +134,6 @@
                 v-model="form.code"
                 type="text"
                 placeholder=" "
-                required
                 maxlength="6"
                 autocomplete="one-time-code"
                 inputmode="numeric"
@@ -183,7 +181,6 @@
                 v-model="form.username"
                 type="text"
                 placeholder=" "
-                required
                 autocomplete="username"
                 @focus="labelFloat('username', true)"
                 @blur="labelFloat('username', false)"
@@ -200,7 +197,6 @@
                 v-model="form.password"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder=" "
-                required
                 minlength="8"
                 autocomplete="new-password"
                 @focus="labelFloat('password', true)"
@@ -228,7 +224,6 @@
                 v-model="form.confirmPassword"
                 :type="showConfirmPassword ? 'text' : 'password'"
                 placeholder=" "
-                required
                 autocomplete="new-password"
                 @focus="labelFloat('confirmPassword', true)"
                 @blur="labelFloat('confirmPassword', false)"
@@ -520,8 +515,8 @@ async function handleSubmit() {
 
     loading.value = true;
     try {
-      await setPassword(verifyToken, form.username, form.password);
-      await authStore.login({ email: form.email, password: form.password });
+      const authData = await setPassword(verifyToken, form.username, form.password);
+      authStore.storeAuthResponse(authData);
       router.push('/');
     } catch (err) {
       errorMsg.value = err?.response?.data?.message || err.message || '注册失败，请稍后重试';

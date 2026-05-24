@@ -1,9 +1,12 @@
 package com.elias.agent.controller;
 
 import com.elias.common.ApiResponse;
+import com.elias.common.dto.agent.internal.request.InternalAgentRunCreateRequest;
 import com.elias.common.dto.agent.internal.request.InternalBootstrapRequest;
 import com.elias.common.dto.agent.internal.request.RunEventBatchRequest;
 import com.elias.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunCreateResponse;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunDetailResponse;
 import com.elias.common.dto.agent.internal.response.InternalBootstrapResponse;
 import com.elias.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
 import com.elias.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
@@ -41,6 +44,16 @@ public class InternalAgentController {
         return internalAgentSupportService.interviewBootstrap(request);
     }
 
+    @PostMapping("/runs/interview")
+    public ApiResponse<InternalAgentRunCreateResponse> createInterviewRun(
+            @RequestBody InternalAgentRunCreateRequest request) {
+        return ApiResponse.ok(internalAgentSupportService.createInterviewRun(request));
+    }
+
+    @GetMapping("/runs/{runId}")
+    public ApiResponse<InternalAgentRunDetailResponse> getInternalRunDetail(@PathVariable Long runId) {
+        return ApiResponse.ok(internalAgentSupportService.getInternalRunDetail(runId));
+    }
 
     /**
      * 批量保存 Python 上报的 run 事件
@@ -68,6 +81,14 @@ public class InternalAgentController {
                                              @Valid @RequestBody RunStatusUpdateRequest request) {
         internalAgentSupportService.updateRunStatus(runId, request);
         return ApiResponse.ok();
+    }
+
+    /**
+     * Python worker 执行前抢占 run。
+     */
+    @PostMapping("/runs/{runId}/claim")
+    public ApiResponse<Boolean> claimRun(@PathVariable Long runId) {
+        return ApiResponse.ok(internalAgentSupportService.claimRun(runId));
     }
 
     @PostMapping("/interview/rounds/{roundId}/analysis")

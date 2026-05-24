@@ -1,8 +1,11 @@
 package com.elias.agent.service;
 
+import com.elias.common.dto.agent.internal.request.InternalAgentRunCreateRequest;
 import com.elias.common.dto.agent.internal.request.InternalBootstrapRequest;
 import com.elias.common.dto.agent.internal.request.RunEventBatchRequest;
 import com.elias.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunCreateResponse;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunDetailResponse;
 import com.elias.common.dto.agent.internal.response.InternalBootstrapResponse;
 import com.elias.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
 import com.elias.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
@@ -41,12 +44,21 @@ public interface InternalAgentSupportService {
     void updateRunStatus(Long runId, RunStatusUpdateRequest request);
 
     /**
+     * 抢占待执行 run，只有 QUEUED -> RUNNING 成功的 worker 才能继续执行。
+     */
+    boolean claimRun(Long runId);
+
+    /**
      * 构造 Python Agent 启动上下文, 但是不含修改的目标指定和约束
      *
      * @param request bootstrap 请求
      * @return 简历、schema、历史消息和约束
      */
     InternalInterviewBootstrapResponse interviewBootstrap(InternalInterviewBootstrapRequest request);
+
+    InternalAgentRunCreateResponse createInterviewRun(InternalAgentRunCreateRequest request);
+
+    InternalAgentRunDetailResponse getInternalRunDetail(Long runId);
 
     void updateQuestionAnalysis(Long roundId, @Valid InternalInterviewQuestionAnalysisRequest request);
 

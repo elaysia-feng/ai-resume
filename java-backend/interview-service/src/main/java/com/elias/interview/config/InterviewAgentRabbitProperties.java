@@ -11,6 +11,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "agent.rabbitmq")
 public class InterviewAgentRabbitProperties {
     private String runExchange = "agent.run.exchange";
-    private String startRoutingKey = "agent.run.start";
-    private String continueRoutingKey = "agent.run.continue";
+    private String interviewStartRoutingKey = "agent.interview.run.start";
+    private String interviewContinueRoutingKey = "agent.interview.run.continue";
 }

@@ -23,10 +23,10 @@ public class AgentRunJobProducer {
     private final AgentRabbitProperties agentRabbitProperties;
 
     public void publish(AgentRunJobMessage message) {
-        // START / CONTINUE 进入同一条队列，但路由键分开，方便后续按类型拆队列或监控。
+        // 简历优化任务进入 resume worker 专用队列。
             String routingKey = "CONTINUE".equals(message.getJobType())
-                    ? agentRabbitProperties.getContinueRoutingKey()
-                    : agentRabbitProperties.getStartRoutingKey();
+                    ? agentRabbitProperties.getResumeContinueRoutingKey()
+                    : agentRabbitProperties.getResumeStartRoutingKey();
 
             // TODO 这里先简单处理, 就是没条消息失败了, 我打印日志
             CorrelationData correlationData = new CorrelationData();
@@ -50,10 +50,10 @@ public class AgentRunJobProducer {
 
     }
     public void publish(InterviewAgentRunJobMessage message) {
-        // START / CONTINUE 进入同一条队列，但路由键分开，方便后续按类型拆队列或监控。
+        // 面试模拟任务进入 interview worker 专用队列。
         String routingKey = "CONTINUE".equals(message.getJobType())
-                ? agentRabbitProperties.getContinueRoutingKey()
-                : agentRabbitProperties.getStartRoutingKey();
+                ? agentRabbitProperties.getInterviewContinueRoutingKey()
+                : agentRabbitProperties.getInterviewStartRoutingKey();
 
         // TODO 这里先简单处理, 就是没条消息失败了, 我打印日志
         CorrelationData correlationData = new CorrelationData();

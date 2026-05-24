@@ -3,9 +3,9 @@ package com.elias.agent.service;
 import com.elias.agent.dto.run.request.AgentMessageCreateRequest;
 import com.elias.agent.dto.session.request.AgentSessionCreateRequest;
 import com.elias.agent.dto.session.request.AgentSessionUpdateRequest;
-import com.elias.agent.dto.session.response.AgentMessageResponse;
-import com.elias.agent.dto.session.response.AgentSessionDetailResponse;
+import com.elias.common.dto.response.AgentMessageResponse;
 import com.elias.agent.dto.session.response.AgentSessionItemResponse;
+import com.elias.common.dto.response.AgentSessionDetailResponse;
 
 import java.util.List;
 

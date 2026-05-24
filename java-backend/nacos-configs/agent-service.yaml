@@ -24,9 +24,12 @@ internal:
 agent:
   rabbitmq:
     run-exchange: ${AGENT_RUN_EXCHANGE:agent.run.exchange}
-    run-queue: ${AGENT_RUN_QUEUE:agent.run.queue}
-    start-routing-key: ${AGENT_RUN_START_ROUTING_KEY:agent.run.start}
-    continue-routing-key: ${AGENT_RUN_CONTINUE_ROUTING_KEY:agent.run.continue}
+    resume-run-queue: ${AGENT_RESUME_RUN_QUEUE:agent.resume.run.queue}
+    resume-start-routing-key: ${AGENT_RESUME_RUN_START_ROUTING_KEY:agent.resume.run.start}
+    resume-continue-routing-key: ${AGENT_RESUME_RUN_CONTINUE_ROUTING_KEY:agent.resume.run.continue}
+    interview-run-queue: ${AGENT_INTERVIEW_RUN_QUEUE:agent.interview.run.queue}
+    interview-start-routing-key: ${AGENT_INTERVIEW_RUN_START_ROUTING_KEY:agent.interview.run.start}
+    interview-continue-routing-key: ${AGENT_INTERVIEW_RUN_CONTINUE_ROUTING_KEY:agent.interview.run.continue}
     dead-letter-exchange: ${AGENT_RUN_DLX:agent.run.dlx}
     dead-letter-queue: ${AGENT_RUN_DLQ:agent.run.dlq}
     dead-letter-routing-key: ${AGENT_RUN_DEAD_ROUTING_KEY:agent.run.dead}

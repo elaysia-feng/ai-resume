@@ -93,9 +93,24 @@ class Settings(BaseSettings):
     # Java 负责发布消息，Python worker 负责消费；这组名字必须和 Java agent.rabbitmq.* 对齐。
     rabbitmq_url: str = Field(default="amqp://elias:779337@localhost:5672/", alias="RABBITMQ_URL")
     agent_run_exchange: str = Field(default="agent.run.exchange", alias="AGENT_RUN_EXCHANGE")
-    agent_run_queue: str = Field(default="agent.run.queue", alias="AGENT_RUN_QUEUE")
-    agent_run_start_routing_key: str = Field(default="agent.run.start", alias="AGENT_RUN_START_ROUTING_KEY")
-    agent_run_continue_routing_key: str = Field(default="agent.run.continue", alias="AGENT_RUN_CONTINUE_ROUTING_KEY")
+    agent_resume_run_queue: str = Field(default="agent.resume.run.queue", alias="AGENT_RESUME_RUN_QUEUE")
+    agent_resume_run_start_routing_key: str = Field(
+        default="agent.resume.run.start",
+        alias="AGENT_RESUME_RUN_START_ROUTING_KEY",
+    )
+    agent_resume_run_continue_routing_key: str = Field(
+        default="agent.resume.run.continue",
+        alias="AGENT_RESUME_RUN_CONTINUE_ROUTING_KEY",
+    )
+    agent_interview_run_queue: str = Field(default="agent.interview.run.queue", alias="AGENT_INTERVIEW_RUN_QUEUE")
+    agent_interview_run_start_routing_key: str = Field(
+        default="agent.interview.run.start",
+        alias="AGENT_INTERVIEW_RUN_START_ROUTING_KEY",
+    )
+    agent_interview_run_continue_routing_key: str = Field(
+        default="agent.interview.run.continue",
+        alias="AGENT_INTERVIEW_RUN_CONTINUE_ROUTING_KEY",
+    )
 
     # 死信队列配置。
     # 主要接收 JSON 格式错误、字段不合法等 worker 无法理解的消息，方便手动排查。

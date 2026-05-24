@@ -107,7 +107,7 @@ public class NotificationServiceImpl implements NotificationService {
         // 生成6位验证码
         String code = String.format("%06d", new Random().nextInt(1000000));
         String key = "verification:" + to;
-
+        log.info("发送的验证码是：{}", code);
         // 存储验证码和过期时间
         Boolean success = redisTemplate.opsForValue()
                 .setIfAbsent(key, code, EXPIRATION, TimeUnit.MILLISECONDS);

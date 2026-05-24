@@ -116,6 +116,34 @@ public class AgentRunServiceImpl implements AgentRunService {
             agentSessionMapper.updateById(session);
         }
 
+        if (request.getClientRequestId() != null && !request.getClientRequestId().isBlank()) {
+            AiAgentRun exists = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
+                    .eq(AiAgentRun::getUserId, userId)
+                    .eq(AiAgentRun::getSessionId, sessionId)
+                    .eq(AiAgentRun::getClientRequestId, request.getClientRequestId())
+                    .last("limit 1"));
+            if (exists != null) {
+                return AgentRunQueueResponse.builder()
+                        .runId(exists.getId())
+                        .status(exists.getStatus())
+                        .build();
+            }
+        }
+
+        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
+                .eq(AiAgentRun::getUserId, userId)
+                .eq(AiAgentRun::getSessionId, sessionId)
+                .eq(AiAgentRun::getSceneCode, request.getSceneCode())
+                .eq(AiAgentRun::getTargetSectionId, request.getTargetSectionId())
+                .eq(AiAgentRun::getActiveFlag, 1)
+                .last("limit 1"));
+        if (activeRun != null) {
+            return AgentRunQueueResponse.builder()
+                    .runId(activeRun.getId())
+                    .status(activeRun.getStatus())
+                    .build();
+        }
+
         // Java 先落 run，再把任务交给 MQ；Python worker 后续按 runId 拉取权威上下文。
         AiAgentRun run = AiAgentRun.builder()
                 .userId(userId)
@@ -127,6 +155,8 @@ public class AgentRunServiceImpl implements AgentRunService {
                 .userInput(request.getUserInput())
                 .jobDescription(session.getJobDescription())
                 .selectedSectionIdsJson(writeJson(List.of(request.getTargetSectionId())))
+                .targetSectionId(request.getTargetSectionId())
+                .activeFlag(1)
                 .clientRequestId(request.getClientRequestId())
                 .build();
         aiAgentRunMapper.insert(run);
@@ -233,6 +263,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         // 写库前由 ResumePatchService 做 section 归属和 schema 校验。
         ResumePatchApplyResponse applyResponse = resumeClient.applyPatch(run.getResumeId(), new ResumePatchApplyRequest(runId, patches));
         run.setStatus(AgentRunStatus.SUCCESS.getCode());
+        run.setActiveFlag(null);
         run.setCompletedAt(LocalDateTime.now());
         run.setResultSummary(String.valueOf(approvalPayload.getOrDefault("summary", "已应用当前模块修改")));
         aiAgentRunMapper.updateById(run);
@@ -252,6 +283,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         Long userId = UserContext.verifyGetUserId();
         AiAgentRun run = getOwnedRun(userId, runId);
         run.setStatus(AgentRunStatus.CANCELLED.getCode());
+        run.setActiveFlag(null);
         run.setCompletedAt(LocalDateTime.now());
         aiAgentRunMapper.updateById(run);
     }
@@ -455,6 +487,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         if (run != null) {
             run.setStatus(AgentRunStatus.FAILED.getCode());
             run.setErrorMessage(message);
+            run.setActiveFlag(null);
             run.setCompletedAt(LocalDateTime.now());
             aiAgentRunMapper.updateById(run);
         }

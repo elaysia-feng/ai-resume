@@ -1,25 +1,22 @@
 package com.elias.notification.mq;
 
 import com.elias.common.client.OrderClient;
-import com.elias.common.client.PayClient;
 import com.elias.common.ApiResponse;
 import com.elias.common.OrderResponse;
 import com.elias.common.PayStatus;
-import com.elias.common.exception.BusinessException;
 import com.elias.common.mq.MqConstants;
 import com.elias.common.mq.MqProducer;
 import com.elias.common.mq.MultiDelayMessage;
 import com.elias.common.mq.OrderMessage;
 import com.elias.notification.service.NotificationService;
 import com.rabbitmq.client.Channel;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,13 +33,14 @@ public class MqConsumer {
 
     // 更新支付成功的queue
     @RabbitListener(queues = MqConstants.PAID_QUEUE)
-    public void updateOrderToPaid(OrderMessage message, Channel channel, @Header Long channelId) throws IOException {
+    public void updateOrderToPaid(OrderMessage message, Channel channel,
+                                  @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         log.info("收到消息 - orderNo: {}, eventType: {}", message.getOrderNo(), message.getEventType());
 
         try{
             // 幂等检查
             if (!canUpdateOrder(message.getOrderNo())) {
-                channel.basicAck(channelId, false);
+                channel.basicAck(deliveryTag, false);
                 return;
             }
 
@@ -55,16 +53,18 @@ public class MqConsumer {
             // 3. 发站内信/推送
              notificationService.sendPaidNotice(message.getUserId(), message.getOrderNo());
 
-            channel.basicAck(channelId, false);
-        } catch (IOException e) {
+            channel.basicAck(deliveryTag, false);
+        } catch (Exception e) {
+            log.error("处理支付成功消息失败 - orderNo: {}", message.getOrderNo(), e);
             // 4. 失败 → NACK，重新入队（requeue=true）
             //  拒绝，让消息重新排队
-            channel.basicNack(channelId, false, true);
+            channel.basicNack(deliveryTag, false, true);
         }
     }
     // TODO 现在是用的 direct 交换机, 后续如果需要的话可以换成topic
-    @RabbitListener(queues = MqConstants.ROUTING_KEY_DELAY)
-    public void handlerDelayMessage(MultiDelayMessage<String> message, Channel channel, @Header Long channelId) throws IOException {
+    @RabbitListener(queues = MqConstants.ORDER_DELAY_QUEUE)
+    public void handlerDelayMessage(MultiDelayMessage<String> message, Channel channel,
+                                    @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         log.info("收到消息 - 还可以重试size{}", message.getDelays().size());
         try{
             // 1. 查询订单状态
@@ -73,21 +73,26 @@ public class MqConsumer {
             // 2. 校验订单, 如果订单存在话, 就校验状态 -> 如果状态为 Paid 返回ack 并且删除队列里面的消息
             if (order == null) {
                 // 第一个是 bool 类型: 是否批量拒绝, 第二个是 是否将消息重新放回队列
-                channel.basicNack(channelId, false, false);
+                channel.basicNack(deliveryTag, false, false);
+                return;
+            }
+            OrderResponse orderData = order.getData();
+            if (orderData == null) {
+                channel.basicNack(deliveryTag, false, false);
+                return;
             }
             // 2.1 状态为已支付, 并删除订单 (只要返回ack 给mq,订单就会自动删除)
-            assert order != null;
-            if (PayStatus.PAID.getStatus().equals(order.getData().getStatus())) {
-                channel.basicAck(channelId, false);
+            if (PayStatus.PAID.getStatus().equals(orderData.getStatus())) {
+                channel.basicAck(deliveryTag, false);
+                return;
             }
 
             // 3. 未支付，如果没有下次检查
-            if (!PayStatus.PAID.getStatus().equals(order.getData().getStatus())) {
-                if (! message.hasNextDelay()){
-                    // 3.1 取消订单
-                    orderClient.updateOrderStatus(message.getData(), PayStatus.CANCELLED.getStatus());
-                    channel.basicAck(channelId, false);
-                }
+            if (! message.hasNextDelay()){
+                // 3.1 取消订单
+                orderClient.updateOrderStatus(message.getData(), PayStatus.CANCELLED.getStatus());
+                channel.basicAck(deliveryTag, false);
+                return;
             }
 
             // 4. 还有下一次检查 → 继续发延迟消息
@@ -101,10 +106,10 @@ public class MqConsumer {
                         new MultiDelayMessage<String>(message.getData(), new ArrayList<>(message.getDelays())));
             }
             // 5. 防止消息永远卡在队列里
-            channel.basicAck(channelId, false);
+            channel.basicAck(deliveryTag, false);
         }catch (Exception e){
             log.error("处理过期消息失败 - orderNo: {}", message.getData(), e);
-            channel.basicNack(channelId, false, true);
+            channel.basicNack(deliveryTag, false, true);
         }
 
     }
@@ -113,7 +118,7 @@ public class MqConsumer {
     // TODO 死信队列消费
     @RabbitListener(queues = MqConstants.DEAD_LETTER_QUEUE)
     public void handleDeadLetter(Message message, Channel channel,
-                                 @Header Long channelId) throws IOException {
+                                 @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         Map<String, Object> headers = message.getMessageProperties().getHeaders();
 
         log.error("========== 死信消息 ==========");
@@ -123,7 +128,7 @@ public class MqConsumer {
         log.error("消息内容: {}", new String(message.getBody()));
 
         // 死信消息处理后直接 ACK，防止堆积
-        channel.basicAck(channelId, false);
+        channel.basicAck(deliveryTag, false);
     }
 
 

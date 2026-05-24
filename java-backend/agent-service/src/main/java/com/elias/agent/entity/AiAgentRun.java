@@ -45,7 +45,7 @@ public class AiAgentRun {
     private Long resumeId;
 
     /**
-     * 场景编码，例如 JD_CUSTOMIZE
+     * 场景编码，例如 简历优化, 面试等
      */
     private String sceneCode;
 
@@ -68,9 +68,13 @@ public class AiAgentRun {
      * 目标岗位 JD
      */
     private String jobDescription;
+    /**
+     * 单模块调用这个字段
+     */
+    private Long targetSectionId;
 
     /**
-     * 前端指定的 sectionId 列表 JSON。
+     * 前端指定的 sectionId 列表 JSON。(以后能支持多模块同时改的时候用)
      */
     private String selectedSectionIdsJson;
 
@@ -94,6 +98,11 @@ public class AiAgentRun {
      * 错误信息
      */
     private String errorMessage;
+    /**
+     * active_flag = 1：PENDING / QUEUED / RUNNING / WAITING_USER / WAITING_CONFIRM
+     * active_flag = NULL：SUCCESS / FAILED / CANCELLED
+     */
+    private Integer activeFlag;
 
     /**
      * 客户端幂等请求ID

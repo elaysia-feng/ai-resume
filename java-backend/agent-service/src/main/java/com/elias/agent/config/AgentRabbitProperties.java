@@ -21,19 +21,34 @@ public class AgentRabbitProperties {
     private String runExchange = "agent.run.exchange";
 
     /**
-     * Agent run 主队列，START 和 CONTINUE 都进入这一条队列。
+     * 简历优化 run 队列。
      */
-    private String runQueue = "agent.run.queue";
+    private String resumeRunQueue = "agent.resume.run.queue";
 
     /**
-     * 启动 run 的路由键。
+     * 简历优化 START 路由键。
      */
-    private String startRoutingKey = "agent.run.start";
+    private String resumeStartRoutingKey = "agent.resume.run.start";
 
     /**
-     * 继续 run 的路由键。
+     * 简历优化 CONTINUE 路由键。
      */
-    private String continueRoutingKey = "agent.run.continue";
+    private String resumeContinueRoutingKey = "agent.resume.run.continue";
+
+    /**
+     * 面试模拟 run 队列。
+     */
+    private String interviewRunQueue = "agent.interview.run.queue";
+
+    /**
+     * 面试模拟 START 路由键。
+     */
+    private String interviewStartRoutingKey = "agent.interview.run.start";
+
+    /**
+     * 面试模拟 CONTINUE 路由键。
+     */
+    private String interviewContinueRoutingKey = "agent.interview.run.continue";
 
     /**
      * 死信交换机，用于接收格式错误或被 worker reject 的消息。

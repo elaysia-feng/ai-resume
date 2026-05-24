@@ -52,6 +52,16 @@ public class AgentSessionItemResponse {
     private String status;
 
     /**
+     * 当前会话下仍在进行中的 run ID，用于前端刷新后恢复看板。
+     */
+    private Long activeRunId;
+
+    /**
+     * 当前活跃 run 状态。
+     */
+    private String activeRunStatus;
+
+    /**
      * 最后一条消息时间，用于会话列表排序
      */
     private LocalDateTime lastMessageAt;

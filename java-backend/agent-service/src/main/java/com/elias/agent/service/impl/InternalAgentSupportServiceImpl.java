@@ -6,12 +6,17 @@ import com.elias.agent.mapper.AiAgentRunMapper;
 import com.elias.agent.mapper.AiRunEventMapper;
 import com.elias.common.client.InterviewClient;
 import com.elias.common.client.ResumeClient;
+import com.elias.common.AgentRunStage;
 import com.elias.common.AgentRunStatus;
 import com.elias.common.AgentSceneCode;
+import com.elias.common.ApiResponse;
 import com.elias.common.SectionSchema;
+import com.elias.common.dto.agent.internal.request.InternalAgentRunCreateRequest;
 import com.elias.common.dto.agent.internal.request.InternalBootstrapRequest;
 import com.elias.common.dto.agent.internal.request.RunEventBatchRequest;
 import com.elias.common.dto.agent.internal.request.RunStatusUpdateRequest;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunCreateResponse;
+import com.elias.common.dto.agent.internal.response.InternalAgentRunDetailResponse;
 import com.elias.common.dto.agent.internal.response.BootstrapConstraintsResponse;
 import com.elias.common.dto.agent.internal.response.HistoryMessageResponse;
 import com.elias.common.dto.agent.internal.response.InternalBootstrapResponse;
@@ -19,19 +24,16 @@ import com.elias.common.dto.interview.internal.request.InternalInterviewBootstra
 import com.elias.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
 import com.elias.common.dto.interview.internal.response.InternalInterviewBootstrapResponse;
 import com.elias.common.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
-import com.elias.common.dto.interview.response.InterviewOptionResponse;
 import com.elias.common.dto.response.ResumeSnapshotResponse;
 import com.elias.common.dto.response.SectionResponse;
 import com.elias.agent.entity.AiAgentRun;
-import com.elias.agent.entity.AiInterviewRound;
 import com.elias.agent.entity.AgentMessage;
 import com.elias.agent.entity.AgentSession;
 import com.elias.common.exception.BusinessException;
-import com.elias.agent.mapper.AiInterviewRoundMapper;
 import com.elias.agent.service.InternalAgentSupportService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -65,7 +67,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
     private final ResumeClient resumeClient;
-    private final AiInterviewRoundMapper aiInterviewRoundMapper;
+    private final InterviewClient interviewClient;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -149,6 +151,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
         if (List.of(AgentRunStatus.SUCCESS.getCode(), AgentRunStatus.FAILED.getCode(), AgentRunStatus.CANCELLED.getCode()).contains(request.getStatus())) {
             // WAITING_USER / WAITING_CONFIRM 不是最终完成，只是等待用户下一步操作。
             run.setCompletedAt(LocalDateTime.now());
+            run.setActiveFlag(null);
         }
         aiAgentRunMapper.updateById(run);
 
@@ -160,6 +163,17 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
                 agentSessionMapper.updateById(session);
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public boolean claimRun(Long runId) {
+        return aiAgentRunMapper.update(null, new LambdaUpdateWrapper<AiAgentRun>()
+                .eq(AiAgentRun::getId, runId)
+                .eq(AiAgentRun::getStatus, AgentRunStatus.QUEUED.getCode())
+                .set(AiAgentRun::getStatus, AgentRunStatus.RUNNING.getCode())
+                .set(AiAgentRun::getActiveFlag, 1)
+                .set(AiAgentRun::getUpdatedAt, LocalDateTime.now())) == 1;
     }
 
     @Override
@@ -182,56 +196,101 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
     }
 
     @Override
+    @Transactional
+    public InternalAgentRunCreateResponse createInterviewRun(InternalAgentRunCreateRequest request) {
+        AgentSession session = agentSessionMapper.selectById(request.getSessionId());
+        if (session == null || !request.getUserId().equals(session.getUserId())) {
+            throw BusinessException.notFound("Agent 会话不存在");
+        }
+        if (!AgentSceneCode.INTERVIEW.equals(session.getSceneCode())) {
+            throw BusinessException.badRequest("当前会话不是面试场景");
+        }
+        if (!request.getResumeId().equals(session.getResumeId())) {
+            throw BusinessException.badRequest("run 的 resumeId 必须和 session 关联简历一致");
+        }
+        Long targetSectionId = request.getTargetSectionId() == null ? 0L : request.getTargetSectionId();
+
+        if (request.getClientRequestId() != null && !request.getClientRequestId().isBlank()) {
+            AiAgentRun exists = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
+                    .eq(AiAgentRun::getUserId, request.getUserId())
+                    .eq(AiAgentRun::getSessionId, request.getSessionId())
+                    .eq(AiAgentRun::getClientRequestId, request.getClientRequestId())
+                    .last("limit 1"));
+            if (exists != null) {
+                return InternalAgentRunCreateResponse.builder()
+                        .runId(exists.getId())
+                        .status(exists.getStatus())
+                        .build();
+            }
+        }
+
+        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
+                .eq(AiAgentRun::getUserId, request.getUserId())
+                .eq(AiAgentRun::getSessionId, request.getSessionId())
+                .eq(AiAgentRun::getSceneCode, request.getSceneCode())
+                .eq(AiAgentRun::getTargetSectionId, targetSectionId)
+                .eq(AiAgentRun::getActiveFlag, 1)
+                .last("limit 1"));
+        if (activeRun != null) {
+            return InternalAgentRunCreateResponse.builder()
+                    .runId(activeRun.getId())
+                    .status(activeRun.getStatus())
+                    .build();
+        }
+
+        AiAgentRun run = AiAgentRun.builder()
+                .userId(request.getUserId())
+                .sessionId(request.getSessionId())
+                .resumeId(request.getResumeId())
+                .sceneCode(request.getSceneCode())
+                .status(request.getStatus() == null ? AgentRunStatus.QUEUED.getCode() : request.getStatus())
+                .currentStage(request.getCurrentStage() == null ? AgentRunStage.BOOTSTRAP.getCode() : request.getCurrentStage())
+                .userInput(request.getUserInput())
+                .jobDescription(request.getJobDescription())
+                .targetSectionId(targetSectionId)
+                .activeFlag(1)
+                .clientRequestId(request.getClientRequestId())
+                .build();
+        aiAgentRunMapper.insert(run);
+
+        return InternalAgentRunCreateResponse.builder()
+                .runId(run.getId())
+                .status(run.getStatus())
+                .build();
+    }
+
+    @Override
+    public InternalAgentRunDetailResponse getInternalRunDetail(Long runId) {
+        AiAgentRun run = aiAgentRunMapper.selectById(runId);
+        if (run == null) {
+            throw BusinessException.notFound("Agent run 不存在");
+        }
+        return InternalAgentRunDetailResponse.builder()
+                .runId(run.getId())
+                .userId(run.getUserId())
+                .sessionId(run.getSessionId())
+                .resumeId(run.getResumeId())
+                .sceneCode(run.getSceneCode())
+                .status(run.getStatus())
+                .currentStage(run.getCurrentStage())
+                .jobDescription(run.getJobDescription())
+                .resultSummary(run.getResultSummary())
+                .errorMessage(run.getErrorMessage())
+                .build();
+    }
+
+    @Override
     public void updateQuestionAnalysis(Long roundId, InternalInterviewQuestionAnalysisRequest request) {
-        AiInterviewRound round = aiInterviewRoundMapper.selectById(roundId);
-        if (round == null) {
-            throw BusinessException.notFound("面试题目不存在");
-        }
-
-        AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
-        if (run == null || !AgentSceneCode.INTERVIEW.equals(run.getSceneCode())) {
-            throw BusinessException.badRequest("面试任务状态不合法");
-        }
-
-
-        round.setAnalysisJson(writeJson(request.getAnalysis()));
-        round.setStatus(request.getStatus());
-        aiInterviewRoundMapper.updateById(round);
-
+        interviewClient.updateQuestionAnalysis(roundId, request);
     }
 
     @Override
     public InternalInterviewRoundDetailResponse getQuestionAnswer(Long roundId) {
-        AiInterviewRound round = aiInterviewRoundMapper.selectById(roundId);
-        if (round == null) {
+        ApiResponse<InternalInterviewRoundDetailResponse> response = interviewClient.getQuestionAnswer(roundId);
+        if (response == null || response.getData() == null) {
             throw BusinessException.notFound("面试题目不存在");
         }
-
-        AiAgentRun run = aiAgentRunMapper.selectById(round.getRunId());
-        if (run == null || !AgentSceneCode.INTERVIEW.equals(run.getSceneCode())) {
-            throw BusinessException.badRequest("面试任务状态不合法");
-        }
-
-        List<InterviewOptionResponse> options;
-        try {
-            options = objectMapper.readValue(
-                    round.getOptionsJson(),
-                    new TypeReference<List<InterviewOptionResponse>>() {}
-            );
-        } catch (Exception e) {
-            throw BusinessException.badRequest("面试题目选项解析失败");
-        }
-
-        return InternalInterviewRoundDetailResponse.builder()
-                .roundId(round.getId())
-                .runId(round.getRunId())
-                .roundNo(round.getRoundNo())
-                .questionText(round.getQuestionText())
-                .options(options)
-                .userAnswer(round.getUserAnswer())
-                .analysisJson(round.getAnalysisJson())
-                .status(round.getStatus())
-                .build();
+        return response.getData();
     }
 
     @Override

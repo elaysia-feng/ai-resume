@@ -40,7 +40,7 @@ public class AgentSession {
     private Long resumeId;
 
     /**
-     * 会话场景：OPTIMIZE / MATCH / SUMMARY / CHAT
+     * 会话场景：RESUME_OPTIMIZE 简历优化等等
      */
     private String sceneCode;
 

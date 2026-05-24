@@ -133,9 +133,6 @@ class InterviewGraphService:
 
     async def continue_run(self, request: InterviewGraphRunRequest) -> InterviewContinueResponse:
         """继续执行 graph图"""
-        if request.status != "READY_ANSWER":
-            return InterviewContinueResponse(status="IGNORED")
-
         config = self._interview_graph_config(request.run_id)
 
         # 这个Command参数就会让 langgraph自动把checkpoint里面的数据传回给graph, 以达到恢复的目的

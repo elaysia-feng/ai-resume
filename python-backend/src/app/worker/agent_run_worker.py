@@ -81,7 +81,7 @@ async def run_worker() -> None:
         )
         # 主队列配置 DLX：worker reject(requeue=False) 的坏消息不会反复重试。
         queue = await channel.declare_queue(
-            settings.agent_run_queue,
+            settings.agent_resume_run_queue,
             durable=True,
             arguments={
                 "x-dead-letter-exchange": settings.agent_run_dead_letter_exchange,
@@ -90,8 +90,8 @@ async def run_worker() -> None:
             },
         )
         dead_letter_queue = await channel.declare_queue(settings.agent_run_dead_letter_queue, durable=True)
-        await queue.bind(exchange, routing_key=settings.agent_run_start_routing_key)
-        await queue.bind(exchange, routing_key=settings.agent_run_continue_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_resume_run_start_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_resume_run_continue_routing_key)
         await dead_letter_queue.bind(dead_letter_exchange, routing_key=settings.agent_run_dead_routing_key)
         # aio-pika 会为每条消息回调 handle_message；真正并发数由 prefetch + semaphore 共同限制。
         await queue.consume(lambda message: handle_message(message, semaphore))
@@ -111,6 +111,9 @@ async def handle_message(message, semaphore: asyncio.Semaphore) -> None:
 
     async with semaphore:
         try:
+            claimed = await java_gateway_service.claim_run(job.run_id)
+            if not claimed:
+                return
             await execute_job(job)
         except Exception as exc:
             # 业务执行失败也 ack：状态已经写回 FAILED，不让同一条 run 无限重试。

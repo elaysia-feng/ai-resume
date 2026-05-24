@@ -1,5 +1,5 @@
 gateway:
-  white-list: /api/auth/login,/api/auth/register,/api/notification/code
+  white-list: /api/auth/login,/api/auth/register,/api/auth/send-code,/api/auth/verify-code,/api/auth/set-password,/api/auth/login-by-code,/api/notification/code
   dynamic-router:
     data-id: gateway-routers.yaml
     group: DEFAULT_GROUP

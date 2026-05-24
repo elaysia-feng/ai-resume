@@ -2,6 +2,7 @@ package com.elias.agent.service.impl;
 
 import com.elias.common.client.ResumeClient;
 import com.elias.common.ApiResponse;
+import com.elias.common.dto.response.AgentSessionDetailResponse;
 import com.elias.common.dto.response.ResumeDetailResponse;
 import com.elias.common.context.UserContext;
 import com.elias.agent.dto.run.request.AgentMessageCreateRequest;
@@ -9,12 +10,13 @@ import com.elias.agent.dto.session.request.AgentSessionCreateRequest;
 import com.elias.agent.dto.session.request.AgentSessionUpdateRequest;
 import com.elias.agent.entity.AgentMessage;
 import com.elias.agent.entity.AgentSession;
+import com.elias.agent.entity.AiAgentRun;
 import com.elias.common.exception.BusinessException;
 import com.elias.agent.mapper.AgentMessageMapper;
 import com.elias.agent.mapper.AgentSessionMapper;
+import com.elias.agent.mapper.AiAgentRunMapper;
 import com.elias.agent.service.AgentSessionService;
-import com.elias.agent.dto.session.response.AgentMessageResponse;
-import com.elias.agent.dto.session.response.AgentSessionDetailResponse;
+import com.elias.common.dto.response.AgentMessageResponse;
 import com.elias.agent.dto.session.response.AgentSessionItemResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
 
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
+    private final AiAgentRunMapper aiAgentRunMapper;
     private final ResumeClient resumeClient;
 
     /**
@@ -53,7 +56,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
 
         AgentSession agentSession = AgentSession.builder()
                 .userId(userId)
-                .resumeId(request.getResumeId() != null ? request.getResumeId() : parentSession == null ? null : parentSession.getResumeId())
+                .resumeId(request.getResumeId() != null ? request.getResumeId()
+                        : parentSession == null ? null : parentSession.getResumeId())
                 .sceneCode(normalizeSceneCode(request.getSceneCode()))
                 .sessionTitle(resolveSessionTitle(request))
                 .jobDescription(resolveJobDescription(request, parentSession))
@@ -129,7 +133,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
             agentSession.setSessionTitle(request.getSessionTitle().trim());
         }
         if (request.getJobDescription() != null) {
-            agentSession.setJobDescription(request.getJobDescription().isBlank() ? null : request.getJobDescription().trim());
+            agentSession.setJobDescription(
+                    request.getJobDescription().isBlank() ? null : request.getJobDescription().trim());
         }
         if (request.getSummary() != null) {
             agentSession.setSummary(request.getSummary().isBlank() ? null : request.getSummary().trim());
@@ -164,8 +169,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
     public List<AgentMessageResponse> listMessages(Long sessionId) {
         getOwnedSession(sessionId);
         return agentMessageMapper.selectList(new LambdaQueryWrapper<AgentMessage>()
-                        .eq(AgentMessage::getSessionId, sessionId)
-                        .orderByAsc(AgentMessage::getSeqNo, AgentMessage::getId))
+                .eq(AgentMessage::getSessionId, sessionId)
+                .orderByAsc(AgentMessage::getSeqNo, AgentMessage::getId))
                 .stream()
                 .map(this::buildMessageResponse)
                 .toList();
@@ -201,7 +206,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
 
         agentSession.setLastMessageAt(LocalDateTime.now());
         if (agentSession.getSessionTitle() == null || agentSession.getSessionTitle().isBlank()) {
-            agentSession.setSessionTitle(buildDefaultSessionTitle(agentSession.getSceneCode(), agentMessage.getContent()));
+            agentSession
+                    .setSessionTitle(buildDefaultSessionTitle(agentSession.getSceneCode(), agentMessage.getContent()));
         }
         agentSessionMapper.updateById(agentSession);
 
@@ -251,6 +257,12 @@ public class AgentSessionServiceImpl implements AgentSessionService {
      * @return 列表项响应
      */
     private AgentSessionItemResponse buildSessionItemResponse(AgentSession agentSession) {
+        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
+                .eq(AiAgentRun::getSessionId, agentSession.getId())
+                .eq(AiAgentRun::getSceneCode, agentSession.getSceneCode())
+                .eq(AiAgentRun::getActiveFlag, 1)
+                .orderByDesc(AiAgentRun::getUpdatedAt, AiAgentRun::getId)
+                .last("limit 1"));
         return AgentSessionItemResponse.builder()
                 .id(agentSession.getId())
                 .resumeId(agentSession.getResumeId())
@@ -259,6 +271,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
                 .jobDescription(agentSession.getJobDescription())
                 .parentSessionId(agentSession.getParentSessionId())
                 .status(agentSession.getStatus())
+                .activeRunId(activeRun == null ? null : activeRun.getId())
+                .activeRunStatus(activeRun == null ? null : activeRun.getStatus())
                 .lastMessageAt(agentSession.getLastMessageAt())
                 .createdAt(agentSession.getCreatedAt())
                 .updatedAt(agentSession.getUpdatedAt())
@@ -269,10 +283,11 @@ public class AgentSessionServiceImpl implements AgentSessionService {
      * 构建会话详情响应
      *
      * @param agentSession 会话实体
-     * @param messages  消息列表
+     * @param messages     消息列表
      * @return 会话详情响应
      */
-    private AgentSessionDetailResponse buildSessionDetailResponse(AgentSession agentSession, List<AgentMessageResponse> messages) {
+    private AgentSessionDetailResponse buildSessionDetailResponse(AgentSession agentSession,
+            List<AgentMessageResponse> messages) {
         return AgentSessionDetailResponse.builder()
                 .id(agentSession.getId())
                 .resumeId(agentSession.getResumeId())

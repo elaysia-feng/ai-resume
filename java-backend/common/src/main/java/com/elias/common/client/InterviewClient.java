@@ -1,9 +1,9 @@
 package com.elias.common.client;
 
 import com.elias.common.ApiResponse;
-import com.elias.common.dto.interview.internal.request.InternalInterviewBootstrapRequest;
 import com.elias.common.dto.interview.internal.request.InternalInterviewQuestionAnalysisRequest;
-import com.elias.common.dto.interview.internal.response.InternalInterviewBootstrapResponse;
+import com.elias.common.dto.interview.internal.request.InternalInterviewQuestionCreateRequest;
+import com.elias.common.dto.interview.internal.response.InternalInterviewQuestionCreateResponse;
 import com.elias.common.dto.interview.internal.response.InternalInterviewRoundDetailResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @FeignClient(name = "interview-service")
 public interface InterviewClient {
 
-    @PostMapping("/internal/agent/interviewBootstrap")
-    ApiResponse<InternalInterviewBootstrapResponse> interviewBootstrap(@RequestBody InternalInterviewBootstrapRequest request);
+    @PostMapping("/internal/agent/interview/runs/{runId}/rounds")
+    ApiResponse<InternalInterviewQuestionCreateResponse> createQuestionRound(
+            @PathVariable Long runId,
+            @RequestBody InternalInterviewQuestionCreateRequest request);
 
     @PostMapping("/internal/agent/interview/rounds/{roundId}/analysis")
     ApiResponse<Void> updateQuestionAnalysis(@PathVariable Long roundId,

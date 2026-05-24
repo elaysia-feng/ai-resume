@@ -15,8 +15,20 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Component
 public class JwtGateWayFilter implements GlobalFilter, Ordered {
+
+    private static final List<String> DEFAULT_WHITE_LIST = List.of(
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/send-code",
+            "/api/auth/verify-code",
+            "/api/auth/set-password",
+            "/api/auth/login-by-code",
+            "/api/notification/code"
+    );
 
     private final JwtUtil jwtUtil;
     private final GatewayAppProperties gatewayProperties;
@@ -29,6 +41,9 @@ public class JwtGateWayFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        if (request.getMethod() == org.springframework.http.HttpMethod.OPTIONS) {
+            return chain.filter(exchange);
+        }
         // 放行白名单
         String path = request.getPath().toString();
         if (isWhiteListed(path)) {
@@ -64,6 +79,9 @@ public class JwtGateWayFilter implements GlobalFilter, Ordered {
 
     // 是不是在白名单里面
     private boolean isWhiteListed(String path) {
+        if (DEFAULT_WHITE_LIST.stream().anyMatch(path::contains)) {
+            return true;
+        }
         return gatewayProperties.getWhiteList().stream()
                 .filter(StringUtils::hasText)
                 .map(String::trim)

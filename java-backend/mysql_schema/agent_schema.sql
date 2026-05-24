@@ -48,11 +48,13 @@ CREATE TABLE IF NOT EXISTS `ai_agent_run` (
     `current_stage` VARCHAR(50) NULL COMMENT '当前阶段编码',
     `user_input` LONGTEXT NULL COMMENT '用户原始输入',
     `job_description` LONGTEXT NULL COMMENT '目标岗位JD',
+    `target_section_id` BIGINT NULL COMMENT '当前单模块 run 的目标 sectionId',
     `selected_section_ids_json` LONGTEXT NULL COMMENT '前端指定的sectionId列表JSON',
     `clarification_payload` LONGTEXT NULL COMMENT '追问payload JSON',
     `approval_payload` LONGTEXT NULL COMMENT '审批payload JSON',
     `result_summary` LONGTEXT NULL COMMENT '本次run结果摘要',
     `error_message` LONGTEXT NULL COMMENT '失败错误信息',
+    `active_flag` TINYINT NULL DEFAULT 1 COMMENT '是否活跃：1=活跃，NULL=已结束',
     `client_request_id` VARCHAR(100) NULL COMMENT '客户端幂等请求ID',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -62,7 +64,8 @@ CREATE TABLE IF NOT EXISTS `ai_agent_run` (
     INDEX `idx_ai_agent_run_resume_id` (`resume_id`),
     INDEX `idx_ai_agent_run_status` (`status`),
     INDEX `idx_ai_agent_run_user_id_created_at` (`user_id`, `created_at`),
-    UNIQUE KEY `uk_ai_agent_run_user_client_request` (`user_id`, `client_request_id`),
+    UNIQUE KEY `uk_ai_agent_run_user_session_client_request` (`user_id`, `session_id`, `client_request_id`),
+    UNIQUE KEY `uk_ai_agent_run_active_target` (`user_id`, `session_id`, `scene_code`, `target_section_id`, `active_flag`),
     CONSTRAINT `fk_ai_agent_run_session_id` FOREIGN KEY (`session_id`) REFERENCES `ai_session`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Agent Run表';
 

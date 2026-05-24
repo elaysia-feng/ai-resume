@@ -1,4 +1,4 @@
-package com.elias.agent.dto.session.response;
+package com.elias.common.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

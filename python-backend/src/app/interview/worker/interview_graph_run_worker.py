@@ -62,7 +62,7 @@ async def interview_graph_run_worker() -> None:
         )
         # 声名队列
         queue = await channel.declare_queue(
-            settings.agent_run_queue,
+            settings.agent_interview_run_queue,
             durable=True,
             arguments={
                 "x-dead-letter-exchange": settings.agent_run_dead_letter_exchange,
@@ -76,8 +76,8 @@ async def interview_graph_run_worker() -> None:
             durable=True,
         )
 
-        await queue.bind(exchange, routing_key=settings.agent_run_start_routing_key)
-        await queue.bind(exchange, routing_key=settings.agent_run_continue_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_interview_run_start_routing_key)
+        await queue.bind(exchange, routing_key=settings.agent_interview_run_continue_routing_key)
         await dead_letter_queue.bind(dead_letter_exchange, routing_key=settings.agent_run_dead_routing_key)
 
         await queue.consume(lambda message: handle_message(message, limiter_run))
@@ -160,6 +160,9 @@ async def handle_message(message, limiter_run: asyncio.Semaphore) -> None:
     # 如果是的话就直接执行 把message里面的任务执行
     async with limiter_run:
         try:
+            claimed = await java_gateway_service.claim_run(job.run_id)
+            if not claimed:
+                return
             await execute_job(job)
         except Exception as e:
             await mark_failed(job.run_id, e)

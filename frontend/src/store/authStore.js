@@ -89,9 +89,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function _storeToken(data) {
+    if (!data) {
+      throw new Error('登录响应为空');
+    }
     const t = data.token || data.access_token || data.jwt;
     if (!t) {
-      return;
+      throw new Error('登录响应缺少 token');
     }
 
     token.value = t;
@@ -110,6 +113,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loginByCode(email, code) {
     const data = await apiLoginByCode(email, code);
+    _storeToken(data);
+  }
+
+  function storeAuthResponse(data) {
     _storeToken(data);
   }
 
@@ -178,6 +185,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     login,
     loginByCode,
+    storeAuthResponse,
     register,
     refreshCurrentUser,
     uploadAvatar,

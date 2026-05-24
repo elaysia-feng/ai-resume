@@ -1,12 +1,12 @@
 package com.elias.agent.controller;
 
 import com.elias.common.ApiResponse;
+import com.elias.common.dto.response.AgentSessionDetailResponse;
 import com.elias.agent.dto.run.request.AgentMessageCreateRequest;
 import com.elias.agent.dto.session.request.AgentSessionCreateRequest;
 import com.elias.agent.dto.session.request.AgentSessionUpdateRequest;
 import com.elias.agent.service.AgentSessionService;
-import com.elias.agent.dto.session.response.AgentMessageResponse;
-import com.elias.agent.dto.session.response.AgentSessionDetailResponse;
+import com.elias.common.dto.response.AgentMessageResponse;
 import com.elias.agent.dto.session.response.AgentSessionItemResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,8 @@ public class AgentSessionController {
      * @return 新建的会话详情
      */
     @PostMapping
-    public ApiResponse<AgentSessionDetailResponse> createSession(@Valid @RequestBody AgentSessionCreateRequest request) {
+    public ApiResponse<AgentSessionDetailResponse> createSession(
+            @Valid @RequestBody AgentSessionCreateRequest request) {
         return ApiResponse.ok(agentSessionService.createSession(request));
     }
 
@@ -53,7 +54,7 @@ public class AgentSessionController {
      */
     @GetMapping
     public ApiResponse<List<AgentSessionItemResponse>> listSessions(@RequestParam(required = false) Long resumeId,
-                                                                 @RequestParam(required = false) String sceneCode) {
+            @RequestParam(required = false) String sceneCode) {
         return ApiResponse.ok(agentSessionService.listSessions(resumeId, sceneCode));
     }
 
@@ -77,7 +78,7 @@ public class AgentSessionController {
      */
     @PutMapping("/{sessionId}")
     public ApiResponse<Void> updateSession(@PathVariable Long sessionId,
-                                           @Valid @RequestBody AgentSessionUpdateRequest request) {
+            @Valid @RequestBody AgentSessionUpdateRequest request) {
         agentSessionService.updateSession(sessionId, request);
         return ApiResponse.ok();
     }
@@ -114,7 +115,7 @@ public class AgentSessionController {
      */
     @PostMapping("/{sessionId}/messages")
     public ApiResponse<AgentMessageResponse> createMessage(@PathVariable Long sessionId,
-                                                        @Valid @RequestBody AgentMessageCreateRequest request) {
+            @Valid @RequestBody AgentMessageCreateRequest request) {
         return ApiResponse.ok(agentSessionService.createMessage(sessionId, request));
     }
 }

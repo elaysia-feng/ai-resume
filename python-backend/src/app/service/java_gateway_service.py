@@ -87,6 +87,12 @@ class JavaGatewayService:
             response = await client.get(url, headers=self.build_headers())
             response.raise_for_status()
             return response.json() if response.content else {}
+
+    async def claim_run(self, run_id: int) -> bool:
+        """执行前抢占 run，只有 QUEUED -> RUNNING 成功才返回 true。"""
+        data = await self.post_json(f"/internal/agent/runs/{run_id}/claim", None)
+        return bool(data.get("data"))
+
     # 马上需要的, 不能接入mq
     async def load_bootstrap_context(self, request: BootstrapRequest) -> BootstrapResponse:
         """调用 Java 内部接口加载简历、会话、schema 上下文。"""
