@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Annotated, Any
 from langgraph.graph import MessagesState
 
 
@@ -32,3 +32,5 @@ class InterviewAgentState(MessagesState, total=False):
     event_seq: int
     error: str | None
     has_next_question: bool | None
+
+    # test: Annotated(int, reducer)

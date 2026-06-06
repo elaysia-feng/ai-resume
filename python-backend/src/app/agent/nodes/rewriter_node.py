@@ -70,8 +70,8 @@ def build_rewriter_messages(state: ResumeAgentState, section_snapshot: dict) -> 
                 f"targetSectionId：{state.get('target_section_id')}\n"
                 f"JD 分析：{state.get('jd_analysis', {})}\n"
                 f"差距报告：{state.get('gap_report', {})}\n"
-                f"参考片段：{state.get('retrieved_chunks', [])}\n"
-                f"简历快照：{state.get('resume_snapshot', {})}"
+                f"检索异常：{state.get('retrieval_error') or '无'}\n"
+                f"参考片段：{state.get('retrieved_chunks', [])}"
             )
         ),
     ]

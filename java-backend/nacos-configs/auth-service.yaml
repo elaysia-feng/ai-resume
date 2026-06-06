@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${AUTH_DB_NAME:ai_resume_auth}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    username: "${DB_USERNAME:root}"
+    password: "${DB_PASSWORD:@Feng050813}"
   mail:
     host: smtp.qq.com
     port: 587
@@ -16,12 +16,15 @@ spring:
             enable: true
 
 jwt:
-  secret: ${JWT_SECRET:change-me}
+  secret: ${JWT_SECRET:airesumeforgeSecretKeyForJWTTokenGeneration2024VeryLongString}
   expiration: 86400000
 
 email:
   code:
     expiration: 5
+
+gateway:
+  service-token: ${GATEWAY_SERVICE_TOKEN:change-me}
 
 oss:
   access-key-id: ${OSS_ACCESS_KEY_ID:}

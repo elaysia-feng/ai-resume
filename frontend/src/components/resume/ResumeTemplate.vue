@@ -25,6 +25,9 @@ import '../../styles/resume-template-base.css'
 import ClassicTemplate from './ClassicTemplate.vue'
 import ModernTemplate from './ModernTemplate.vue'
 import CreativeTemplate from './CreativeTemplate.vue'
+import CompactTemplate from './CompactTemplate.vue'
+import AcademicTemplate from './AcademicTemplate.vue'
+import DualCreativeTemplate from './DualCreativeTemplate.vue'
 
 const PAGE_HEIGHT = 1123
 
@@ -32,7 +35,7 @@ const props = defineProps({
   template: {
     type: String,
     default: 'classic',
-    validator: (value) => ['classic', 'modern', 'creative'].includes(value),
+    validator: (value) => ['classic', 'modern', 'creative', 'compact', 'academic', 'dual-creative'].includes(value),
   },
   sections: {
     type: Array,
@@ -62,6 +65,9 @@ const templateComponent = computed(() => {
     classic: ClassicTemplate,
     modern: ModernTemplate,
     creative: CreativeTemplate,
+    compact: CompactTemplate,
+    academic: AcademicTemplate,
+    'dual-creative': DualCreativeTemplate,
   }
 
   return templateMap[props.template] || ClassicTemplate

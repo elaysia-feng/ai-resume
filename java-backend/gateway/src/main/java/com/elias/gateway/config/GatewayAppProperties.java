@@ -27,6 +27,8 @@ public class GatewayAppProperties {
             "/api/notification/code"
     ));
 
+    private String serviceToken = "change-me";
+
     private DynamicRouter dynamicRouter = new DynamicRouter();
 
     @Data

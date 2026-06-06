@@ -128,6 +128,8 @@ class ResumeAgentState(MessagesState, total=False):
     retrieval_plan: dict[str, Any]
     # retriever 写入的 Qdrant 召回片段，rewriter 会把它作为参考表达。
     retrieved_chunks: list[dict[str, Any]]
+    # 检索工具异常时写入，避免把工具失败误判为知识库无结果。
+    retrieval_error: str
     # rewriter 生成的候选 patch；这里只是建议，不直接修改简历。
     candidate_patches: list[dict[str, Any]]
     # reviewer 的结构化审查结果。

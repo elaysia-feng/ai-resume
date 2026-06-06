@@ -133,9 +133,33 @@ function parseLegacyItem(sectionCode, item) {
   return parsed
 }
 
+function splitDateRange(dateRange) {
+  if (typeof dateRange !== 'string' || !dateRange.trim()) {
+    return { startDate: '', endDate: '' }
+  }
+  const parts = dateRange.split(/\s*[-–—]\s*/)
+  if (parts.length >= 2) {
+    return { startDate: parts[0].trim(), endDate: parts.slice(1).join(' - ').trim() }
+  }
+  return { startDate: parts[0].trim(), endDate: '' }
+}
+
 export function normalizeStructuredItem(sectionCode, item) {
   const source = typeof item === 'string' ? { text: item } : asObject(item)
   const normalized = { ...parseLegacyItem(sectionCode, source), ...source }
+
+  // Backend stores dateRange; split into startDate/endDate for editor compatibility
+  if (!normalized.startDate && !normalized.endDate && normalized.dateRange) {
+    const { startDate, endDate } = splitDateRange(normalized.dateRange)
+    normalized.startDate = startDate
+    normalized.endDate = endDate
+  }
+
+  if (!normalized.startDate && !normalized.endDate && normalized.date) {
+    const { startDate, endDate } = splitDateRange(normalized.date)
+    normalized.startDate = startDate
+    normalized.endDate = endDate
+  }
 
   if (!normalized.date) {
     normalized.date = buildDateRange(normalized.startDate, normalized.endDate, normalized.current)
@@ -143,6 +167,11 @@ export function normalizeStructuredItem(sectionCode, item) {
 
   if (sectionCode === 'PROJECTS') {
     normalized.techStackList = splitTechStack(normalized.techStack)
+  }
+
+  // Backend stores highlights as string[]; map to description for editor
+  if ((sectionCode === 'EXPERIENCE' || sectionCode === 'INTERNSHIP') && !normalized.description && Array.isArray(normalized.highlights)) {
+    normalized.description = normalized.highlights.join('\n')
   }
 
   return normalized
@@ -157,13 +186,30 @@ export function normalizeSectionContentForView(sectionCode, contentJson) {
 
   if (sectionCode === 'JOB_INTENT') {
     const nestedText = source.text && typeof source.text === 'object' ? source.text : {}
-    return { ...JOB_INTENT_DEFAULTS, ...source, ...nestedText }
+    const mapped = {
+      ...JOB_INTENT_DEFAULTS,
+      ...source,
+      ...nestedText,
+      desiredPosition: source.desiredPosition || source.targetPosition || '',
+      desiredCity: source.desiredCity || source.city || '',
+    }
+    return mapped
+  }
+
+  if (sectionCode === 'SUMMARY') {
+    return { ...source, text: source.text || source.summary || '' }
+  }
+
+  if (sectionCode === 'SELF_EVALUATION') {
+    return { ...source, text: source.text || source.evaluation || '' }
   }
 
   if (sectionCode === 'SKILLS') {
+    // Backend stores { skills: string[] }, frontend uses { items: [{name, proficiency}] }
+    const skillItems = source.items || (Array.isArray(source.skills) ? source.skills.map((s) => ({ name: s })) : [])
     return {
       ...source,
-      items: (source.items || []).map((item) => ({
+      items: skillItems.map((item) => ({
         name: asText(typeof item === 'string' ? item : item?.name || item?.text),
         proficiency: asText(typeof item === 'object' ? item?.proficiency : ''),
       })).filter((item) => item.name),
@@ -292,11 +338,22 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
 
   if (sectionCode === 'JOB_INTENT') {
     return {
-      desiredPosition: asText(source.desiredPosition),
-      desiredCity: asText(source.desiredCity),
+      targetPosition: asText(source.desiredPosition),
+      city: asText(source.desiredCity),
       salaryRange: asText(source.salaryRange),
-      employmentType: asText(source.employmentType),
       jobStatus: asText(source.jobStatus),
+    }
+  }
+
+  if (sectionCode === 'SUMMARY') {
+    return {
+      summary: asText(typeof source.text === 'string' ? source.text : source.summary),
+    }
+  }
+
+  if (sectionCode === 'SELF_EVALUATION') {
+    return {
+      evaluation: asText(typeof source.text === 'string' ? source.text : source.evaluation),
     }
   }
 
@@ -307,12 +364,9 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
           school: asText(item.school),
           degree: asText(item.degree),
           major: asText(item.major),
-          gpa: asText(item.gpa),
-          startDate: asText(item.startDate),
-          endDate: asText(item.endDate),
-          description: sanitizeRichTextHtml(item.description),
+          dateRange: buildDateRange(item.startDate, item.endDate, item.current),
         }))
-        .filter(hasAnyValue),
+        .filter((item) => item.school || item.degree || item.major),
     }
   }
 
@@ -322,12 +376,10 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
         .map((item) => ({
           company: asText(item.company),
           position: asText(item.position),
-          startDate: asText(item.startDate),
-          endDate: asText(item.endDate),
-          current: Boolean(item.current),
-          description: sanitizeRichTextHtml(item.description),
+          dateRange: buildDateRange(item.startDate, item.endDate, item.current),
+          highlights: splitLines(item.description),
         }))
-        .filter(hasAnyValue),
+        .filter((item) => item.company || item.position),
     }
   }
 
@@ -337,12 +389,11 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
         .map((item) => ({
           name: asText(item.name),
           role: asText(item.role),
-          startDate: asText(item.startDate),
-          endDate: asText(item.endDate),
+          dateRange: buildDateRange(item.startDate, item.endDate, item.current),
           description: sanitizeRichTextHtml(item.description),
-          techStack: Array.isArray(item.techStackList) ? item.techStackList.join(', ') : asText(item.techStack),
+          techStack: Array.isArray(item.techStackList) ? item.techStackList : splitTechStack(item.techStack),
         }))
-        .filter(hasAnyValue),
+        .filter((item) => item.name),
     }
   }
 
@@ -352,11 +403,10 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
         .map((item) => ({
           company: asText(item.company),
           position: asText(item.position),
-          startDate: asText(item.startDate),
-          endDate: asText(item.endDate),
-          description: sanitizeRichTextHtml(item.description),
+          dateRange: buildDateRange(item.startDate, item.endDate, item.current),
+          highlights: splitLines(item.description),
         }))
-        .filter(hasAnyValue),
+        .filter((item) => item.company || item.position),
     }
   }
 
@@ -366,41 +416,44 @@ export function sanitizeSectionContentForSave(sectionCode, contentJson) {
         .map((item) => ({
           organization: asText(item.organization),
           role: asText(item.role),
-          startDate: asText(item.startDate),
-          endDate: asText(item.endDate),
+          dateRange: buildDateRange(item.startDate, item.endDate, item.current),
           description: sanitizeRichTextHtml(item.description),
         }))
-        .filter(hasAnyValue),
+        .filter((item) => item.organization || item.role),
     }
   }
 
-  if (sectionCode === 'CERTIFICATES' || sectionCode === 'LAC_CERTIFICATES') {
+  if (sectionCode === 'CERTIFICATES') {
     return {
       items: (source.items || [])
         .map((item) => ({
           name: asText(item.name),
+          issuer: asText(item.issuer),
           level: asText(item.level),
           date: asText(item.date),
-          issuer: asText(item.issuer),
-          description: sanitizeRichTextHtml(item.description),
-        }))
-        .filter(hasAnyValue),
-    }
-  }
-
-  if (sectionCode === 'SKILLS') {
-    return {
-      items: (source.items || [])
-        .map((item) => ({
-          name: asText(item.name || item),
-          proficiency: asText(item.proficiency),
         }))
         .filter((item) => item.name),
     }
   }
 
-  if (typeof source.text === 'string') {
-    return { text: sanitizeRichTextHtml(source.text) }
+  if (sectionCode === 'LAC_CERTIFICATES') {
+    return {
+      items: (source.items || [])
+        .map((item) => ({
+          name: asText(item.name),
+          score: asText(item.score),
+          date: asText(item.date),
+        }))
+        .filter((item) => item.name),
+    }
+  }
+
+  if (sectionCode === 'SKILLS') {
+    return {
+      skills: (source.items || [])
+        .map((item) => asText(typeof item === 'string' ? item : item.name || item))
+        .filter(Boolean),
+    }
   }
 
   return source

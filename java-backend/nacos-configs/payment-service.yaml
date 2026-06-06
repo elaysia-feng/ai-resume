@@ -7,6 +7,9 @@ oss:
   avatar-dir: avatar/
   resume-avatar-dir: resume-avatar/
 
+gateway:
+  service-token: ${GATEWAY_SERVICE_TOKEN:change-me}
+
 alipay:
   app-id: ${ALIPAY_APP_ID:}
   private-key: ${ALIPAY_PRIVATE_KEY:}

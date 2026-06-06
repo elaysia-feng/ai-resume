@@ -47,7 +47,8 @@ public class JwtGateWayFilter implements GlobalFilter, Ordered {
         // 放行白名单
         String path = request.getPath().toString();
         if (isWhiteListed(path)) {
-            return chain.filter(exchange);
+            ServerHttpRequest trustedRequest = buildTrustedRequest(request, null);
+            return chain.filter(exchange.mutate().request(trustedRequest).build());
         }
 
         // 获取请求头
@@ -64,17 +65,31 @@ public class JwtGateWayFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
 
         // 验证token, TODO 管理接口做角色
-        jwtUtil.validateToken(token);
+        if (!jwtUtil.validateToken(token)) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
 
         Long userId = jwtUtil.getUserIdFromToken(token);
 
         // 把用户信息写进请求头, 然后传递给下游
-        ServerHttpRequest mutate = request.mutate()
-                .header(GatewayHeader.USER_ID.getName(), userId.toString())
-                .build();
+        ServerHttpRequest mutate = buildTrustedRequest(request, userId);
 
         return chain.filter(exchange.mutate().request(mutate).build());
 
+    }
+
+    private ServerHttpRequest buildTrustedRequest(ServerHttpRequest request, Long userId) {
+        return request.mutate()
+                .headers(headers -> {
+                    headers.remove(GatewayHeader.USER_ID.getName());
+                    headers.remove(GatewayHeader.SERVICE_TOKEN.getName());
+                    headers.set(GatewayHeader.SERVICE_TOKEN.getName(), gatewayProperties.getServiceToken());
+                    if (userId != null) {
+                        headers.set(GatewayHeader.USER_ID.getName(), userId.toString());
+                    }
+                })
+                .build();
     }
 
     // 是不是在白名单里面

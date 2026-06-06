@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.app.agent.constants import AgentStage
 from src.app.agent.memory import build_memory_messages, compact_memory_for_model
+from src.app.agent.agentic_rag.search_rag_with_bm25.query import rag_query
 from src.app.agent.prompts.retriever_prompt import RETRIEVER_SYSTEM_PROMPT
 from src.app.agent.state import ResumeAgentState
 from src.app.agent.tools.retrieval_tools import search_reference_chunks_tool
@@ -35,6 +36,10 @@ async def retriever_node(state: ResumeAgentState) -> ResumeAgentState:
     # retrieval_plan 是给调试和前端排查用的；真正喂给 Rewriter 的是 retrieved_chunks。
     state["retrieved_chunks"] = normalize_retrieved_chunks(chunks)
     state["retrieval_plan"] = plan.model_dump(by_alias=True)
+    retrieval_error = extract_retrieval_error(chunks)
+    if retrieval_error:
+        state["retrieval_error"] = retrieval_error
+        state["errors"] = [*state.get("errors", []), retrieval_error]
     return state
 
 
@@ -178,18 +183,39 @@ async def execute_retrieval_plan(plan: RetrievalPlan, state: ResumeAgentState) -
 
 
 async def search_chunks(query: RetrievalQuery, top_k: int | None = None) -> list[ReferenceChunk]:
-    """执行单次向量检索，检索失败时返回空列表，不阻断主链路。
+    """执行单次混合检索，检索失败时返回空列表，不阻断主链路。
 
     单次检索实际做了三件事：
-    1. query 文本生成 embedding。
-    2. Qdrant 按 module/kind/occupation 做 payload filter。
-    3. 在过滤后的候选集合里做 vector search。
+    1. 把 RetrievalQuery 转成 RAG metadata filter。
+    2. 调用 rag_query tool，同时走 ES BM25 和 Milvus 向量召回。
+    3. 把 tool 返回结果转成现有 ReferenceChunk，交给后续 rewriter 使用。
     """
     if not query.query.strip():
         return []
+    rag_error = None
+    qdrant_error = None
+
     try:
         settings = get_settings()
-        return await asyncio.wait_for(
+        results = await asyncio.wait_for(
+            asyncio.to_thread(
+                rag_query.invoke,
+                {
+                    "text": query.query,
+                    "top_k": top_k or settings.optimize_retrieve_top_k,
+                    "filters": build_rag_filters(query),
+                },
+            ),
+            timeout=max(settings.optimize_retrieve_timeout_seconds, 10),
+        )
+        chunks = [to_reference_chunk(item) for item in results]
+        if chunks:
+            return chunks
+    except Exception as exc:
+        rag_error = f"ES/Milvus 混合检索失败: {exc}"
+
+    try:
+        chunks = await asyncio.wait_for(
             search_reference_chunks_tool(
                 query.query,
                 top_k=top_k,
@@ -197,10 +223,92 @@ async def search_chunks(query: RetrievalQuery, top_k: int | None = None) -> list
                 kind=query.kind,
                 occupation=query.occupation,
             ),
-            timeout=settings.optimize_retrieve_timeout_seconds,
+            timeout=get_settings().optimize_retrieve_timeout_seconds,
         )
-    except Exception:
-        return []
+        if chunks:
+            return chunks
+    except Exception as exc:
+        qdrant_error = f"Qdrant 兜底检索失败: {exc}"
+
+    if rag_error or qdrant_error:
+        return [build_retrieval_failure_chunk(query, rag_error, qdrant_error)]
+    return []
+
+
+def build_retrieval_failure_chunk(
+    query: RetrievalQuery,
+    rag_error: str | None,
+    qdrant_error: str | None,
+) -> ReferenceChunk:
+    errors = [item for item in [rag_error, qdrant_error] if item]
+    return ReferenceChunk(
+        text=(
+            "知识库检索服务当前不可用。本轮不能把“无召回结果”当作知识库没有相关内容；"
+            "后续改写必须只依据用户提供的简历事实、JD 分析和差距报告，保持保守表达，"
+            "不要新增未经用户确认的项目、指标、经历或证书。"
+        ),
+        source="retrieval_failure",
+        score=0,
+        metadata={
+            "retrievalStatus": "FAILED",
+            "query": query.query,
+            "errors": errors,
+        },
+    )
+
+
+def extract_retrieval_error(chunks: list[ReferenceChunk]) -> str | None:
+    for chunk in chunks:
+        if chunk.metadata.get("retrievalStatus") == "FAILED":
+            errors = chunk.metadata.get("errors") or []
+            return "知识库检索失败，已降级为无外部参考的保守改写: " + " | ".join(errors)
+    return None
+
+
+def build_rag_filters(query: RetrievalQuery) -> dict[str, str]:
+    """把 Retriever 计划里的过滤条件转换成 rag_query 使用的 metadata filter。"""
+    filters = {"scene_code": infer_scene_code_from_query(query)}
+    if query.kind:
+        filters["kind"] = query.kind
+    if query.module and query.module != "GENERAL":
+        filters["target_module"] = query.module
+    career_domain = infer_career_domain_from_occupation(query.occupation)
+    if career_domain:
+        filters["career_domain"] = career_domain
+    return filters
+
+
+def infer_scene_code_from_query(query: RetrievalQuery) -> str:
+    kind = query.kind or ""
+    if kind.startswith("interview_"):
+        return "interview"
+    if kind in {"keyword_map", "jd_profile"}:
+        return "job_match"
+    return "resume_rewrite"
+
+
+def infer_career_domain_from_occupation(occupation: str | None) -> str | None:
+    mapping = {
+        "编程与 AI 应用": "software_ai",
+        "硬件与嵌入式": "hardware_embedded",
+        "教育与培训": "education_training",
+        "产品与运营": "product_ops",
+        "销售与市场": "sales_marketing",
+        "设计与内容": "design_content",
+        "财务行政与人力": "finance_admin_hr",
+        "服务与医疗健康": "service_healthcare",
+        "制造供应链与物流": "manufacturing_supply",
+    }
+    return mapping.get(occupation or "")
+
+
+def to_reference_chunk(item: dict[str, Any]) -> ReferenceChunk:
+    """把 rag_query 返回的 dict 转成现有图状态使用的 ReferenceChunk。"""
+    metadata = dict(item)
+    text = metadata.pop("text", "")
+    source = metadata.pop("source", None)
+    score = metadata.get("vector_score") or metadata.get("bm25_score") or metadata.get("score")
+    return ReferenceChunk(text=text, source=source, score=score, metadata=metadata)
 
 
 def collect_keywords(gap_report: dict[str, Any], jd_analysis: dict[str, Any]) -> list[str]:

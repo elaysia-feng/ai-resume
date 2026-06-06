@@ -21,7 +21,7 @@ public final class SectionSchema {
     public static final String ARRAY = "array";
     private static final String OBJECT = "object";
 
-    // BASIC: { name: string, title: string?, email?: string?, phone?: string?, address?: string? }
+    // BASIC: { name: string, title: string, email?: string, phone?: string, location?: string, ... }
     public static final Map<String, Object> BASIC = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
@@ -29,12 +29,16 @@ public final class SectionSchema {
                     "title", Map.of(TYPE, STRING),
                     "email", Map.of(TYPE, STRING),
                     "phone", Map.of(TYPE, STRING),
-                    "address", Map.of(TYPE, STRING)
+                    "location", Map.of(TYPE, STRING),
+                    "wechat", Map.of(TYPE, STRING),
+                    "github", Map.of(TYPE, STRING),
+                    "website", Map.of(TYPE, STRING),
+                    "avatar", Map.of(TYPE, STRING)
             ),
             REQUIRED, List.of("name", "title")
     );
 
-    // JOB_INTENT: { targetPosition: string, city?: string?, salaryRange?: string?, jobStatus?: string? }
+    // JOB_INTENT: { targetPosition: string, city?: string, salaryRange?: string, jobStatus?: string }
     public static final Map<String, Object> JOB_INTENT = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
@@ -55,31 +59,49 @@ public final class SectionSchema {
             REQUIRED, List.of("summary")
     );
 
-    // EXPERIENCE: { company: string, position: string, dateRange: string, highlights: string[] }
+    // EXPERIENCE: { items: [{ company: string, position: string, dateRange: string, highlights: string[] }] }
     public static final Map<String, Object> EXPERIENCE = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "company", Map.of(TYPE, STRING),
-                    "position", Map.of(TYPE, STRING),
-                    "dateRange", Map.of(TYPE, STRING),
-                    "highlights", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING))
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "company", Map.of(TYPE, STRING),
+                                            "position", Map.of(TYPE, STRING),
+                                            "dateRange", Map.of(TYPE, STRING),
+                                            "highlights", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING))
+                                    ),
+                                    REQUIRED, List.of("company", "position", "dateRange", "highlights")
+                            )
+                    )
             ),
-            REQUIRED, List.of("company", "position", "dateRange", "highlights")
+            REQUIRED, List.of("items")
     );
 
-    // EDUCATION: { school: string, degree: string, major: string, dateRange: string }
+    // EDUCATION: { items: [{ school: string, degree: string, major: string, dateRange: string }] }
     public static final Map<String, Object> EDUCATION = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "school", Map.of(TYPE, STRING),
-                    "degree", Map.of(TYPE, STRING),
-                    "major", Map.of(TYPE, STRING),
-                    "dateRange", Map.of(TYPE, STRING)
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "school", Map.of(TYPE, STRING),
+                                            "degree", Map.of(TYPE, STRING),
+                                            "major", Map.of(TYPE, STRING),
+                                            "dateRange", Map.of(TYPE, STRING)
+                                    ),
+                                    REQUIRED, List.of("school", "degree", "major", "dateRange")
+                            )
+                    )
             ),
-            REQUIRED, List.of("school", "degree", "major", "dateRange")
+            REQUIRED, List.of("items")
     );
 
-    // SKILLS: { skills: string[] } (标签如 [Vue精通][Python熟悉])
+    // SKILLS: { skills: string[] }
     public static final Map<String, Object> SKILLS = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
@@ -97,56 +119,92 @@ public final class SectionSchema {
             REQUIRED, List.of("evaluation")
     );
 
-    // PROJECTS: { name: string, role: string, dateRange: string, description?: string, highlights?: string[], techStack?: string[] }
+    // PROJECTS: { items: [{ name: string, role: string, dateRange: string, description?: string, highlights?: string[], techStack?: string[] }] }
     public static final Map<String, Object> PROJECTS = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "name", Map.of(TYPE, STRING),
-                    "role", Map.of(TYPE, STRING),
-                    "dateRange", Map.of(TYPE, STRING),
-                    "description", Map.of(TYPE, STRING),
-                    "highlights", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING)),
-                    "techStack", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING))
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "name", Map.of(TYPE, STRING),
+                                            "role", Map.of(TYPE, STRING),
+                                            "dateRange", Map.of(TYPE, STRING),
+                                            "description", Map.of(TYPE, STRING),
+                                            "highlights", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING)),
+                                            "techStack", Map.of(TYPE, ARRAY, ITEMS, Map.of(TYPE, STRING))
+                                    ),
+                                    REQUIRED, List.of("name", "role", "dateRange")
+                            )
+                    )
             ),
-            REQUIRED, List.of("name", "role", "dateRange")
+            REQUIRED, List.of("items")
     );
 
-    // CAMPUS: { organization: string, role: string, dateRange: string, description?: string }
+    // CAMPUS: { items: [{ organization: string, role: string, dateRange: string, description?: string }] }
     public static final Map<String, Object> CAMPUS = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "organization", Map.of(TYPE, STRING),
-                    "role", Map.of(TYPE, STRING),
-                    "dateRange", Map.of(TYPE, STRING),
-                    "description", Map.of(TYPE, STRING)
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "organization", Map.of(TYPE, STRING),
+                                            "role", Map.of(TYPE, STRING),
+                                            "dateRange", Map.of(TYPE, STRING),
+                                            "description", Map.of(TYPE, STRING)
+                                    ),
+                                    REQUIRED, List.of("organization", "role", "dateRange")
+                            )
+                    )
             ),
-            REQUIRED, List.of("organization", "role", "dateRange")
+            REQUIRED, List.of("items")
     );
 
-    // CERTIFICATES: { name: string, level?: string?, issuer: string, date?: string? }
+    // CERTIFICATES: { items: [{ name: string, issuer: string, level?: string, date?: string }] }
     public static final Map<String, Object> CERTIFICATES = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "name", Map.of(TYPE, STRING),
-                    "level", Map.of(TYPE, STRING),
-                    "issuer", Map.of(TYPE, STRING),
-                    "date", Map.of(TYPE, STRING)
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "name", Map.of(TYPE, STRING),
+                                            "issuer", Map.of(TYPE, STRING),
+                                            "level", Map.of(TYPE, STRING),
+                                            "date", Map.of(TYPE, STRING)
+                                    ),
+                                    REQUIRED, List.of("name", "issuer")
+                            )
+                    )
             ),
-            REQUIRED, List.of("name", "issuer")
+            REQUIRED, List.of("items")
     );
 
     // INTERNSHIP: 同EXPERIENCE结构
     public static final Map<String, Object> INTERNSHIP = EXPERIENCE;
 
-    // LAC_CERTIFICATES: { name: string, score?: string?, date?: string? }
+    // LAC_CERTIFICATES: { items: [{ name: string, score?: string, date?: string }] }
     public static final Map<String, Object> LAC_CERTIFICATES = Map.of(
             TYPE, OBJECT,
             PROPERTIES, Map.of(
-                    "name", Map.of(TYPE, STRING),
-                    "score", Map.of(TYPE, STRING),
-                    "date", Map.of(TYPE, STRING)
+                    "items", Map.of(
+                            TYPE, ARRAY,
+                            ITEMS, Map.of(
+                                    TYPE, OBJECT,
+                                    PROPERTIES, Map.of(
+                                            "name", Map.of(TYPE, STRING),
+                                            "score", Map.of(TYPE, STRING),
+                                            "date", Map.of(TYPE, STRING)
+                                    ),
+                                    REQUIRED, List.of("name")
+                            )
+                    )
             ),
-            REQUIRED, List.of("name")
+            REQUIRED, List.of("items")
     );
 
     // CUSTOM: 宽松，只校验是否为合法JSON

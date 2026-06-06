@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冯登其 - Java 后端简历</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f2f2f2;
+      color: #222;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    /* ===== A4 页面 ===== */
+    .page {
+      width: 210mm;
+      height: 297mm;
+      margin: 18px auto;
+      display: grid;
+      grid-template-columns: 60mm 1fr;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      overflow: hidden;
+    }
+
+    /* ===== 侧边栏 ===== */
+    .sidebar {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 22px 14px;
+    }
+
+    .avatar {
+      width: 68px;
+      height: 84px;
+      object-fit: cover;
+      display: block;
+      margin: 0 auto 12px;
+      border: 1px solid #ddd;
+    }
+
+    .name {
+      font-size: 22px;
+      font-weight: 900;
+      text-align: center;
+      margin: 0 0 14px;
+      letter-spacing: 2px;
+    }
+
+    .contact-list {
+      list-style: none;
+      margin: 0 0 16px;
+    }
+
+    .contact-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin: 6px 0;
+      color: #e5e5e5;
+      font-size: 10.5px;
+      line-height: 1.4;
+    }
+
+    .contact-list .icon {
+      flex: 0 0 14px;
+      text-align: center;
+      color: #aaa;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    .contact-list a {
+      color: #e5e5e5;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .side-section {
+      margin-top: 16px;
+    }
+
+    .side-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      padding-bottom: 5px;
+      border-bottom: 1.5px solid #555;
+      color: #fff;
+    }
+
+    .honor-item {
+      margin: 10px 0;
+      padding: 6px 0;
+      color: #e5e5e5;
+      font-size: 10.5px;
+      line-height: 1.5;
+      border-bottom: 1px solid #333;
+    }
+
+    .honor-item:last-child {
+      border-bottom: 0;
+    }
+
+    .honor-item strong {
+      font-weight: 700;
+    }
+
+    /* ===== 主内容区 ===== */
+    .main {
+      padding: 20px 22px;
+      background: #fff;
+    }
+
+    .section {
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #111;
+      margin: 0 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 1.5px solid #222;
+    }
+
+    /* 教育背景 */
+    .edu-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 3px;
+      color: #333;
+      font-size: 11px;
+    }
+
+    .edu-school { font-weight: 700; }
+    .edu-major { color: #555; }
+
+    .edu-detail {
+      color: #333;
+      font-size: 10.5px;
+      margin: 2px 0;
+    }
+
+    .edu-detail strong {
+      font-weight: 700;
+    }
+
+    /* 项目/经历条目 */
+    .item {
+      margin-bottom: 12px;
+    }
+
+    .item:last-child { margin-bottom: 0; }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 3px;
+    }
+
+    .item-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .item-meta {
+      font-size: 10px;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .item-sub {
+      font-size: 10px;
+      color: #555;
+      margin-bottom: 3px;
+    }
+
+    .stack {
+      font-size: 10px;
+      color: #444;
+      margin: 2px 0 4px;
+      line-height: 1.3;
+    }
+
+    .sub-label {
+      font-weight: 700;
+      color: #333;
+      font-size: 10.5px;
+      margin-top: 6px;
+      margin-bottom: 3px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 14px;
+    }
+
+    li {
+      margin: 4px 0;
+      padding: 2px 0;
+      color: #333;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    li::marker { color: #555; }
+
+    .summary {
+      color: #333;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    /* ===== 工具栏 ===== */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      background: #f2f2f2;
+      border-bottom: 1px solid #d0d0d0;
+    }
+
+    .toolbar button {
+      padding: 6px 12px;
+      border: 1px solid #444;
+      background: #fff;
+      color: #222;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .toolbar button.primary {
+      background: #222;
+      color: #fff;
+    }
+
+    .edit-tip {
+      align-self: center;
+      color: #555;
+      font-size: 12px;
+    }
+
+    body.editing .section,
+    body.editing .side-section,
+    body.editing .name {
+      outline: 1px dashed #888;
+      outline-offset: 3px;
+    }
+
+    [contenteditable="true"]:focus {
+      outline: 2px solid #222;
+      outline-offset: 3px;
+    }
+
+    @page { size: A4; margin: 0; }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      .toolbar { display: none !important; }
+      .page { width: 210mm; height: 297mm; margin: 0; border: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="primary" id="exportBtn" type="button">导出 PDF / 打印</button>
+    <button id="editBtn" type="button">开启编辑</button>
+    <button id="saveBtn" type="button">保存修改</button>
+    <button id="resetBtn" type="button">恢复初始</button>
+    <span class="edit-tip" id="editTip">开启编辑后，可直接修改各模块文字。</span>
+  </div>
+
+  <main class="page">
+    <aside class="sidebar">
+      <img class="avatar" src="file:///C:/Users/seele/Desktop/fsdownload/84987934B3D65BA6DA88E10909E3F57A.jpg" alt="头像" />
+      <h1 class="name">冯登其</h1>
+      <ul class="contact-list">
+        <li><span class="icon">👤</span>20 岁</li>
+        <li><span class="icon">♂</span>男</li>
+        <li><span class="icon">☎</span>17323761154</li>
+        <li><span class="icon">✉</span>qskaouayshuayszas@gmail.com</li>
+        <li>
+          <span class="icon">🔗</span>
+          <span>博客（已有 7W+ 浏览）<br><a href="https://blog.csdn.net/2504_93605592">https://blog.csdn.net/2504_93605592</a></span>
+        </li>
+      </ul>
+
+      <section class="side-section">
+        <h2 class="side-title">专业技能</h2>
+        <ul style="list-style:none;padding:0;">
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">Java 后端：</strong>熟悉 Java 常见设计模式，熟练使用 Spring Boot、Spring Cloud。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">微服务：</strong>熟悉 Gateway、OpenFeign、Nacos，了解网关路由与服务调用。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">AI 开发：</strong>掌握 Python，熟悉 LangChain / LangGraph 与 AI 工作流开发。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">Agent 编排：</strong>熟悉多节点流程编排、状态流转、工具调用与异步任务链路。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">MySQL：</strong>熟悉索引、事务、SQL 优化与慢查询分析。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">Redis：</strong>熟悉缓存、验证码、登录态、过期策略。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">RabbitMQ：</strong>熟悉消息确认、重试、死信队列与异步任务解耦。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">工程化：</strong>熟练使用 Git，熟悉 Docker 容器化与本地联调部署。</li>
+          <li style="margin:5px 0;font-size:10.5px;line-height:1.45;color:#e5e5e5;"><strong style="color:#fff;">C++：</strong>熟悉 C++ 基础，有半年嵌入式开发经验。</li>
+        </ul>
+      </section>
+
+      <section class="side-section">
+        <h2 class="side-title">荣誉证书</h2>
+        <p class="honor-item"><strong>英语能力：</strong>CET-4，具备良好的英文阅读能力，可查阅并理解英文技术文档，支持基本英语交流。</p>
+        <p class="honor-item"><strong>学业成绩：</strong>获得学业奖学金（一等 / 二等）。</p>
+        <p class="honor-item"><strong>竞赛经历：</strong>全国大学生数学竞赛：一等奖（2024），二等奖（2023）。</p>
+        <p class="honor-item"><strong>数学建模：</strong>省一等奖（2024）。</p>
+      </section>
+    </aside>
+
+    <section class="main">
+      <!-- 教育背景 -->
+      <section class="section">
+        <h2 class="section-title">教育背景</h2>
+        <div class="edu-row">
+          <span class="edu-school">重庆邮电大学</span>
+          <span class="edu-major">电子信息工程（本科）</span>
+        </div>
+        <div class="edu-row" style="margin-bottom:4px;">
+          <span style="font-size:10px;color:#666;">2023-09 ～ 至今</span>
+        </div>
+        <p class="edu-detail"><strong>专业成绩：</strong>GPA 3.4/4.0（专业前8%）</p>
+        <p class="edu-detail"><strong>主修课程：</strong>Java 软件开发、C/C++ 程序设计、数据结构与算法、通信网络、数字电路与逻辑</p>
+      </section>
+
+      <!-- 实习经历 -->
+      <section class="section">
+        <h2 class="section-title">实习经历</h2>
+        <article class="item">
+          <div class="item-head">
+            <span class="item-title">杭州疡医科技</span>
+            <span class="item-meta">2026-03 ～ 2026-05</span>
+          </div>
+          <p class="item-sub">创新功能部</p>
+          <p class="sub-label">核心职责：</p>
+          <ul>
+            <li>独立负责患者端后端主链路，交付 <strong>29 个 RESTful API</strong>，覆盖首页、训练、随访、筛查、训练计划等模块。</li>
+            <li>设计登录鉴权体系，支持短信登录、微信登录、<strong>JWT 鉴权</strong>、<strong>Token 刷新</strong>与 <strong>ADMIN</strong> 权限校验。</li>
+            <li>串联训练闭环：训练计划 → 视频上传 → <strong>Coze AI</strong> 评分 → 评分入库 → 随访记录生成。</li>
+            <li>接入 <strong>Coze</strong> 工作流、语音转文字与腾讯 <strong>COS</strong>，支撑 AI 评分、数字问诊和训练文件上传。</li>
+          </ul>
+          <p class="sub-label">项目成果：</p>
+          <ul>
+            <li>完成患者端从登录、训练、评分到随访的核心业务闭环，支撑康复训练全流程线上化。</li>
+            <li>落地 <strong>8</strong> 个业务控制器、<strong>36</strong> 个 RESTful API，其中患者端核心链路接口 <strong>29</strong> 个。</li>
+            <li>基于 <strong>Redis</strong> 管理登录态与首页热点缓存，并增加本地兜底机制，提升异常场景可用性。</li>
+            <li>项目已进入院方初步合作与需求验证阶段。</li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- 项目经历 -->
+      <section class="section">
+        <h2 class="section-title">项目经历</h2>
+
+        <article class="item">
+          <div class="item-head">
+            <span class="item-title">CareerForge</span>
+            <span class="item-meta">2026-04 ～ 至今 | 个人项目</span>
+          </div>
+          <p class="stack">Spring Cloud / MyBatis-Plus / MySQL / Redis / RabbitMQ / JWT / SSE / LangGraph / Milvus / Elasticsearch</p>
+          <p class="sub-label">核心职责：</p>
+          <ul>
+            <li>独立实现 AI 简历优化与模拟面试主链路，覆盖 JD 分析、简历改写、用户审批、模拟面试与总结生成。</li>
+            <li>搭建 <strong>LangGraph</strong> 双场景工作流，实现简历优化 <strong>10</strong> 节点 Agent 与模拟面试 <strong>6</strong> 节点 Agent。</li>
+            <li>基于 <strong>RabbitMQ</strong> 解耦 Java 业务服务与 Python Agent 服务，实现异步任务投递、消费与状态回写。</li>
+            <li>使用 <strong>Redis Checkpoint</strong> 保存 Agent 状态，支持 <strong>Command</strong> 恢复、中断续跑与用户补充输入。</li>
+            <li>构建 <strong>Elasticsearch + Milvus</strong> 混合 RAG，支持 <strong>BM25</strong> 关键词召回、向量检索与元数据过滤。</li>
+          </ul>
+          <p class="sub-label">项目成果：</p>
+          <ul>
+            <li>搭建 <strong>Spring Cloud</strong> 微服务后端，拆分认证、简历、Agent、面试、订单、支付等 <strong>11</strong> 个模块。</li>
+            <li>实现 <strong>13</strong> 个业务控制器、<strong>70+</strong> RESTful API，覆盖用户、简历、AI 任务、面试和交易链路。</li>
+            <li>通过 <strong>MQ</strong> 拆分简历优化与模拟面试任务，降低长耗时 AI 执行对 Java 主服务的阻塞。</li>
+            <li>通过 <strong>SSE</strong> 推送 Agent 阶段、追问和审批事件，实现实时可见的 AI Copilot 交互。</li>
+          </ul>
+        </article>
+
+        <article class="item">
+          <div class="item-head">
+            <span class="item-title">Luvia AI 陪伴聊</span>
+            <span class="item-meta">2026-03 ～ 2026-05 | 个人项目</span>
+          </div>
+          <p class="item-sub">项目名称：Luvia AI 陪伴聊天系统｜个人项目</p>
+          <p class="stack">Spring Boot / Spring AI / MyBatis-Plus / MySQL / Redis / JWT / WebSocket / GPT-SoVITS / OSS</p>
+          <p class="sub-label">核心职责：</p>
+          <ul>
+            <li>独立实现 AI 聊天后端，覆盖登录认证、角色配置、聊天消息、长期记忆和媒体上传。</li>
+            <li>基于 <strong>Spring AI</strong> 接入大模型，将角色 Prompt、长期记忆和最近 <strong>20</strong> 条对话注入上下文生成回复。</li>
+            <li>接入 <strong>GPT-SoVITS</strong> 和 <strong>OSS</strong>，实现 AI 回复语音合成、上传与聊天消息绑定。</li>
+            <li>基于 <strong>WebSocket</strong> 实现实时聊天回复，支持 <strong>JWT</strong> 鉴权、心跳检测和断连清理。</li>
+            <li>实现主动关怀机制，基于定时任务扫描用户状态，生成日常问候、睡眠、运动、饮食和情绪关怀消息。</li>
+          </ul>
+          <p class="sub-label">项目成果：</p>
+          <ul>
+            <li>实现 <strong>11</strong> 个业务控制器、<strong>40+</strong> RESTful API，覆盖用户、角色、聊天、消息、媒体和推送链路。</li>
+            <li>打通 AI 陪伴闭环：用户消息 → 上下文构建 → AI 回复 → 语音合成 → 消息落库 → 实时推送。</li>
+            <li>通过长期记忆摘要和最近上下文控制 Prompt 长度，提升多轮对话连续性。</li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- 自我评价 -->
+      <section class="section">
+        <h2 class="section-title">自我评价</h2>
+        <p class="summary">学习能力强、自驱力足，逻辑清晰执行力强，抗压稳定、沟通协作顺畅。</p>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "blackWhiteResumeHtml";
+    const page = document.querySelector(".page");
+    const editBtn = document.getElementById("editBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const editableSelector = ".section, .side-section, .name";
+    const initialHtml = page.innerHTML;
+
+    function setEditing(enabled) {
+      document.body.classList.toggle("editing", enabled);
+      document.querySelectorAll(editableSelector).forEach((node) => {
+        node.contentEditable = enabled ? "true" : "false";
+      });
+      editBtn.textContent = enabled ? "关闭编辑" : "开启编辑";
+    }
+
+    function saveResume() {
+      setEditing(false);
+      localStorage.setItem(storageKey, page.innerHTML);
+      alert("已保存修改。");
+    }
+
+    function resetResume() {
+      if (!confirm("确定恢复到初始内容吗？当前保存的修改会被清除。")) return;
+      localStorage.removeItem(storageKey);
+      page.innerHTML = initialHtml;
+      setEditing(false);
+    }
+
+    const savedHtml = localStorage.getItem(storageKey);
+    if (savedHtml) page.innerHTML = savedHtml;
+    setEditing(false);
+
+    editBtn.addEventListener("click", () => setEditing(!document.body.classList.contains("editing")));
+    saveBtn.addEventListener("click", saveResume);
+    resetBtn.addEventListener("click", resetResume);
+    exportBtn.addEventListener("click", () => { setEditing(false); window.print(); });
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${AGENT_DB_NAME:ai_resume_agent}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:@Feng050813}
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqp://elias:779337@localhost:5672}
     publisher-confirm-type: correlated
@@ -20,6 +20,9 @@ python:
 internal:
   agent:
     service-token: ${INTERNAL_AGENT_SERVICE_TOKEN:change-me}
+
+gateway:
+  service-token: ${GATEWAY_SERVICE_TOKEN:change-me}
 
 agent:
   rabbitmq:

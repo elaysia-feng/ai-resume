@@ -1,4 +1,5 @@
 gateway:
+  service-token: ${GATEWAY_SERVICE_TOKEN:change-me}
   white-list: /api/auth/login,/api/auth/register,/api/auth/send-code,/api/auth/verify-code,/api/auth/set-password,/api/auth/login-by-code,/api/notification/code
   dynamic-router:
     data-id: gateway-routers.yaml

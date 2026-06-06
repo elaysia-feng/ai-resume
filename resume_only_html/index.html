@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Resume Forge - 简历模板预览</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 48px;
+  letter-spacing: 0.05em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.card__preview {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.card__name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.card__desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.card__tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* Mini previews */
+.mini-classic {
+  background: #f8fbff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mini-classic .bar { height: 4px; border-radius: 2px; }
+.mini-classic .bar1 { width: 40%; background: #1d4f91; }
+.mini-classic .bar2 { width: 60%; background: #d8e1ec; }
+.mini-classic .bar3 { width: 80%; background: #eef4fb; }
+.mini-classic .line { height: 2px; background: linear-gradient(90deg, #1d4f91, transparent); border-radius: 1px; }
+.mini-classic .row { display: flex; gap: 4px; }
+.mini-classic .row div { height: 3px; border-radius: 1px; background: #d8e1ec; flex: 1; }
+
+.mini-modern {
+  background: #f5fbfa;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  height: 100%;
+}
+.mini-modern .side { background: #e8f6f3; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.mini-modern .side .dot { width: 24px; height: 24px; border-radius: 6px; background: #0f766e; opacity: 0.3; }
+.mini-modern .side .line { height: 2px; background: #0f766e22; border-radius: 1px; }
+.mini-modern .main { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.mini-modern .main .block { height: 12px; border-radius: 4px; background: #e8f6f3; }
+.mini-modern .main .block2 { height: 8px; border-radius: 3px; background: #0f766e14; }
+
+.mini-creative {
+  background: linear-gradient(180deg, #fffdf8 0%, #fffaf3 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.mini-creative .hero { height: 45px; background: linear-gradient(135deg, #1f2937, #24364a); border-radius: 8px 8px 0 0; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; }
+.mini-creative .hero .name { width: 50px; height: 4px; background: rgba(255,255,255,0.6); border-radius: 2px; }
+.mini-creative .hero .avatar { width: 18px; height: 18px; border-radius: 4px; background: rgba(255,255,255,0.15); }
+.mini-creative .body { flex: 1; display: grid; grid-template-columns: 60px 1fr; gap: 4px; padding: 6px; }
+.mini-creative .body .aside { display: flex; flex-direction: column; gap: 3px; }
+.mini-creative .body .aside .box { height: 14px; border-radius: 4px; background: rgba(180,83,9,0.08); }
+.mini-creative .body .content { display: flex; flex-direction: column; gap: 3px; }
+.mini-creative .body .content .box { height: 10px; border-radius: 3px; background: #f9edd9; }
+
+.mini-compact {
+  background: #faf5ff;
+  display: grid;
+  grid-template-columns: 55px 1fr;
+  height: 100%;
+}
+.mini-compact .side { background: #f3e8ff; padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+.mini-compact .side .dot { width: 18px; height: 18px; border-radius: 4px; background: #6d28d9; opacity: 0.2; }
+.mini-compact .side .line { height: 2px; background: #6d28d922; border-radius: 1px; }
+.mini-compact .main { padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+.mini-compact .main .block { height: 8px; border-radius: 3px; background: #f3e8ff; }
+
+.mini-academic {
+  background: #f7f9fc;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mini-academic .circle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #1e3a5f; opacity: 0.3; }
+.mini-academic .line { height: 3px; background: linear-gradient(90deg, #1e3a5f, #1e3a5f22, transparent); border-radius: 2px; }
+.mini-academic .bar { height: 3px; border-radius: 1px; }
+.mini-academic .bar1 { width: 35%; background: #1e3a5f; }
+.mini-academic .bar2 { width: 50%; background: #c8d6e5; }
+.mini-academic .section { border-bottom: 2px solid #1e3a5f; padding-bottom: 2px; display: flex; flex-direction: column; gap: 2px; }
+.mini-academic .section .row { height: 2px; background: #c8d6e5; border-radius: 1px; }
+
+.mini-dual {
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.mini-dual .hero { height: 36px; background: linear-gradient(135deg, #78350f, #b45309); border-radius: 8px 8px 0 0; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; }
+.mini-dual .hero .name { width: 45px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 2px; }
+.mini-dual .hero .avatar { width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+.mini-dual .pills { height: 14px; background: rgba(146,64,14,0.06); border-bottom: 1px solid #e8d5b7; display: flex; gap: 3px; padding: 2px 6px; }
+.mini-dual .pills .pill { height: 8px; width: 20px; border-radius: 4px; background: rgba(146,64,14,0.1); }
+.mini-dual .body { flex: 1; display: grid; grid-template-columns: 60px 1fr; gap: 4px; padding: 6px; }
+.mini-dual .body .aside { display: flex; flex-direction: column; gap: 3px; }
+.mini-dual .body .aside .box { height: 14px; border-radius: 4px; background: rgba(146,64,14,0.06); }
+.mini-dual .body .content { display: flex; flex-direction: column; gap: 3px; }
+.mini-dual .body .content .box { height: 10px; border-radius: 3px; background: #fef3c7; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>AI Resume Forge</h1>
+  <p class="subtitle">6 款纯前端简历模板预览 · 点击卡片查看完整效果</p>
+
+  <div class="grid">
+
+    <a class="card" href="classic.html">
+      <div class="card__preview mini-classic">
+        <div class="bar bar1"></div>
+        <div class="bar bar2"></div>
+        <div class="line"></div>
+        <div class="row"><div></div><div></div><div></div></div>
+        <div class="bar bar3"></div>
+        <div class="bar bar3"></div>
+        <div class="row"><div></div><div></div></div>
+      </div>
+      <span class="card__name">经典版 Classic</span>
+      <span class="card__desc">单栏布局，传统从上到下的经典简历结构，适合大多数求职场景。</span>
+      <span class="card__tag" style="background:#1d4f9114;color:#1d4f91;">单栏</span>
+    </a>
+
+    <a class="card" href="modern.html">
+      <div class="card__preview mini-modern">
+        <div class="side">
+          <div class="dot"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+        <div class="main">
+          <div class="block"></div>
+          <div class="block2"></div>
+          <div class="block2"></div>
+          <div class="block"></div>
+          <div class="block2"></div>
+        </div>
+      </div>
+      <span class="card__name">简约求职版 Modern</span>
+      <span class="card__desc">双栏布局，左侧侧边栏展示联系方式与技能，右侧主区域放经历内容。</span>
+      <span class="card__tag" style="background:#0f766e14;color:#0f766e;">双栏</span>
+    </a>
+
+    <a class="card" href="creative.html">
+      <div class="card__preview mini-creative">
+        <div class="hero">
+          <div class="name"></div>
+          <div class="avatar"></div>
+        </div>
+        <div class="body">
+          <div class="aside"><div class="box"></div><div class="box"></div></div>
+          <div class="content"><div class="box"></div><div class="box"></div><div class="box"></div></div>
+        </div>
+      </div>
+      <span class="card__name">创意进阶版 Creative</span>
+      <span class="card__desc">深色英雄头图 + 双栏卡片式内容区，视觉层次丰富，适合设计师/创意岗位。</span>
+      <span class="card__tag" style="background:#b4530914;color:#b45309;">创意</span>
+    </a>
+
+    <a class="card" href="compact.html">
+      <div class="card__preview mini-compact">
+        <div class="side">
+          <div class="dot"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+        <div class="main">
+          <div class="block"></div>
+          <div class="block"></div>
+          <div class="block"></div>
+          <div class="block"></div>
+        </div>
+      </div>
+      <span class="card__name">双列紧凑版 Compact</span>
+      <span class="card__desc">窄侧边栏 + 紧凑排版，信息密度最大化，适合内容丰富的资深简历。</span>
+      <span class="card__tag" style="background:#6d28d914;color:#6d28d9;">紧凑</span>
+    </a>
+
+    <a class="card" href="academic.html">
+      <div class="card__preview mini-academic">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="circle"></div>
+          <div><div class="bar bar1"></div><div class="bar bar2" style="margin-top:3px;"></div></div>
+        </div>
+        <div class="line"></div>
+        <div class="section"><div class="row" style="width:30%;"></div></div>
+        <div class="row" style="width:90%;"></div>
+        <div class="section"><div class="row" style="width:25%;"></div></div>
+        <div class="row" style="width:80%;"></div>
+      </div>
+      <span class="card__name">学术科研版 Academic</span>
+      <span class="card__desc">教育优先排序，圆形头像 + 粗下划线标题，适合学术/科研/应届博士。</span>
+      <span class="card__tag" style="background:#1e3a5f14;color:#1e3a5f;">学术</span>
+    </a>
+
+    <a class="card" href="dual-creative.html">
+      <div class="card__preview mini-dual">
+        <div class="hero">
+          <div class="name"></div>
+          <div class="avatar"></div>
+        </div>
+        <div class="pills"><div class="pill"></div><div class="pill"></div><div class="pill"></div></div>
+        <div class="body">
+          <div class="aside"><div class="box"></div><div class="box"></div></div>
+          <div class="content"><div class="box"></div><div class="box"></div></div>
+        </div>
+      </div>
+      <span class="card__name">双列创意版 Dual Creative</span>
+      <span class="card__desc">暖棕渐变头图 + 独立意向栏 + 双栏内容，适合有设计感需求的求职者。</span>
+      <span class="card__tag" style="background:#92400e14;color:#92400e;">创意</span>
+    </a>
+
+  </div>
+</div>
+</body>
+</html>

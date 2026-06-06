@@ -7,7 +7,7 @@ routes:
   - id: resume-service
     uri: lb://resume-service
     predicates:
-      - Path=/api/resume/**
+      - Path=/api/resumes/**
 
   - id: agent-service
     uri: lb://agent-service
@@ -22,12 +22,12 @@ routes:
   - id: order-service
     uri: lb://order-service
     predicates:
-      - Path=/api/order/**,/api/plan/**,/api/subscription/**
+      - Path=/api/orders/**,/api/plans/**,/api/subscriptions/**
 
   - id: payment-service
     uri: lb://payment-service
     predicates:
-      - Path=/api/payment/**
+      - Path=/api/pay/**
 
   - id: notification-service
     uri: lb://notification-service

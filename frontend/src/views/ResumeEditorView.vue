@@ -187,6 +187,7 @@ import CampusEditor from '../components/resume/editors/CampusEditor.vue';
 import SkillsEditor from '../components/resume/editors/SkillsEditor.vue';
 import CertificatesEditor from '../components/resume/editors/CertificatesEditor.vue';
 import SelfEvaluationEditor from '../components/resume/editors/SelfEvaluationEditor.vue';
+import { sanitizeSectionContentForSave } from '../utils/resumeSectionNormalizer.js';
 import ProjectsEditor from '../components/resume/editors/ProjectsEditor.vue';
 import InternshipEditor from '../components/resume/editors/InternshipEditor.vue';
 import GenericEditor from '../components/resume/editors/GenericEditor.vue';
@@ -232,17 +233,24 @@ const saveStatusClass = computed(() => ({
 function buildResumePayload() {
   const resumeData = {};
   sections.forEach((s) => {
-    resumeData[s.id] = s.contentJson;
+    resumeData[s.id] = sanitizeSectionContentForSave(s.sectionCode, s.contentJson);
   });
-  return { sections: resumeData };
+  return {
+    sections: resumeData,
+    template: store.selectedTemplate.value,
+    sidebarColor: store.sidebarColor.value,
+    fontSize: store.resumeBodyFontSize.value,
+  };
 }
 
 function buildSectionCreatePayload(block) {
+  const raw = block.contentJson ?? {};
+  const sanitized = sanitizeSectionContentForSave(block.sectionCode, raw);
   return {
     sectionCode: block.sectionCode,
     sectionTitle: block.sectionTitle,
     schemaType: block.schemaType,
-    contentJson: block.contentJson ?? {},
+    contentJson: sanitized,
     visible: block.visible ?? true,
   };
 }
@@ -286,6 +294,11 @@ onMounted(async () => {
   if (resumeId) {
     try {
       await resumeStore.fetchResume(resumeId);
+      // Apply template from query param (e.g. from template market)
+      const queryTemplate = route.query.template;
+      if (queryTemplate && ['classic', 'modern', 'creative', 'compact', 'academic', 'dual-creative'].includes(queryTemplate)) {
+        store.selectedTemplate.value = queryTemplate;
+      }
       // New resume (no sections yet): auto-fill all system modules
       if (sections.length === 0) {
         for (const block of DEFAULT_SECTIONS) {
@@ -393,9 +406,12 @@ const isDragging = ref(false);
 let dragStartX = 0;
 
 const templates = [
-  { value: 'classic', label: '经典' },
-  { value: 'modern', label: '现代' },
-  { value: 'creative', label: '创意' },
+  { value: 'classic', label: '标准版' },
+  { value: 'modern', label: '简约求职版' },
+  { value: 'compact', label: '双列紧凑版' },
+  { value: 'academic', label: '学术科研版' },
+  { value: 'creative', label: '创意进阶版' },
+  { value: 'dual-creative', label: '双列创意版' },
 ];
 
 const bodyFontOptions = [9, 10, 11, 12];
@@ -424,7 +440,9 @@ const activeSection = computed(() =>
 );
 
 const layoutClass = computed(() => layout.value);
-const supportsSidebarColor = computed(() => store.selectedTemplate.value === 'modern');
+const supportsSidebarColor = computed(() =>
+  ['modern', 'compact', 'creative', 'dual-creative'].includes(store.selectedTemplate.value)
+);
 
 const LIST_TYPES = new Set([
   'EDUCATION', 'EXPERIENCE', 'CAMPUS', 'SKILLS',

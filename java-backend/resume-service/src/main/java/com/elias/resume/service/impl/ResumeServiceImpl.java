@@ -584,7 +584,9 @@ public class ResumeServiceImpl implements ResumeService {
                 throw BusinessException.business("部分模块不属于当前简历, 保存失败");
             }
 
-            section.setContentJson(writeJson(sectionContent));
+            String contentJson = writeJson(sectionContent);
+            schemaValidator.validate(section.getSectionCode(), contentJson);
+            section.setContentJson(contentJson);
             section.setUpdatedAt(LocalDateTime.now());
             resumeSectionMapper.updateById(section);
         }

@@ -47,10 +47,6 @@ export {
 } from './agent.js';
 
 export {
-  getJavaHealth,
-} from './health.js';
-
-export {
   finishInterviewRun,
   getInterviewBoard,
   getInterviewQuestionRounds,

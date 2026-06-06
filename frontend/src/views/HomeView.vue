@@ -11,17 +11,6 @@
     </header>
 
     <div class="dashboard-body">
-      <section class="status-card">
-        <div class="status-left">
-          <div>
-            <h2 class="status-title">后端状态</h2>
-            <p class="status-subtitle">当前展示的是 Java 后端健康检查接口</p>
-          </div>
-          <span class="status-pill" :class="healthStatusClass">{{ healthText }}</span>
-        </div>
-        <button class="retry-btn plain" @click="loadHealthStatus">刷新状态</button>
-      </section>
-
       <!-- Loading -->
       <div v-if="resumeStore.loading && resumeStore.resumes.length === 0" class="state-message">
         正在加载简历列表...
@@ -53,33 +42,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useResumeStore } from '../store/resumeStore.js';
 import { useAuthStore } from '../store/authStore.js';
-import { extractApiMessage, getJavaHealth } from '../api/index.js';
 import ResumeCard from '../components/ResumeCard.vue';
 
 const resumeStore = useResumeStore();
 const authStore = useAuthStore();
 const router = useRouter();
-const healthStatus = ref('checking');
-
-const healthText = computed(() => {
-  if (healthStatus.value === 'ok') return '服务正常';
-  if (healthStatus.value === 'error') return '服务异常';
-  return '检查中';
-});
-
-const healthStatusClass = computed(() => ({
-  ok: healthStatus.value === 'ok',
-  error: healthStatus.value === 'error',
-  checking: healthStatus.value === 'checking',
-}));
 
 onMounted(() => {
   resumeStore.fetchResumes();
-  loadHealthStatus();
   window.addEventListener('keydown', handleKeydown);
 });
 
@@ -102,17 +76,6 @@ async function handleCreate() {
     }
   } catch {
     // error is set on the store
-  }
-}
-
-async function loadHealthStatus() {
-  healthStatus.value = 'checking';
-  try {
-    const data = await getJavaHealth();
-    healthStatus.value = data?.status === 'ok' ? 'ok' : 'error';
-  } catch (err) {
-    console.warn(extractApiMessage(err, '后端健康检查失败'));
-    healthStatus.value = 'error';
   }
 }
 
@@ -189,61 +152,6 @@ function handleLogout() {
   margin: 0 auto;
 }
 
-.status-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  margin-bottom: 24px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-}
-
-.status-left {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex: 1;
-}
-
-.status-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-
-.status-subtitle {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.status-pill {
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.status-pill.ok {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.status-pill.error {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.status-pill.checking {
-  background: #fef3c7;
-  color: #92400e;
-}
-
 .state-message {
   text-align: center;
   color: #6b7280;
@@ -264,12 +172,6 @@ function handleLogout() {
   border-radius: 7px;
   font-size: 14px;
   cursor: pointer;
-}
-
-.retry-btn.plain {
-  margin-top: 0;
-  border-color: #d1d5db;
-  color: #374151;
 }
 
 .empty-state {
@@ -308,11 +210,4 @@ function handleLogout() {
   gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .status-card,
-  .status-left {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
 </style>

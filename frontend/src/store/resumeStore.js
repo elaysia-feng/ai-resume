@@ -68,6 +68,12 @@ export const useResumeStore = defineStore('resume', () => {
     if (data?.template) {
       selectedTemplate.value = data.template;
     }
+    if (data?.sidebarColor) {
+      sidebarColor.value = data.sidebarColor;
+    }
+    if (data?.fontSize) {
+      resumeBodyFontSize.value = data.fontSize;
+    }
 
     if (data?.sections && Array.isArray(data.sections)) {
       data.sections.forEach((section) => {
@@ -318,16 +324,16 @@ export const resumeData = computed(() => {
     wechat: basic.wechat || '',
     github: basic.github || '',
     website: basic.website || '',
-    desiredPosition: ji.desiredPosition || '',
-    desiredCity: ji.desiredCity || '',
+    desiredPosition: ji.desiredPosition || ji.targetPosition || '',
+    desiredCity: ji.desiredCity || ji.city || '',
     salaryRange: ji.salaryRange || '',
     employmentType: ji.employmentType || '',
     jobStatus: ji.jobStatus || '',
-    summary: summarySec.text || '',
+    summary: summarySec.text || summarySec.summary || '',
     education: eduSec.items || [],
     experience: expSec.items || [],
-    skills: skillsSec.items || [],
-    selfEvaluation: selfEvalSec.text || '',
+    skills: skillsSec.items || skillsSec.skills || [],
+    selfEvaluation: selfEvalSec.text || selfEvalSec.evaluation || '',
     projects: projectsSec.items || [],
     campus: campusSec.items || [],
     certificates: certSec.items || [],

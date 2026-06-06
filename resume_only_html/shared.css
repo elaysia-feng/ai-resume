@@ -1,0 +1,370 @@
+/* ========== resume-template-base.css ========== */
+.resume-template {
+  --resume-font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Helvetica Neue', Arial, sans-serif;
+  --resume-color-page: #ffffff;
+  --resume-color-text: #1f2937;
+  --resume-color-text-soft: #475569;
+  --resume-color-text-faint: #6b7280;
+  --resume-color-heading: #0f172a;
+  --resume-color-accent: #1d4ed8;
+  --resume-color-accent-soft: rgba(29, 78, 216, 0.12);
+  --resume-color-border: #dbe3ef;
+  --resume-color-surface: #f8fafc;
+  --resume-color-surface-strong: #eff6ff;
+  --resume-shadow-card: 0 8px 20px rgba(15, 23, 42, 0.04);
+  --resume-font-name: 26px;
+  --resume-font-title: 12px;
+  --resume-font-contact: 10px;
+  --resume-font-pill: 10px;
+  --resume-section-title-size: 10px;
+  --resume-text-size: 9px;
+  --resume-meta-size: 9px;
+  --resume-title-size: 11px;
+  --resume-date-size: 9px;
+  --resume-chip-size: 9px;
+  font-family: var(--resume-font-body);
+  color: var(--resume-color-text);
+  background: var(--resume-color-page);
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.resume-template *,
+.resume-template *::before,
+.resume-template *::after {
+  box-sizing: border-box;
+}
+
+.resume-template a {
+  color: inherit;
+}
+
+/* ========== Basic Header ========== */
+.resume-basic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resume-basic-header__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.resume-basic-header__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.resume-basic-header__name {
+  margin: 0;
+  color: var(--resume-color-heading);
+  font-size: var(--resume-font-name);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+}
+
+.resume-basic-header__title {
+  margin: 8px 0 0;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-font-title);
+  font-weight: 600;
+}
+
+.resume-basic-header__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 14px;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-font-contact);
+}
+
+.resume-basic-header__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.resume-basic-header__contact-label {
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
+}
+
+.resume-basic-header__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: #f8fafc;
+}
+
+/* ========== Meta Pills ========== */
+.resume-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--resume-color-accent-soft);
+  color: var(--resume-color-accent);
+  font-size: var(--resume-font-pill);
+  font-weight: 600;
+}
+
+.resume-meta-pill__label {
+  opacity: 0.78;
+}
+
+/* ========== Divider ========== */
+.resume-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--resume-color-border);
+}
+
+/* ========== ResumeSection Styles ========== */
+.resume-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resume-section-block__head {
+  display: flex;
+  align-items: center;
+}
+
+.resume-section-block__title {
+  margin: 0;
+  color: var(--resume-color-heading);
+  font-size: var(--resume-section-title-size, 10px);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.resume-section-block__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Rich Text */
+.resume-rich-text {
+  color: var(--resume-color-text);
+  font-size: var(--resume-text-size, 9px);
+  line-height: 1.45;
+}
+
+.resume-rich-text * {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Entry List */
+.resume-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resume-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.resume-entry__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.resume-entry__main {
+  min-width: 0;
+}
+
+.resume-entry__title {
+  margin: 0;
+  color: var(--resume-color-heading);
+  font-size: var(--resume-title-size, 11px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.resume-entry__subtitle,
+.resume-entry__meta {
+  margin: 3px 0 0;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-meta-size, 9px);
+  line-height: 1.45;
+}
+
+.resume-entry__date {
+  color: var(--resume-color-text-faint);
+  font-size: var(--resume-date-size, 9px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.resume-entry__description {
+  color: var(--resume-color-text);
+  font-size: var(--resume-text-size, 9px);
+  line-height: 1.45;
+}
+
+.resume-entry__description * {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+.resume-entry__bullets {
+  margin: 0;
+  padding-left: 15px;
+  color: var(--resume-color-text);
+  font-size: var(--resume-text-size, 9px);
+  line-height: 1.45;
+}
+
+.resume-entry__bullets li + li {
+  margin-top: 4px;
+}
+
+/* Chips */
+.resume-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-chip-list--compact {
+  gap: 6px;
+}
+
+.resume-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--resume-color-surface-strong);
+  color: var(--resume-color-accent);
+  font-size: var(--resume-chip-size, 9px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.resume-chip__meta {
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
+}
+
+/* KV Grid */
+.resume-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.resume-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--resume-color-border);
+  border-radius: 12px;
+  background: var(--resume-color-surface);
+}
+
+.resume-kv__label {
+  color: var(--resume-color-text-faint);
+  font-size: var(--resume-meta-size, 9px);
+  font-weight: 700;
+}
+
+.resume-kv__value {
+  color: var(--resume-color-text);
+  font-size: var(--resume-text-size, 9px);
+  font-weight: 600;
+}
+
+/* Bullet List */
+.resume-bullet-list {
+  margin: 0;
+  padding-left: 15px;
+  color: var(--resume-color-text);
+  font-size: var(--resume-text-size, 9px);
+  line-height: 1.45;
+}
+
+.resume-bullet-list li + li {
+  margin-top: 4px;
+}
+
+/* Compact Section */
+.resume-section-block--compact .resume-section-block__body {
+  gap: 8px;
+}
+
+.resume-section-block--compact .resume-section-block__title {
+  font-size: calc(var(--resume-section-title-size, 10px) - 1px);
+  letter-spacing: 0.08em;
+}
+
+.resume-section-block--compact .resume-entry-list {
+  gap: 7px;
+}
+
+.resume-section-block--compact .resume-entry__title {
+  font-size: calc(var(--resume-title-size, 11px) - 1px);
+}
+
+.resume-section-block--compact .resume-entry__subtitle,
+.resume-section-block--compact .resume-entry__meta,
+.resume-section-block--compact .resume-entry__description,
+.resume-section-block--compact .resume-bullet-list,
+.resume-section-block--compact .resume-rich-text {
+  font-size: calc(var(--resume-text-size, 9px) - 1px);
+}
+
+.resume-section-block--compact .resume-chip {
+  padding: 2px 7px;
+  font-size: calc(var(--resume-chip-size, 9px) - 0.5px);
+}
+
+@media (max-width: 720px) {
+  .resume-kv-grid {
+    grid-template-columns: 1fr;
+  }
+  .resume-entry__header {
+    grid-template-columns: 1fr;
+  }
+  .resume-entry__date {
+    white-space: normal;
+  }
+}
+
+/* ========== Page Wrapper ========== */
+.resume-page {
+  width: 794px;
+  min-height: 1123px;
+  margin: 20px auto;
+  background: #ffffff;
+  border: 1px solid #d9e0ea;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+}

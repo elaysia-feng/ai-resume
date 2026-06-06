@@ -1,0 +1,151 @@
+{
+  "elasticsearch": {
+    "took": 29,
+    "timed_out": false,
+    "total": 104,
+    "max_score": 47.386524,
+    "hits": [
+      {
+        "index": "resume_reference_docs",
+        "id": "7edb3f4acd4b107bf314dd9b898276b2",
+        "score": 47.386524,
+        "source": {
+          "id": "7edb3f4acd4b107bf314dd9b898276b2",
+          "doc_id": "04-module-projects",
+          "title": "项目经历改写指南",
+          "heading_path": "项目经历改写指南 > 核心原则",
+          "module": "PROJECTS",
+          "kind": "module_guide",
+          "doc_group": "module",
+          "scene_code": "resume_rewrite",
+          "target_module": "PROJECTS",
+          "career_domain": "GENERAL",
+          "interview_type": "GENERAL",
+          "primary_tag": "projects",
+          "tags_text": "projects,technical,rewrite",
+          "status": "active",
+          "source": "resume_reference/04-module-projects.md",
+          "text": "# 项目经历改写指南\n## 核心原则\n项目经历要讲清楚：做了什么、怎么做的、结果如何。比工作经历更具体、更技术化。"
+        }
+      },
+      {
+        "index": "resume_reference_docs",
+        "id": "4dfc3771e05bbedba104607b968091a0",
+        "score": 41.534557,
+        "source": {
+          "id": "4dfc3771e05bbedba104607b968091a0",
+          "doc_id": "20-examples-software-engineer",
+          "title": "软件工程师简历范例",
+          "heading_path": "软件工程师简历范例 > 项目经历范例 > 电商系统",
+          "module": "GENERAL",
+          "kind": "example_good",
+          "doc_group": "example",
+          "scene_code": "resume_rewrite",
+          "target_module": "GENERAL",
+          "career_domain": "software_ai",
+          "interview_type": "GENERAL",
+          "primary_tag": "software",
+          "tags_text": "software,backend,frontend,ai,example",
+          "status": "active",
+          "source": "resume_reference/20-examples-software-engineer.md",
+          "text": "## 项目经历范例\n### 电商系统\n改写前：\n做了个电商项目，后端用 Java。\n改写后：\n在电商平台中负责订单模块，基于 Spring Boot 完成下单、支付回调、退款等核心接口的开发与联调，使用 RabbitMQ 解耦订单创建与通知流程，降低同步调用失败率。"
+        }
+      },
+      {
+        "index": "resume_reference_docs",
+        "id": "f183a94d04e2b584bca2f9c6f1b48fff",
+        "score": 31.396166,
+        "source": {
+          "id": "f183a94d04e2b584bca2f9c6f1b48fff",
+          "doc_id": "08-module-internship",
+          "title": "实习经历改写指南",
+          "heading_path": "实习经历改写指南 > 与正式工作经历的区分",
+          "module": "INTERNSHIP",
+          "kind": "module_guide",
+          "doc_group": "module",
+          "scene_code": "resume_rewrite",
+          "target_module": "INTERNSHIP",
+          "career_domain": "GENERAL",
+          "interview_type": "GENERAL",
+          "primary_tag": "internship",
+          "tags_text": "internship,student,rewrite",
+          "status": "active",
+          "source": "resume_reference/08-module-internship.md",
+          "text": "## 与正式工作经历的区分\n实习经历可以写：\n- 参与了什么项目/任务。\n- 用了什么技术/工具。\n- 完成了什么交付物。\n- 学到了什么技能。\n实习经历不能写：\n- 负责整个系统（实习生通常不会独立负责系统）。\n- 主导技术选型。\n- 带团队。\n- 显著提升了业务指标。"
+        }
+      }
+    ]
+  },
+  "milvus": {
+    "data": [
+      [
+        {
+          "id": "7edb3f4acd4b107bf314dd9b898276b2",
+          "distance": 0.7287541627883911,
+          "entity": {
+            "id": "7edb3f4acd4b107bf314dd9b898276b2",
+            "doc_id": "04-module-projects",
+            "title": "项目经历改写指南",
+            "heading_path": "项目经历改写指南 > 核心原则",
+            "module": "PROJECTS",
+            "kind": "module_guide",
+            "doc_group": "module",
+            "scene_code": "resume_rewrite",
+            "target_module": "PROJECTS",
+            "career_domain": "GENERAL",
+            "interview_type": "GENERAL",
+            "primary_tag": "projects",
+            "tags_text": "projects,technical,rewrite",
+            "status": "active",
+            "source": "resume_reference/04-module-projects.md",
+            "text": "# 项目经历改写指南\n## 核心原则\n项目经历要讲清楚：做了什么、怎么做的、结果如何。比工作经历更具体、更技术化。"
+          }
+        },
+        {
+          "id": "4dfc3771e05bbedba104607b968091a0",
+          "distance": 0.7168521285057068,
+          "entity": {
+            "id": "4dfc3771e05bbedba104607b968091a0",
+            "doc_id": "20-examples-software-engineer",
+            "title": "软件工程师简历范例",
+            "heading_path": "软件工程师简历范例 > 项目经历范例 > 电商系统",
+            "module": "GENERAL",
+            "kind": "example_good",
+            "doc_group": "example",
+            "scene_code": "resume_rewrite",
+            "target_module": "GENERAL",
+            "career_domain": "software_ai",
+            "interview_type": "GENERAL",
+            "primary_tag": "software",
+            "tags_text": "software,backend,frontend,ai,example",
+            "status": "active",
+            "source": "resume_reference/20-examples-software-engineer.md",
+            "text": "## 项目经历范例\n### 电商系统\n改写前：\n做了个电商项目，后端用 Java。\n改写后：\n在电商平台中负责订单模块，基于 Spring Boot 完成下单、支付回调、退款等核心接口的开发与联调，使用 RabbitMQ 解耦订单创建与通知流程，降低同步调用失败率。"
+          }
+        },
+        {
+          "id": "5ea8960d7266cd3d6814ce3fb6c14ddc",
+          "distance": 0.6984834671020508,
+          "entity": {
+            "id": "5ea8960d7266cd3d6814ce3fb6c14ddc",
+            "doc_id": "06-module-summary",
+            "title": "个人总结改写指南",
+            "heading_path": "个人总结改写指南 > 好的总结",
+            "module": "SUMMARY",
+            "kind": "module_guide",
+            "doc_group": "module",
+            "scene_code": "resume_rewrite",
+            "target_module": "SUMMARY",
+            "career_domain": "GENERAL",
+            "interview_type": "GENERAL",
+            "primary_tag": "summary",
+            "tags_text": "summary,profile,rewrite",
+            "status": "active",
+            "source": "resume_reference/06-module-summary.md",
+            "text": "## 好的总结\n具备 3 年 Java 后端开发经验，熟悉 Spring Boot、MySQL、Redis 等技术栈，参与过电商和 SaaS 业务系统的开发与维护。能够围绕业务需求完成接口设计、数据持久化和性能优化，关注代码质量和交付效率。"
+          }
+        }
+      ]
+    ]
+  }
+}

@@ -43,7 +43,8 @@ const emit = defineEmits(['update:modelValue'])
 const templates = [
   {
     id: 'classic',
-    name: '经典',
+    name: '标准版',
+    desc: '结构清晰，适合程序员、产品经理、设计师等职位',
     bg: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
     header: '#1d4f91',
     layout: 'layout-classic',
@@ -55,7 +56,8 @@ const templates = [
   },
   {
     id: 'modern',
-    name: '现代',
+    name: '简约求职版',
+    desc: '信息清晰紧凑，适合通用岗位、校招及社招',
     bg: 'linear-gradient(180deg, #f6fbfa 0%, #eef7f5 100%)',
     header: '#0f766e',
     layout: 'layout-modern',
@@ -66,8 +68,35 @@ const templates = [
     line4: '50%',
   },
   {
+    id: 'compact',
+    name: '双列紧凑版',
+    desc: '信息密度高，适合应届毕业生、实习生、校招类岗位',
+    bg: 'linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%)',
+    header: '#6d28d9',
+    layout: 'layout-modern',
+    sidebar: true,
+    line1: '60%',
+    line2: '65%',
+    line3: '55%',
+    line4: '48%',
+  },
+  {
+    id: 'academic',
+    name: '学术科研版',
+    desc: '极简风格、信息容量大，适合科研、教育、技术研发岗位',
+    bg: 'linear-gradient(180deg, #f7f9fc 0%, #edf2f7 100%)',
+    header: '#1e3a5f',
+    layout: 'layout-classic',
+    sidebar: false,
+    line1: '75%',
+    line2: '50%',
+    line3: '70%',
+    line4: '42%',
+  },
+  {
     id: 'creative',
-    name: '编辑感',
+    name: '创意进阶版',
+    desc: '不规则设计、视觉分区强烈，适合UI设计师、平面设计、品牌营销',
     bg: 'linear-gradient(180deg, #fffdf8 0%, #fff6e7 100%)',
     header: '#24364a',
     layout: 'layout-creative',
@@ -76,6 +105,19 @@ const templates = [
     line2: '40%',
     line3: '80%',
     line4: '60%',
+  },
+  {
+    id: 'dual-creative',
+    name: '双列创意版',
+    desc: '兼顾信息密度与视觉美感，适合前端开发、交互设计、产品经理',
+    bg: 'linear-gradient(180deg, #fefce8 0%, #fef3c7 100%)',
+    header: '#92400e',
+    layout: 'layout-creative',
+    sidebar: true,
+    line1: '68%',
+    line2: '45%',
+    line3: '72%',
+    line4: '55%',
   },
 ]
 </script>
@@ -94,7 +136,7 @@ const templates = [
 
 .templates-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 

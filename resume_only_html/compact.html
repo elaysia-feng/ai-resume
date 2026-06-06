@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历编辑器</title>
+<style>
+/* ========================================
+   全局
+   ======================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'PingFang SC','Microsoft YaHei','Noto Sans CJK SC',sans-serif;background:#eef1f5;color:#1a1a2e;overflow:hidden;height:100vh}
+.editor-layout{display:flex;height:100vh;overflow:hidden}
+
+/* ========================================
+   左侧编辑面板
+   ======================================== */
+.edit-panel{
+  width:340px;min-width:280px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  background:#fff;border-right:1px solid #e5e7eb;position:relative;overflow:hidden;
+}
+.panel-header{
+  display:flex;flex-direction:column;gap:10px;
+  padding:16px 16px 14px;border-bottom:1px solid #e5e7eb;background:#fff;flex-shrink:0;
+}
+.panel-title{font-size:15px;font-weight:700;color:#2563eb}
+.panel-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.panel-actions .btn{
+  padding:5px 11px;border-radius:6px;border:1.5px solid #e5e7eb;
+  background:#fff;color:#374151;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;
+}
+.panel-actions .btn:hover{border-color:#2563eb;color:#1d4ed8;background:#eff6ff}
+.panel-actions .btn--primary{border-color:#2563eb;background:#2563eb;color:#fff}
+.panel-actions .btn--primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.panel-actions .btn--danger{border-color:#fca5a5;color:#ef4444}
+.panel-actions .btn--danger:hover{background:#fef2f2}
+.save-status{font-size:11px;color:#16a34a;font-weight:600;min-width:40px;text-align:right}
+
+.block-list-wrap{flex:1;overflow-y:auto;padding:10px 12px}
+.block-list{display:flex;flex-direction:column;gap:4px}
+.block-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;
+  background:#fff;cursor:default;transition:all .15s;user-select:none;
+}
+.block-item:hover{border-color:#93c5fd}
+.block-item .icon{font-size:15px;flex-shrink:0}
+.block-item .name{flex:1;font-size:13px;font-weight:500;color:#374151}
+.block-item .zone-tag{
+  font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;
+  background:#f3f4f6;color:#9ca3af;
+}
+.block-item .zone-tag.sidebar{background:#1e293b;color:#94a3b8}
+.block-item .del-btn{
+  width:22px;height:22px;border:none;background:transparent;
+  border-radius:5px;color:#9ca3af;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s;
+}
+.block-item:hover .del-btn{opacity:1}
+.block-item .del-btn:hover{background:#fef2f2;color:#ef4444}
+
+/* ── 抽屉 ── */
+.drawer-backdrop{position:absolute;inset:0;background:rgba(37,99,235,.05);z-index:40}
+.add-drawer{
+  position:absolute;right:0;top:0;bottom:0;width:310px;
+  background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.1);
+  z-index:50;display:flex;flex-direction:column;overflow:hidden;
+  animation:drawerIn .2s ease;
+}
+@keyframes drawerIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.drawer-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid #e5e7eb;flex-shrink:0;
+}
+.drawer-title{font-size:15px;font-weight:700;color:#2563eb}
+.drawer-close{
+  width:26px;height:26px;border:none;background:#f3f4f6;
+  border-radius:6px;color:#6b7280;cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.drawer-close:hover{background:#e5e7eb;color:#374151}
+.drawer-body{flex:1;overflow-y:auto;padding:12px}
+.drawer-blocks{display:flex;flex-direction:column;gap:6px}
+.drawer-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;
+  background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;
+}
+.drawer-card:hover:not(.added){border-color:#2563eb;background:#eff6ff;box-shadow:0 2px 8px rgba(37,99,235,.1)}
+.drawer-card.added{opacity:.4;cursor:default}
+.drawer-card .d-icon{font-size:20px;width:30px;text-align:center;flex-shrink:0}
+.drawer-card .d-info{flex:1;min-width:0}
+.drawer-card .d-name{font-size:13px;font-weight:600;color:#1a1a2e;display:block}
+.drawer-card .d-desc{font-size:11px;color:#6b7280;margin-top:1px;display:block}
+.drawer-card .d-zone{
+  font-size:9px;padding:1px 6px;border-radius:3px;font-weight:600;margin-left:6px;
+}
+.drawer-card .d-zone.sidebar{background:#1e293b;color:#94a3b8}
+.drawer-card .d-zone.main{background:#f3f4f6;color:#6b7280}
+
+/* ── 右侧预览 ── */
+.preview-panel{
+  flex:1;overflow:auto;
+  background:linear-gradient(180deg,#f4f7f7 0%,#e9eef2 100%);
+  padding:24px;display:flex;justify-content:center;
+}
+
+/* ========================================
+   简历本体 — 深色左栏 + 白底右栏
+   ======================================== */
+.resume-page{
+  width:794px;min-height:1123px;flex-shrink:0;
+  background:#fff;border:1px solid #d9e0ea;
+  box-shadow:0 18px 38px rgba(15,23,42,.08);
+  display:grid;grid-template-columns:210px minmax(0,1fr);
+}
+
+/* ── 左栏：深色侧边栏 ── */
+.resume-sidebar{
+  background:#1a1e2e;color:#c8cdd8;
+  padding:32px 20px 28px;
+  display:flex;flex-direction:column;gap:20px;
+  font-size:10px;line-height:1.6;
+}
+
+/* 头像 */
+.rs-avatar-wrap{text-align:center}
+.rs-avatar{
+  width:88px;height:88px;border-radius:50%;object-fit:cover;
+  border:3px solid rgba(255,255,255,.12);background:#2a2f3e;
+}
+.rs-avatar-ph{
+  width:88px;height:88px;border-radius:50%;
+  background:#2a2f3e;display:inline-flex;align-items:center;justify-content:center;
+  font-size:32px;color:#64748b;font-weight:700;border:3px solid rgba(255,255,255,.08);
+}
+.rs-avatar-upload{position:relative;cursor:pointer;display:inline-block}
+.rs-avatar-upload input{display:none}
+.rs-avatar-upload::after{
+  content:'📷 换头像';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  background:rgba(255,255,255,.15);color:#fff;font-size:8px;padding:2px 8px;
+  border-radius:4px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;
+}
+.rs-avatar-upload:hover::after{opacity:1}
+
+/* 姓名 & 职位 */
+.rs-name{
+  margin:10px 0 0;color:#fff;
+  font-size:18px;font-weight:800;line-height:1.15;text-align:center;
+}
+.rs-title{
+  margin:4px 0 0;color:#94a3b8;
+  font-size:10px;font-weight:500;text-align:center;
+}
+
+/* 侧边栏分组标题 */
+.rs-section-title{
+  margin:0 0 8px;padding-bottom:5px;
+  font-size:10px;font-weight:700;color:#e2e8f0;
+  letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+
+/* 联系方式 */
+.rs-contact-list{display:flex;flex-direction:column;gap:6px}
+.rs-contact-item{display:flex;flex-direction:column;gap:1px}
+.rs-contact-label{font-size:8px;font-weight:700;color:#64748b;letter-spacing:.05em;text-transform:uppercase}
+.rs-contact-value{color:#cbd5e1;font-size:9.5px;word-break:break-all}
+
+/* 求职意向 */
+.rs-intent-list{display:flex;flex-direction:column;gap:6px}
+.rs-intent-item{display:flex;flex-direction:column;gap:1px}
+.rs-intent-label{font-size:8px;font-weight:700;color:#64748b;letter-spacing:.05em;text-transform:uppercase}
+.rs-intent-value{color:#93c5fd;font-size:9.5px;font-weight:600}
+
+/* 技能 chips */
+.rs-chips{display:flex;flex-wrap:wrap;gap:5px}
+.rs-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:4px;
+  background:rgba(255,255,255,.08);color:#e2e8f0;
+  font-size:9px;font-weight:500;
+}
+.rs-chip .chip-del{display:none;margin-left:2px;cursor:pointer;color:#f87171;font-size:8px}
+.rs-chip:hover .chip-del{display:inline}
+.rs-chip{position:relative}
+
+/* 证书 */
+.rs-cert{margin-bottom:6px}
+.rs-cert:last-child{margin-bottom:0}
+.rs-cert-name{color:#e2e8f0;font-size:9.5px;font-weight:600}
+.rs-cert-date{color:#64748b;font-size:8.5px}
+
+/* ── 右栏：白底主内容 ── */
+.resume-main{
+  padding:32px 36px 32px 32px;
+  display:flex;flex-direction:column;gap:0;
+  font-size:10px;line-height:1.7;color:#2c2c2c;
+}
+
+.rm-section{margin-bottom:18px}
+.rm-section:last-child{margin-bottom:0}
+.rm-section__title{
+  margin:0 0 10px;padding-bottom:6px;
+  font-size:12px;font-weight:800;color:#1a1a2e;
+  border-bottom:1.5px solid #d0d0d0;letter-spacing:.04em;
+}
+
+/* 富文本 */
+.rm-richtext{font-size:10px;line-height:1.7;color:#2c2c2c}
+.rm-richtext p{margin:0 0 4px}
+
+/* 经历条目 */
+.rm-entry{margin-bottom:12px}
+.rm-entry:last-child{margin-bottom:0}
+.rm-entry__header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rm-entry__title{
+  margin:0;color:#1a1a2e;font-size:10.5px;font-weight:700;line-height:1.3;
+}
+.rm-entry__date{flex-shrink:0;color:#888;font-size:9.5px;font-weight:500;white-space:nowrap}
+.rm-entry__subtitle{margin:2px 0 0;color:#555;font-size:9.5px;font-weight:500}
+.rm-entry__meta{margin:2px 0 0;color:#888;font-size:9px}
+.rm-entry__bullets{
+  margin:4px 0 0;padding-left:16px;font-size:10px;line-height:1.7;color:#2c2c2c;
+}
+.rm-entry__bullets li{margin-bottom:2px}
+.rm-entry__bullets li::marker{color:#aaa}
+.rm-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.rm-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:4px;
+  background:#f1f5f9;color:#475569;font-size:9px;font-weight:500;
+}
+.rm-chip .chip-del{display:none;margin-left:2px;cursor:pointer;color:#ef4444;font-size:8px}
+.rm-chip:hover .chip-del{display:inline}
+.rm-chip{position:relative}
+
+/* ── contenteditable ── */
+[contenteditable]{
+  outline:none;border-radius:2px;transition:box-shadow .12s;cursor:text;min-height:1em;
+}
+.resume-sidebar [contenteditable]:hover{box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+.resume-sidebar [contenteditable]:focus{box-shadow:0 0 0 2px rgba(255,255,255,.25);background:rgba(255,255,255,.05)}
+.resume-main [contenteditable]:hover{box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+.resume-main [contenteditable]:focus{box-shadow:0 0 0 2px rgba(37,99,235,.35);background:rgba(37,99,235,.02)}
+[contenteditable]:empty::before{content:attr(data-ph);opacity:.35;pointer-events:none}
+
+/* ── 增删按钮 ── */
+.entry-del{
+  position:absolute;top:2px;right:2px;
+  width:16px;height:16px;border-radius:50%;border:none;
+  background:rgba(239,68,68,.1);color:#ef4444;font-size:11px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+}
+.entry-del:hover{background:rgba(239,68,68,.25)}
+.rm-entry{position:relative}
+.rm-entry:hover .entry-del,.rs-cert:hover .entry-del{display:flex}
+.section-add-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 8px;border:1px dashed rgba(255,255,255,.15);border-radius:4px;
+  background:transparent;color:#64748b;font-size:9px;font-weight:500;
+  cursor:pointer;transition:all .12s;margin-top:6px;
+}
+.section-add-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.25);color:#94a3b8}
+.section-add-btn.right{border-color:#d0d5dd;color:#9ca3af}
+.section-add-btn.right:hover{background:#f3f4f6;border-color:#9ca3af;color:#374151}
+.rs-cert{position:relative}
+
+/* ── 高亮 ── */
+.section-highlight{animation:hlPulse 1s ease}
+@keyframes hlPulse{0%{box-shadow:0 0 0 3px rgba(37,99,235,.25)}100%{box-shadow:none}}
+
+/* ── 打印 ── */
+@media print{
+  .edit-panel,.drawer-backdrop,.add-drawer{display:none!important}
+  body{overflow:visible;height:auto;background:#fff}
+  .editor-layout{display:block;height:auto}
+  .preview-panel{padding:0;background:#fff;overflow:visible}
+  .resume-page{box-shadow:none;border:none;width:100%}
+  .entry-del,.chip-del,.section-add-btn,.rs-avatar-upload::after{display:none!important}
+  [contenteditable]:hover,[contenteditable]:focus{box-shadow:none;background:transparent}
+  .section-highlight{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="editor-layout">
+<!-- ====== 编辑面板 ====== -->
+<div class="edit-panel">
+  <div class="panel-header">
+    <span class="panel-title">📝 简历编辑器</span>
+    <div class="panel-actions">
+      <span class="save-status" id="saveStatus"></span>
+      <button class="btn btn--primary" onclick="saveData()">💾 保存</button>
+      <button class="btn" onclick="window.print()">🖨️ 打印</button>
+      <button class="btn" onclick="showDrawer()">＋ 添加模块</button>
+      <button class="btn btn--danger" onclick="clearData()">清空</button>
+    </div>
+  </div>
+  <div class="block-list-wrap"><div class="block-list" id="blockList"></div></div>
+  <div id="drawerOverlay" style="display:none">
+    <div class="drawer-backdrop" onclick="hideDrawer()"></div>
+    <div class="add-drawer">
+      <div class="drawer-header"><span class="drawer-title">添加模块</span><button class="drawer-close" onclick="hideDrawer()">×</button></div>
+      <div class="drawer-body"><div class="drawer-blocks" id="drawerBlocks"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 简历预览 ====== -->
+<div class="preview-panel">
+  <div class="resume-page">
+
+    <!-- ── 左栏：深色侧边栏 ── -->
+    <aside class="resume-sidebar" id="rsSidebar">
+
+      <!-- 头像 -->
+      <div class="rs-avatar-wrap">
+        <label class="rs-avatar-upload">
+          <input type="file" accept="image/*" onchange="handleAvatar(this)">
+          <div class="rs-avatar-ph" id="avatarPH">我</div>
+          <img class="rs-avatar" id="avatarImg" style="display:none" alt="头像">
+        </label>
+      </div>
+
+      <!-- 姓名 & 职位 -->
+      <div style="text-align:center">
+        <h1 class="rs-name" contenteditable="true" data-field="name" data-ph="你的姓名"></h1>
+        <p class="rs-title" contenteditable="true" data-field="title" data-ph="职位 / 身份"></p>
+      </div>
+
+      <!-- 联系方式 -->
+      <div>
+        <h2 class="rs-section-title">联系方式</h2>
+        <div class="rs-contact-list" id="rsContactList"></div>
+      </div>
+
+      <!-- 求职意向 -->
+      <div id="rsIntentWrap">
+        <h2 class="rs-section-title">求职意向</h2>
+        <div class="rs-intent-list" id="rsIntentList"></div>
+      </div>
+
+      <!-- 动态侧栏模块 -->
+      <div id="rsDynamicSections"></div>
+
+    </aside>
+
+    <!-- ── 右栏：白底主内容 ── -->
+    <main class="resume-main" id="rmMain">
+      <div id="rmSections"></div>
+    </main>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ============================================
+// 模块定义
+// ============================================
+const SECTION_DEFS = {
+  // ── 左栏（深色侧边栏） ──
+  skills: {
+    icon:'⚡', name:'专业技能', desc:'技能与熟练度', zone:'sidebar',
+    defaultContent:{items:[{name:'Java',proficiency:'精通'},{name:'Spring Boot',proficiency:'掌握'},{name:'MySQL',proficiency:'掌握'}]},
+    render(s){
+      const items = s.content.items||[];
+      const chips = items.map((sk,i)=>`<span class="rs-chip"><span contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="skill-name" data-ph="技能">${esc(sk.name)}</span><span class="rs-chip__meta" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="skill-prof" data-ph="熟练度">${esc(sk.proficiency)}</span><span class="chip-del" onclick="deleteEntry('${s.id}',${i})">✕</span></span>`).join('');
+      return `<div data-sid="${s.id}"><h2 class="rs-section-title">专业技能</h2><div class="rs-chips">${chips}</div><button class="section-add-btn" onclick="addSkillItem('${s.id}')">+ 添加技能</button></div>`;
+    }
+  },
+  certificates: {
+    icon:'🏅', name:'荣誉证书', desc:'获奖、证书、资质', zone:'sidebar',
+    defaultContent:{items:[{name:'证书/荣誉名称',date:'2024'}]},
+    render(s){
+      const items = s.content.items||[];
+      let h = `<div data-sid="${s.id}"><h2 class="rs-section-title">荣誉证书</h2>`;
+      items.forEach((it,i)=>{
+        h+=`<div class="rs-cert"><div><span class="rs-cert-name" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="cert-name" data-ph="证书名称">${esc(it.name)}</span><span class="rs-cert-date" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="cert-date" data-ph="年份">${esc(it.date)}</span></div><button class="entry-del" onclick="deleteEntry('${s.id}',${i})">×</button></div>`;
+      });
+      h+=`<button class="section-add-btn" onclick="addListItem('${s.id}')">+ 添加证书</button></div>`;
+      return h;
+    }
+  },
+  self_eval: {
+    icon:'✍️', name:'自我评价', desc:'个人总结与优势', zone:'sidebar',
+    defaultContent:'热爱技术，持续关注新技术发展，具有较强的学习能力和问题解决能力。善于团队协作，沟通表达能力强。',
+    render(s){
+      return `<div data-sid="${s.id}"><h2 class="rs-section-title">自我评价</h2><div class="rm-richtext" style="color:#c8cdd8;font-size:9.5px"><p contenteditable="true" data-sid="${s.id}" data-field="content" data-ph="写一段自我评价...">${esc(s.content)}</p></div></div>`;
+    }
+  },
+  // ── 右栏（白底主内容） ──
+  summary: {
+    icon:'📋', name:'个人简介', desc:'一段话介绍自己', zone:'main',
+    defaultContent:'拥有扎实的编程基础和良好的工程素养，熟悉主流开发框架与工具链，具备独立负责业务模块的能力。',
+    render(s){
+      return `<div class="rm-section" data-sid="${s.id}"><h2 class="rm-section__title">个人简介</h2><div class="rm-richtext"><p contenteditable="true" data-sid="${s.id}" data-field="content" data-ph="写一段个人简介...">${esc(s.content)}</p></div></div>`;
+    }
+  },
+  experience: {
+    icon:'💻', name:'工作经历', desc:'公司、职位、成就', zone:'main',
+    defaultContent:{items:[{title:'职位名称',subtitle:'公司名称',date:'2024.01 - 至今',bullets:['负责核心业务模块的设计与开发，优化系统性能','推动技术方案落地，提升团队开发效率']}]},
+    render(s){ return renderMainDetail(s,'工作经历'); }
+  },
+  projects: {
+    icon:'🚀', name:'项目经历', desc:'项目名称、角色、技术栈', zone:'main',
+    defaultContent:{items:[{title:'项目名称',subtitle:'后端开发',date:'2024.01 - 2024.06',bullets:['项目背景与目标描述','使用的技术方案与个人贡献'],techStack:['Java','Spring Boot','MySQL']}]},
+    render(s){ return renderMainDetail(s,'项目经历', true); }
+  },
+  internship: {
+    icon:'🌱', name:'实习经历', desc:'实习公司与内容', zone:'main',
+    defaultContent:{items:[{title:'实习职位',subtitle:'公司名称',date:'2024.01 - 2024.06',bullets:['参与业务系统开发与维护','完成指定功能模块的设计与实现']}]},
+    render(s){ return renderMainDetail(s,'实习经历'); }
+  },
+  education: {
+    icon:'🎓', name:'教育背景', desc:'学校、学历、专业', zone:'main',
+    defaultContent:{items:[{school:'学校名称',degree:'学历',major:'专业名称',date:'2020.09 - 2024.06',meta:'GPA 3.5 / 4.0'}]},
+    render(s){
+      const items = s.content.items||[];
+      let h = `<div class="rm-section" data-sid="${s.id}"><h2 class="rm-section__title">教育背景</h2>`;
+      items.forEach((it,i)=>{
+        const subtitle = [it.degree,it.major].filter(Boolean).join(' · ');
+        h+=`<div class="rm-entry"><div class="rm-entry__header"><h3 class="rm-entry__title" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="school" data-ph="学校名称">${esc(it.school)}</h3><span class="rm-entry__date" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="date" data-ph="时间">${esc(it.date)}</span></div><p class="rm-entry__subtitle" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="degree" data-ph="学历 · 专业">${esc(subtitle)}</p>${it.meta?`<p class="rm-entry__meta" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="meta" data-ph="GPA">${esc(it.meta)}</p>`:''}<button class="entry-del" onclick="deleteEntry('${s.id}',${i})">×</button></div>`;
+      });
+      h+=`<button class="section-add-btn right" onclick="addListItem('${s.id}')">+ 添加教育经历</button></div>`;
+      return h;
+    }
+  },
+  campus: {
+    icon:'🏫', name:'校园经历', desc:'社团、竞赛、志愿者', zone:'main',
+    defaultContent:{items:[{title:'角色/职位',subtitle:'组织名称',date:'2020.09 - 2022.06',bullets:['经历描述与成果']}]},
+    render(s){ return renderMainDetail(s,'校园经历'); }
+  },
+  custom: {
+    icon:'✏️', name:'自定义模块', desc:'自由定义模块内容', zone:'main',
+    defaultContent:'自定义内容',
+    render(s){
+      return `<div class="rm-section" data-sid="${s.id}"><h2 class="rm-section__title" contenteditable="true" data-sid="${s.id}" data-field="sectionTitle" data-ph="模块标题">${esc(s.sectionTitle)}</h2><div class="rm-richtext"><p contenteditable="true" data-sid="${s.id}" data-field="content" data-ph="填写内容...">${esc(s.content)}</p></div></div>`;
+    }
+  }
+};
+
+function esc(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// ============================================
+// 通用右栏 detail 渲染
+// ============================================
+function renderMainDetail(s, title, hasTechStack){
+  const items = s.content.items||[];
+  let h = `<div class="rm-section" data-sid="${s.id}"><h2 class="rm-section__title">${esc(title)}</h2>`;
+  items.forEach((it,i)=>{
+    const lis = (it.bullets||[]).map(b=>`<li contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="bullet" data-ph="描述">${esc(b)}</li>`).join('');
+    let chips = '';
+    if(hasTechStack && it.techStack){
+      chips = `<div class="rm-chips">${it.techStack.map((t,j)=>`<span class="rm-chip"><span contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-idx2="${j}" data-field="tech" data-ph="技术">${esc(t)}</span><span class="chip-del" onclick="deleteTech('${s.id}',${i},${j})">✕</span></span>`).join('')}<button class="section-add-btn right" style="margin:0" onclick="addTech('${s.id}',${i})">+</button></div>`;
+    }
+    h+=`<div class="rm-entry"><div class="rm-entry__header"><h3 class="rm-entry__title" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="title" data-ph="标题">${esc(it.title)}</h3><span class="rm-entry__date" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="date" data-ph="时间">${esc(it.date)}</span></div><p class="rm-entry__subtitle" contenteditable="true" data-sid="${s.id}" data-idx="${i}" data-field="subtitle" data-ph="副标题">${esc(it.subtitle)}</p><ul class="rm-entry__bullets">${lis}</ul>${chips}<button class="entry-del" onclick="deleteEntry('${s.id}',${i})">×</button></div>`;
+  });
+  h+=`<button class="section-add-btn right" onclick="addListItem('${s.id}')">+ 添加条目</button></div>`;
+  return h;
+}
+
+// ============================================
+// 联系方式 & 求职意向（固定在左栏）
+// ============================================
+const CONTACT_FIELDS = [
+  {key:'phone',label:'电话'},{key:'email',label:'邮箱'},
+  {key:'github',label:'GitHub'},{key:'wechat',label:'微信'},
+  {key:'location',label:'城市'},{key:'website',label:'网站'},
+];
+const INTENT_FIELDS = [
+  {key:'position',label:'期望职位'},{key:'city',label:'期望城市'},
+  {key:'salary',label:'薪资范围'},{key:'jobStatus',label:'求职状态'},
+];
+let contactData = {};
+let intentData = {};
+
+function renderContact(){
+  const el = document.getElementById('rsContactList');
+  el.innerHTML = CONTACT_FIELDS.map(f=>`<div class="rs-contact-item"><span class="rs-contact-label">${f.label}</span><span class="rs-contact-value" contenteditable="true" data-contact="${f.key}" data-ph="${f.label}">${esc(contactData[f.key]||'')}</span></div>`).join('');
+}
+
+function renderIntent(){
+  const filled = INTENT_FIELDS.filter(f=>intentData[f.key]);
+  const wrap = document.getElementById('rsIntentWrap');
+  const el = document.getElementById('rsIntentList');
+  if(!filled.length){ wrap.style.display='none'; return }
+  wrap.style.display='';
+  el.innerHTML = filled.map(f=>`<div class="rs-intent-item"><span class="rs-intent-label">${f.label}</span><span class="rs-intent-value" contenteditable="true" data-intent="${f.key}" data-ph="${f.label}">${esc(intentData[f.key])}</span></div>`).join('');
+}
+
+function syncContact(){
+  document.querySelectorAll('[data-contact]').forEach(el=>{ contactData[el.dataset.contact]=el.innerText.trim() });
+}
+function syncIntent(){
+  document.querySelectorAll('[data-intent]').forEach(el=>{ intentData[el.dataset.intent]=el.innerText.trim() });
+}
+
+// ============================================
+// 状态
+// ============================================
+const STORAGE_KEY = 'resume_dual_v1';
+let sections = [];
+let resumeName = '';
+let resumeTitle = '';
+let avatarData = null;
+function uid(){ return 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
+
+// ============================================
+// 渲染
+// ============================================
+function renderAll(){
+  renderBlockList();
+  renderSidebar();
+  renderMain();
+  renderContact();
+  renderIntent();
+  updateDrawer();
+}
+
+function renderBlockList(){
+  const el = document.getElementById('blockList');
+  if(!sections.length){
+    el.innerHTML='<div style="padding:24px 12px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.8">点击「＋ 添加模块」<br>选择模块类型开始构建简历</div>';
+    return;
+  }
+  el.innerHTML = sections.map(s=>{
+    const def = SECTION_DEFS[s.type];
+    const zone = def?.zone==='sidebar' ? '左栏' : '右栏';
+    const zc = def?.zone==='sidebar' ? 'sidebar' : '';
+    return `<div class="block-item" data-bid="${s.id}"><span class="icon">${def?.icon||'📄'}</span><span class="name">${esc(s.sectionTitle||def?.name||'模块')}</span><span class="zone-tag ${zc}">${zone}</span><button class="del-btn" onclick="removeSection('${s.id}')" title="删除">×</button></div>`;
+  }).join('');
+}
+
+function renderSidebar(){
+  const el = document.getElementById('rsDynamicSections');
+  const sidebarSections = sections.filter(s=>SECTION_DEFS[s.type]?.zone==='sidebar' && s.visible);
+  el.innerHTML = sidebarSections.map(s=>SECTION_DEFS[s.type].render(s)).join('');
+}
+
+function renderMain(){
+  const el = document.getElementById('rmSections');
+  const mainSections = sections.filter(s=>SECTION_DEFS[s.type]?.zone==='main' && s.visible);
+  if(!mainSections.length){
+    el.innerHTML = '<div style="text-align:center;padding:80px 0;color:#ccc;font-size:12px">点击左侧「＋ 添加模块」<br>添加工作经历、项目等内容</div>';
+    return;
+  }
+  el.innerHTML = mainSections.map(s=>SECTION_DEFS[s.type].render(s)).join('');
+}
+
+function updateDrawer(){
+  const added = new Set(sections.map(s=>s.type));
+  const sidebarBlocks = Object.entries(SECTION_DEFS).filter(([,v])=>v.zone==='sidebar');
+  const mainBlocks = Object.entries(SECTION_DEFS).filter(([,v])=>v.zone==='main' && v!=='custom');
+  document.getElementById('drawerBlocks').innerHTML =
+    `<div style="font-size:11px;font-weight:700;color:#94a3b8;margin:4px 0 2px;padding-left:2px">左栏 · 深色侧边栏</div>` +
+    sidebarBlocks.map(([k,def])=>{
+      const isAdded = added.has(k);
+      return `<button class="drawer-card${isAdded?' added':''}" ${isAdded?'disabled':''} onclick="addSection('${k}')"><span class="d-icon">${def.icon}</span><div class="d-info"><span class="d-name">${def.name}</span><span class="d-desc">${def.desc}</span></div><span class="d-zone sidebar">左栏</span></button>`;
+    }).join('') +
+    `<div style="font-size:11px;font-weight:700;color:#94a3b8;margin:10px 0 2px;padding-left:2px">右栏 · 白底主内容</div>` +
+    mainBlocks.map(([k,def])=>{
+      const isAdded = added.has(k);
+      return `<button class="drawer-card${isAdded?' added':''}" ${isAdded?'disabled':''} onclick="addSection('${k}')"><span class="d-icon">${def.icon}</span><div class="d-info"><span class="d-name">${def.name}</span><span class="d-desc">${def.desc}</span></div><span class="d-zone main">右栏</span></button>`;
+    }).join('') +
+    `<button class="drawer-card" onclick="addSection('custom')" style="border:2px dashed #2563eb;margin-top:8px"><span class="d-icon">+</span><div class="d-info"><span class="d-name" style="color:#2563eb">自定义模块</span><span class="d-desc">创建自定义模块</span></div><span class="d-zone main">右栏</span></button>`;
+}
+
+// ============================================
+// 操作
+// ============================================
+function addSection(type){
+  const def = SECTION_DEFS[type]; if(!def) return;
+  const content = typeof def.defaultContent==='object' ? JSON.parse(JSON.stringify(def.defaultContent)) : def.defaultContent;
+  sections.push({id:uid(), type, sectionTitle:def.name, content, visible:true});
+  renderAll(); hideDrawer(); autoSave();
+  setTimeout(()=>{
+    const el = document.querySelector(`[data-sid="${sections[sections.length-1].id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+  },100);
+}
+
+function removeSection(id){
+  sections = sections.filter(s=>s.id!==id);
+  renderAll(); autoSave();
+}
+
+function addListItem(sid){
+  const s = sections.find(x=>x.id===sid); if(!s||!s.content.items) return;
+  const def = SECTION_DEFS[s.type];
+  const tpl = def?.defaultContent?.items?.[0];
+  s.content.items.push(tpl ? JSON.parse(JSON.stringify(tpl)) : {text:'新条目'});
+  renderAll(); autoSave();
+}
+
+function deleteEntry(sid,idx){
+  const s = sections.find(x=>x.id===sid); if(!s||!s.content.items) return;
+  s.content.items.splice(idx,1);
+  renderAll(); autoSave();
+}
+
+function addSkillItem(sid){
+  const s = sections.find(x=>x.id===sid); if(!s||!s.content.items) return;
+  s.content.items.push({name:'技能名',proficiency:'熟练'});
+  renderAll(); autoSave();
+}
+
+function addTech(sid,idx){
+  const s = sections.find(x=>x.id===sid); if(!s||!s.content.items?.[idx]) return;
+  if(!s.content.items[idx].techStack) s.content.items[idx].techStack=[];
+  s.content.items[idx].techStack.push('新技术');
+  renderAll(); autoSave();
+}
+
+function deleteTech(sid,idx,j){
+  const s = sections.find(x=>x.id===sid); if(!s) return;
+  s.content.items[idx].techStack.splice(j,1);
+  renderAll(); autoSave();
+}
+
+// ============================================
+// DOM → 数据同步
+// ============================================
+function syncFromDOM(){
+  const nameEl = document.querySelector('[data-field="name"]');
+  const titleEl = document.querySelector('[data-field="title"]');
+  if(nameEl) resumeName = nameEl.innerText.trim();
+  if(titleEl) resumeTitle = titleEl.innerText.trim();
+  syncContact(); syncIntent();
+
+  sections.forEach(s=>{
+    const def = SECTION_DEFS[s.type]; if(!def) return;
+    if(['summary','self_eval','custom'].includes(s.type)){
+      const el = document.querySelector(`[data-sid="${s.id}"][data-field="content"]`);
+      if(el) s.content = el.innerText.trim();
+      const tEl = document.querySelector(`[data-sid="${s.id}"][data-field="sectionTitle"]`);
+      if(tEl) s.sectionTitle = tEl.innerText.trim();
+    }
+    else if(s.type==='skills'){
+      s.content.items = [];
+      document.querySelectorAll(`[data-sid="${s.id}"][data-field="skill-name"]`).forEach(el=>{
+        const prof = el.closest('.rs-chip')?.querySelector('[data-field="skill-prof"]');
+        s.content.items.push({name:el.innerText.trim(),proficiency:prof?prof.innerText.trim():''});
+      });
+    }
+    else if(s.content.items){
+      s.content.items.forEach((it,i)=>{
+        document.querySelectorAll(`[data-sid="${s.id}"][data-idx="${i}"]`).forEach(el=>{
+          const f = el.dataset.field;
+          if(f==='bullet'){
+            const ul = el.closest('ul');
+            if(ul) it.bullets = Array.from(ul.querySelectorAll('li')).map(li=>li.innerText.trim());
+          } else if(f==='tech'){
+            // handled via addTech/deleteTech
+          } else if(f==='skill-name'||f==='skill-prof'){
+            // handled above
+          } else if(f==='cert-name'||f==='cert-date'){
+            it[f.replace('cert-','')] = el.innerText.trim();
+          } else {
+            it[f] = el.innerText.trim();
+          }
+        });
+      });
+      if(s.content.items[0]?.techStack!==undefined){
+        s.content.items.forEach((it,i)=>{
+          const chips = document.querySelectorAll(`[data-sid="${s.id}"][data-idx="${i}"][data-field="tech"]`);
+          it.techStack = Array.from(chips).map(el=>el.innerText.trim()).filter(Boolean);
+        });
+      }
+    }
+  });
+}
+
+// ============================================
+// 头像
+// ============================================
+function handleAvatar(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const c = document.createElement('canvas');
+      const max=300; let w=img.width,h=img.height;
+      if(w>max||h>max){if(w>h){h=h*max/w;w=max}else{w=w*max/h;h=max}}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      avatarData = c.toDataURL('image/jpeg',0.8);
+      document.getElementById('avatarImg').src = avatarData;
+      document.getElementById('avatarImg').style.display='block';
+      document.getElementById('avatarPH').style.display='none';
+      autoSave();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+// ============================================
+// 抽屉
+// ============================================
+function showDrawer(){ document.getElementById('drawerOverlay').style.display='block' }
+function hideDrawer(){ document.getElementById('drawerOverlay').style.display='none' }
+
+// ============================================
+// 持久化
+// ============================================
+let saveTimer=null;
+function autoSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveData,800) }
+
+function saveData(){
+  syncFromDOM();
+  const data = {sections, contactData, intentData, avatarData, name:resumeName, title:resumeTitle};
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const st=document.getElementById('saveStatus'); st.textContent='✓ 已保存';
+    setTimeout(()=>{st.textContent=''},2000);
+  }catch(e){console.error(e)}
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return;
+    const data=JSON.parse(raw);
+    if(data.sections) sections = data.sections.filter(s=>s&&s.id&&s.type);
+    if(data.name) resumeName = data.name;
+    if(data.title) resumeTitle = data.title;
+    if(data.contactData) contactData=data.contactData;
+    if(data.intentData) intentData=data.intentData;
+    if(data.avatarData){
+      avatarData=data.avatarData;
+      document.getElementById('avatarImg').src=avatarData;
+      document.getElementById('avatarImg').style.display='block';
+      document.getElementById('avatarPH').style.display='none';
+    }
+    if(data.name){ const el=document.querySelector('[data-field="name"]'); if(el) el.innerText=data.name; }
+    if(data.title){ const el=document.querySelector('[data-field="title"]'); if(el) el.innerText=data.title; }
+  }catch(e){console.error(e)}
+}
+
+function clearData(){
+  if(!confirm('确定要清空所有简历数据吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  sections=[]; resumeName=''; resumeTitle=''; avatarData=null; contactData={}; intentData={};
+  document.getElementById('avatarImg').style.display='none';
+  document.getElementById('avatarPH').style.display='flex';
+  const n=document.querySelector('[data-field="name"]'); if(n) n.innerText='';
+  const t=document.querySelector('[data-field="title"]'); if(t) t.innerText='';
+  renderAll();
+}
+
+// ============================================
+// 初始化
+// ============================================
+function init(){
+  loadData();
+  renderAll();
+  document.addEventListener('input',function(e){
+    if(e.target.hasAttribute('contenteditable')) autoSave();
+  });
+}
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

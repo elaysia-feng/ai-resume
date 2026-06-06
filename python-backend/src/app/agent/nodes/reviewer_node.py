@@ -55,7 +55,7 @@ def build_reviewer_messages(state: ResumeAgentState) -> list:
         *build_memory_messages(state),
         HumanMessage(
             content=(
-                f"简历快照：{state.get('resume_snapshot', {})}\n"
+                f"目标模块：{get_target_section(state)}\n"
                 f"候选 patch：{state.get('candidate_patches', [])}"
             )
         ),
@@ -88,3 +88,13 @@ def validate_target_section_only(patches: list[ResumeSectionPatch], target_secti
     for patch in patches:
         if patch.section_id != target_section_id:
             raise ValueError(f"patch 越权修改了非目标模块: {patch.section_id}")
+
+
+def get_target_section(state: ResumeAgentState) -> dict:
+    """只取本轮允许审查的目标模块，避免把完整简历快照塞给 Reviewer。"""
+    target_section_id = state.get("target_section_id")
+    for section in state.get("resume_snapshot", {}).get("sections", []):
+        section_id = section.get("id") or section.get("sectionId")
+        if section_id == target_section_id:
+            return section
+    return {}

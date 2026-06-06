@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 
 from src.app.agent.nodes.retriever_node import build_fallback_retrieval_plan, retriever_node
 from src.app.agent.types import ReferenceChunk
@@ -20,6 +21,16 @@ async def fake_search_reference_chunks_tool(*args, **kwargs):
             metadata={"chunkIndex": 0, "query": query},
         )
     ]
+
+
+async def raise_retrieval_unavailable(*args, **kwargs):
+    """模拟 Qdrant 兜底检索异常。"""
+    raise RuntimeError("mock qdrant unavailable")
+
+
+def raise_rag_unavailable(*args, **kwargs):
+    """模拟 ES/Milvus 混合检索异常。"""
+    raise RuntimeError("mock rag unavailable")
 
 
 def test_fallback_plan_infers_software_occupation():
@@ -62,3 +73,30 @@ def test_retriever_node_writes_retrieved_chunks(monkeypatch):
     assert result["current_stage"] == "RETRIEVER"
     assert result["retrieval_plan"]["shouldRetrieve"] is True
     assert result["retrieved_chunks"]
+
+
+def test_retriever_node_marks_error_when_all_retrieval_tools_fail(monkeypatch):
+    """两层检索都异常时，不能把工具失败伪装成空结果。"""
+    monkeypatch.setattr("src.app.agent.nodes.retriever_node.agent_factory.invoke_agent", raise_llm_unavailable)
+    monkeypatch.setattr("src.app.agent.nodes.retriever_node.rag_query", SimpleNamespace(invoke=raise_rag_unavailable))
+    monkeypatch.setattr(
+        "src.app.agent.nodes.retriever_node.search_reference_chunks_tool",
+        raise_retrieval_unavailable,
+    )
+
+    result = asyncio.run(
+        retriever_node(
+            {
+                "job_description": "Python FastAPI RAG Agent 后端开发",
+                "jd_analysis": {"targetPosition": "AI 应用工程师", "mustHaveKeywords": ["RAG", "FastAPI"]},
+                "gap_report": {"missingKeywords": ["LangGraph"]},
+                "resume_snapshot": {"sections": [{"id": 1, "sectionCode": "PROJECTS"}]},
+                "target_section_id": 1,
+            }
+        )
+    )
+
+    assert result["retrieval_error"]
+    assert result["retrieved_chunks"][0]["source"] == "retrieval_failure"
+    assert result["retrieved_chunks"][0]["metadata"]["retrievalStatus"] == "FAILED"
+    assert result["errors"]

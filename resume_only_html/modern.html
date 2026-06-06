@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历模板 - 简约求职版 (Modern)</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.resume-template--modern {
+  --resume-color-accent: #0f766e;
+  --resume-color-accent-soft: rgba(15, 118, 110, 0.14);
+  --resume-color-border: #d8e6e3;
+  --resume-color-surface: #f5fbfa;
+  --resume-color-surface-strong: #e8f6f3;
+  --resume-color-heading: #134e4a;
+  --resume-color-text: #1f2937;
+  --resume-color-text-soft: #476a68;
+  --resume-color-text-faint: #6b7280;
+  --resume-font-name: 24px;
+  --resume-font-title: 11px;
+  --resume-font-contact: 9.5px;
+  --resume-font-pill: 9.5px;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 1123px;
+}
+
+/* Sidebar theme vars */
+.modern-sidebar {
+  --resume-sidebar-bg: #f0faf8;
+  --resume-sidebar-border: #c8e0db;
+  --resume-sidebar-heading: #0f4a44;
+  --resume-sidebar-text: #1f2937;
+  --resume-sidebar-text-soft: #476a68;
+  --resume-sidebar-text-faint: #6b7280;
+  --resume-sidebar-accent: #0f766e;
+  --resume-sidebar-panel-bg: rgba(255,255,255,0.65);
+  --resume-sidebar-panel-border: rgba(15,118,110,0.1);
+  --resume-sidebar-divider: #c8e0db;
+  --resume-sidebar-chip-bg: rgba(15,118,110,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 18px 30px;
+  background: var(--resume-sidebar-bg);
+  border-right: 1px solid var(--resume-sidebar-border);
+}
+
+.modern-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modern-profile__avatar-wrap {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.modern-profile__avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+}
+
+.modern-profile__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modern-profile__name {
+  margin: 0;
+  color: var(--resume-sidebar-heading);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: 0.01em;
+}
+
+.modern-profile__title {
+  margin: 0;
+  color: var(--resume-sidebar-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.modern-sidebar__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: var(--resume-sidebar-panel-bg);
+  border: 1px solid var(--resume-sidebar-panel-border);
+  backdrop-filter: blur(4px);
+}
+
+.modern-sidebar__panel-title {
+  margin: 0;
+  color: var(--resume-sidebar-heading);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.modern-intent-list,
+.modern-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.modern-intent-item,
+.modern-contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modern-intent-item__label,
+.modern-contact-item__label {
+  color: var(--resume-sidebar-text-faint);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modern-intent-item__value {
+  color: var(--resume-sidebar-accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.modern-contact-item__value {
+  color: var(--resume-sidebar-text);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.modern-sidebar__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modern-main {
+  padding: 30px 28px 34px;
+}
+
+.modern-main__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resume-template--modern .resume-section-block__head {
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--resume-color-border);
+}
+
+.modern-sidebar .resume-section-block__head {
+  border-bottom-color: var(--resume-sidebar-divider);
+}
+
+.modern-sidebar .resume-entry,
+.modern-sidebar .resume-kv {
+  background: var(--resume-sidebar-panel-bg);
+  border-color: var(--resume-sidebar-panel-border);
+}
+
+.modern-sidebar .resume-section-block__title,
+.modern-sidebar .resume-entry__title {
+  color: var(--resume-sidebar-heading);
+}
+
+.modern-sidebar .resume-entry__subtitle,
+.modern-sidebar .resume-entry__meta,
+.modern-sidebar .resume-entry__date,
+.modern-sidebar .resume-kv__label,
+.modern-sidebar .resume-chip__meta {
+  color: var(--resume-sidebar-text-faint);
+}
+
+.modern-sidebar .resume-rich-text,
+.modern-sidebar .resume-entry__description,
+.modern-sidebar .resume-entry__bullets,
+.modern-sidebar .resume-kv__value,
+.modern-sidebar .resume-bullet-list {
+  color: var(--resume-sidebar-text);
+}
+
+.modern-sidebar .resume-chip {
+  background: var(--resume-sidebar-chip-bg);
+  color: var(--resume-sidebar-accent);
+}
+
+.resume-template--modern .resume-entry {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--resume-color-surface);
+  border: 1px solid rgba(15, 118, 110, 0.08);
+}
+
+.resume-template--modern .resume-entry__title {
+  letter-spacing: 0;
+}
+
+.resume-template--modern .resume-section-block--compact .resume-entry {
+  padding: 7px 8px;
+  border-radius: 8px;
+}
+
+.resume-template--modern .resume-section-block--compact .resume-section-block__head {
+  padding-bottom: 6px;
+}
+</style>
+</head>
+<body style="background:#e2e8f0;margin:0;padding:20px;">
+
+<div class="resume-page">
+<article class="resume-template resume-template--modern">
+
+  <!-- Sidebar -->
+  <aside class="modern-sidebar">
+    <section class="modern-profile">
+      <div class="modern-profile__avatar-wrap">
+        <div class="modern-profile__avatar" style="width:70px;height:70px;border-radius:12px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;font-size:28px;color:#0f766e;">张</div>
+      </div>
+      <div class="modern-profile__identity">
+        <h1 class="modern-profile__name">张三</h1>
+        <p class="modern-profile__title">高级前端工程师</p>
+      </div>
+    </section>
+
+    <section class="modern-sidebar__panel">
+      <h2 class="modern-sidebar__panel-title">求职意向</h2>
+      <div class="modern-intent-list">
+        <div class="modern-intent-item">
+          <span class="modern-intent-item__label">期望职位</span>
+          <span class="modern-intent-item__value">前端架构师</span>
+        </div>
+        <div class="modern-intent-item">
+          <span class="modern-intent-item__label">期望城市</span>
+          <span class="modern-intent-item__value">北京 / 上海</span>
+        </div>
+        <div class="modern-intent-item">
+          <span class="modern-intent-item__label">薪资范围</span>
+          <span class="modern-intent-item__value">30-40K</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="modern-sidebar__panel">
+      <h2 class="modern-sidebar__panel-title">联系方式</h2>
+      <div class="modern-contact-list">
+        <div class="modern-contact-item">
+          <span class="modern-contact-item__label">电话</span>
+          <span class="modern-contact-item__value">138-0000-1234</span>
+        </div>
+        <div class="modern-contact-item">
+          <span class="modern-contact-item__label">邮箱</span>
+          <span class="modern-contact-item__value">zhangsan@example.com</span>
+        </div>
+        <div class="modern-contact-item">
+          <span class="modern-contact-item__label">GitHub</span>
+          <span class="modern-contact-item__value">github.com/zhangsan</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Aside Sections -->
+    <div class="modern-sidebar__sections">
+      <section class="resume-section-block resume-section-block--compact">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">专业技能</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-chip-list">
+            <span class="resume-chip"><span>Vue.js</span><span class="resume-chip__meta">精通</span></span>
+            <span class="resume-chip"><span>React</span><span class="resume-chip__meta">精通</span></span>
+            <span class="resume-chip"><span>TypeScript</span><span class="resume-chip__meta">精通</span></span>
+            <span class="resume-chip"><span>Node.js</span><span class="resume-chip__meta">熟练</span></span>
+            <span class="resume-chip"><span>Webpack</span><span class="resume-chip__meta">精通</span></span>
+            <span class="resume-chip"><span>微前端</span><span class="resume-chip__meta">熟练</span></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="resume-section-block resume-section-block--compact">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">荣誉证书</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-entry-list">
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">年度优秀员工</h3>
+                </div>
+                <span class="resume-entry__date">2023</span>
+              </div>
+            </article>
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">开源贡献者</h3>
+                </div>
+                <span class="resume-entry__date">2020</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="modern-main">
+    <div class="modern-main__sections">
+
+      <section class="resume-section-block">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">个人简介</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-rich-text">
+            <p>8年前端开发经验，精通 Vue、React 生态，具备大型 SPA 架构设计能力。曾主导多个千万级用户产品的前端架构升级，对微前端、性能优化、工程化有深入实践。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="resume-section-block">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">工作经历</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-entry-list">
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">高级前端工程师</h3>
+                  <p class="resume-entry__subtitle">字节跳动</p>
+                </div>
+                <span class="resume-entry__date">2021.06 - 至今</span>
+              </div>
+              <ul class="resume-entry__bullets">
+                <li>主导飞书文档编辑器前端架构，支撑日均 PV 过亿</li>
+                <li>设计并实现基于 WebAssembly 的富文本渲染引擎，性能提升 40%</li>
+              </ul>
+            </article>
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">前端工程师</h3>
+                  <p class="resume-entry__subtitle">阿里巴巴</p>
+                </div>
+                <span class="resume-entry__date">2018.07 - 2021.05</span>
+              </div>
+              <ul class="resume-entry__bullets">
+                <li>负责淘宝营销活动平台前端开发，支撑双11等大促场景</li>
+                <li>推动组件库建设，产出 50+ 业务组件，团队复用率达 80%</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="resume-section-block">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">项目经历</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-entry-list">
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">飞书在线文档</h3>
+                  <p class="resume-entry__subtitle">核心前端开发</p>
+                </div>
+                <span class="resume-entry__date">2022.03 - 2024.01</span>
+              </div>
+              <div class="resume-entry__description">
+                <p>基于 CRDT 协同算法的实时协作编辑器，支持千万级文档并发编辑。</p>
+              </div>
+              <div class="resume-chip-list resume-chip-list--compact">
+                <span class="resume-chip">Vue 3</span>
+                <span class="resume-chip">TypeScript</span>
+                <span class="resume-chip">WebAssembly</span>
+                <span class="resume-chip">CRDT</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="resume-section-block">
+        <header class="resume-section-block__head">
+          <h2 class="resume-section-block__title">教育背景</h2>
+        </header>
+        <div class="resume-section-block__body">
+          <div class="resume-entry-list">
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">北京大学</h3>
+                  <p class="resume-entry__subtitle">硕士 · 计算机科学与技术</p>
+                </div>
+                <span class="resume-entry__date">2016.09 - 2018.06</span>
+              </div>
+              <p class="resume-entry__meta">GPA 3.8 / 4.0</p>
+            </article>
+            <article class="resume-entry">
+              <div class="resume-entry__header">
+                <div class="resume-entry__main">
+                  <h3 class="resume-entry__title">武汉大学</h3>
+                  <p class="resume-entry__subtitle">本科 · 软件工程</p>
+                </div>
+                <span class="resume-entry__date">2012.09 - 2016.06</span>
+              </div>
+              <p class="resume-entry__meta">GPA 3.6 / 4.0</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+</article>
+</div>
+
+</body>
+</html>

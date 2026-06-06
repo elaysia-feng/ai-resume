@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历模板 - 学术科研版 (Academic)</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.resume-template--academic {
+  --resume-color-accent: #1e3a5f;
+  --resume-color-accent-soft: rgba(30, 58, 95, 0.1);
+  --resume-color-border: #c8d6e5;
+  --resume-color-surface: #f7f9fc;
+  --resume-color-surface-strong: #edf2f7;
+  --resume-color-heading: #0f2744;
+  --resume-color-text: #1a365d;
+  --resume-color-text-soft: #2d4a7a;
+  --resume-color-text-faint: #5a7ba8;
+  padding: 48px 52px 54px;
+}
+
+.academic-header__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid var(--resume-color-accent);
+}
+
+.academic-header__pills {
+  padding-top: 2px;
+}
+
+.academic-header__divider {
+  margin-top: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--resume-color-accent), var(--resume-color-accent-soft), transparent);
+  border-radius: 2px;
+}
+
+.academic-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.resume-template--academic .resume-section-block__head {
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--resume-color-accent);
+}
+
+.resume-template--academic .resume-section-block__title {
+  color: var(--resume-color-accent);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resume-template--academic .resume-entry {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--resume-color-border);
+}
+
+.resume-template--academic .resume-entry:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.resume-template--academic .resume-entry__title {
+  color: var(--resume-color-heading);
+  font-weight: 700;
+}
+
+.resume-template--academic .resume-entry__date {
+  padding-top: 2px;
+  color: var(--resume-color-text-faint);
+}
+</style>
+</head>
+<body style="background:#e2e8f0;margin:0;padding:20px;">
+
+<div class="resume-page">
+<article class="resume-template resume-template--academic">
+
+  <!-- Header -->
+  <header class="resume-basic-header academic-header">
+    <div class="resume-basic-header__main">
+      <div class="resume-basic-header__identity">
+        <h1 class="resume-basic-header__name">李明</h1>
+        <p class="resume-basic-header__title">计算机科学博士候选人</p>
+        <div class="resume-basic-header__contacts">
+          <span class="resume-basic-header__contact">
+            <span class="resume-basic-header__contact-label">电话</span>
+            <span>139-8888-5678</span>
+          </span>
+          <span class="resume-basic-header__contact">
+            <span class="resume-basic-header__contact-label">邮箱</span>
+            <span>liming@pku.edu.cn</span>
+          </span>
+          <span class="resume-basic-header__contact">
+            <span class="resume-basic-header__contact-label">城市</span>
+            <span>北京</span>
+          </span>
+          <span class="resume-basic-header__contact">
+            <span class="resume-basic-header__contact-label">网站</span>
+            <span>liming.github.io</span>
+          </span>
+        </div>
+      </div>
+      <div class="academic-header__avatar" style="width:96px;height:96px;border-radius:50%;border:3px solid #1e3a5f;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:36px;color:#1e3a5f;flex-shrink:0;">李</div>
+    </div>
+
+    <div class="resume-meta-pills academic-header__pills">
+      <span class="resume-meta-pill"><span class="resume-meta-pill__label">研究方向</span> 自然语言处理 / 大语言模型</span>
+      <span class="resume-meta-pill"><span class="resume-meta-pill__label">求职状态</span> 应届博士</span>
+    </div>
+  </header>
+
+  <div class="academic-divider academic-header__divider"></div>
+
+  <div class="academic-body">
+
+    <!-- Summary -->
+    <section class="resume-section-block">
+      <header class="resume-section-block__head">
+        <h2 class="resume-section-block__title">研究概述</h2>
+      </header>
+      <div class="resume-section-block__body">
+        <div class="resume-rich-text">
+          <p>北京大学计算机科学博士在读，研究方向为自然语言处理与大语言模型。在 ACL、EMNLP 等顶级会议发表论文 6 篇，其中第一作者 3 篇。主导开发的中文文本纠错模型被多家企业采用，日均调用量超百万次。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Education (first in academic) -->
+    <section class="resume-section-block">
+      <header class="resume-section-block__head">
+        <h2 class="resume-section-block__title">教育背景</h2>
+      </header>
+      <div class="resume-section-block__body">
+        <div class="resume-entry-list">
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">北京大学</h3>
+                <p class="resume-entry__subtitle">博士 · 计算机科学与技术</p>
+              </div>
+              <span class="resume-entry__date">2020.09 - 至今</span>
+            </div>
+            <p class="resume-entry__meta">GPA 3.9 / 4.0 · 国家奖学金获得者</p>
+          </article>
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">清华大学</h3>
+                <p class="resume-entry__subtitle">硕士 · 计算机科学与技术</p>
+              </div>
+              <span class="resume-entry__date">2018.09 - 2020.06</span>
+            </div>
+            <p class="resume-entry__meta">GPA 3.8 / 4.0 · 优秀毕业生</p>
+          </article>
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">中国科学技术大学</h3>
+                <p class="resume-entry__subtitle">本科 · 计算机科学与技术</p>
+              </div>
+              <span class="resume-entry__date">2014.09 - 2018.06</span>
+            </div>
+            <p class="resume-entry__meta">GPA 3.7 / 4.0</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Experience -->
+    <section class="resume-section-block">
+      <header class="resume-section-block__head">
+        <h2 class="resume-section-block__title">科研经历</h2>
+      </header>
+      <div class="resume-section-block__body">
+        <div class="resume-entry-list">
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">大语言模型推理优化研究</h3>
+                <p class="resume-entry__subtitle">北京大学自然语言处理实验室</p>
+              </div>
+              <span class="resume-entry__date">2022.01 - 至今</span>
+            </div>
+            <ul class="resume-entry__bullets">
+              <li>提出基于稀疏注意力的推理加速方法，在保持精度的同时将推理速度提升 2.3 倍</li>
+              <li>论文被 ACL 2024 接收为 Oral Presentation</li>
+              <li>开源实现获 1200+ GitHub Star</li>
+            </ul>
+          </article>
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">中文文本纠错系统</h3>
+                <p class="resume-entry__subtitle">国家语言资源监测中心合作项目</p>
+              </div>
+              <span class="resume-entry__date">2020.06 - 2021.12</span>
+            </div>
+            <ul class="resume-entry__bullets">
+              <li>设计并实现基于预训练模型的中文拼写/语法纠错系统</li>
+              <li>在 NLPCC 评测任务中取得 SOTA 结果</li>
+              <li>系统被百度、腾讯等企业集成使用</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="resume-section-block">
+      <header class="resume-section-block__head">
+        <h2 class="resume-section-block__title">专业技能</h2>
+      </header>
+      <div class="resume-section-block__body">
+        <div class="resume-chip-list">
+          <span class="resume-chip"><span>PyTorch</span><span class="resume-chip__meta">精通</span></span>
+          <span class="resume-chip"><span>Transformers</span><span class="resume-chip__meta">精通</span></span>
+          <span class="resume-chip"><span>Python</span><span class="resume-chip__meta">精通</span></span>
+          <span class="resume-chip"><span>C++</span><span class="resume-chip__meta">熟练</span></span>
+          <span class="resume-chip"><span>LaTeX</span><span class="resume-chip__meta">精通</span></span>
+          <span class="resume-chip"><span>Linux</span><span class="resume-chip__meta">熟练</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Certificates -->
+    <section class="resume-section-block">
+      <header class="resume-section-block__head">
+        <h2 class="resume-section-block__title">荣誉证书</h2>
+      </header>
+      <div class="resume-section-block__body">
+        <div class="resume-entry-list">
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">国家奖学金</h3>
+              </div>
+              <span class="resume-entry__date">2023</span>
+            </div>
+          </article>
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">ACL 2024 Best Paper 候选</h3>
+              </div>
+              <span class="resume-entry__date">2024</span>
+            </div>
+          </article>
+          <article class="resume-entry">
+            <div class="resume-entry__header">
+              <div class="resume-entry__main">
+                <h3 class="resume-entry__title">百度奖学金（全国 Top 20）</h3>
+              </div>
+              <span class="resume-entry__date">2022</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</article>
+</div>
+
+</body>
+</html>

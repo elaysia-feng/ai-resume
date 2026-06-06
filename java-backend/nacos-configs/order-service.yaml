@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${ORDER_DB_NAME:ai_resume_order}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    username: "${DB_USERNAME:root}"
+    password: "${DB_PASSWORD:@Feng050813}"
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqp://elias:779337@localhost:5672}
     publisher-confirm-type: correlated
@@ -11,6 +11,9 @@ spring:
       simple:
         acknowledge-mode: auto
         default-requeue-rejected: false
+
+gateway:
+  service-token: ${GATEWAY_SERVICE_TOKEN:change-me}
 
 alipay:
   app-id: ${ALIPAY_APP_ID:}
