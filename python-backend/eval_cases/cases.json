@@ -1,0 +1,114 @@
+{
+  "cases": [
+    {
+      "id": "java-backend-project",
+      "title": "Java 后端 · 项目经历",
+      "user_input": "帮我按这个岗位优化我的项目经历模块",
+      "job_description": "资深 Java 后端开发。要求：3 年以上 Java 开发经验，熟悉 Spring Boot、MySQL、Redis、微服务架构、消息队列（RabbitMQ/Kafka）、分布式事务，有高并发接口优化经验者优先，能独立负责一个模块的设计与落地。",
+      "target_section_id": 1,
+      "resume_snapshot": {
+        "sections": [
+          {
+            "id": 1,
+            "sectionCode": "PROJECT_EXPERIENCE",
+            "sectionTitle": "项目经历",
+            "contentJson": {
+              "projects": [
+                {
+                  "name": "订单管理系统",
+                  "role": "后端开发",
+                  "period": "2022.03 - 2023.06",
+                  "description": [
+                    "使用 Spring Boot 开发订单相关接口",
+                    "负责对接第三方支付",
+                    "处理订单状态流转"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "section_schemas": {
+        "PROJECT_EXPERIENCE": {}
+      }
+    },
+    {
+      "id": "python-ai-work",
+      "title": "Python AI 工程师 · 工作经历",
+      "user_input": "帮我按这个岗位优化我的工作经历模块",
+      "job_description": "AI 应用后端工程师。要求：熟悉 Python 与 FastAPI，有 LangChain 或类似 Agent 框架开发经验，熟悉 RAG 知识库、向量数据库（如 Qdrant/Milvus）、LLM API 调用与 prompt 工程，有知识库问答系统落地经验优先。",
+      "target_section_id": 1,
+      "resume_snapshot": {
+        "sections": [
+          {
+            "id": 1,
+            "sectionCode": "WORK_EXPERIENCE",
+            "sectionTitle": "工作经历",
+            "contentJson": {
+              "company": "某某网络科技有限公司",
+              "position": "Python 开发工程师",
+              "period": "2023.06 - 2025.03",
+              "responsibilities": [
+                "负责爬虫数据采集",
+                "清洗数据并写入数据库",
+                "编写定时任务脚本维护数据"
+              ]
+            }
+          }
+        ]
+      },
+      "section_schemas": {
+        "WORK_EXPERIENCE": {}
+      }
+    },
+    {
+      "id": "frontend-summary",
+      "title": "前端工程师 · 个人总结",
+      "user_input": "帮我按这个岗位优化我的个人总结模块",
+      "job_description": "高级前端工程师。要求：3 年以上前端经验，精通 Vue3、TypeScript、Vite 工程化，熟悉 Pinia 状态管理、组件库设计与封装，有前端性能优化（首屏、打包体积）经验优先，熟悉前后端联调与接口设计。",
+      "target_section_id": 1,
+      "resume_snapshot": {
+        "sections": [
+          {
+            "id": 1,
+            "sectionCode": "SUMMARY",
+            "sectionTitle": "个人总结",
+            "contentJson": {
+              "summary": "三年前端开发经验，主要负责页面开发与接口联调，能独立完成模块开发。"
+            }
+          }
+        ]
+      },
+      "section_schemas": {
+        "SUMMARY": {}
+      }
+    },
+    {
+      "id": "productops-skills",
+      "title": "产品运营 · 技能清单",
+      "user_input": "帮我按这个岗位优化我的技能模块",
+      "job_description": "用户运营专员。要求：有用户运营经验，熟悉数据分析方法（A/B 测试、漏斗分析），了解用户增长与活动策划，熟练使用 SQL 和 Excel，有会员体系或社群运营经验优先。",
+      "target_section_id": 1,
+      "resume_snapshot": {
+        "sections": [
+          {
+            "id": 1,
+            "sectionCode": "SKILLS",
+            "sectionTitle": "技能特长",
+            "contentJson": {
+              "skills": [
+                "熟练使用 Office 办公软件",
+                "具备基础的沟通协调能力",
+                "了解数据分析"
+              ]
+            }
+          }
+        ]
+      },
+      "section_schemas": {
+        "SKILLS": {}
+      }
+    }
+  ]
+}

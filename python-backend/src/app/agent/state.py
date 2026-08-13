@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Any
 
 from langgraph.graph import MessagesState
 
@@ -26,6 +26,9 @@ class ResumeAgentInput(MessagesState, total=False):
     # Java 明确指定本轮允许 AI 修改的简历模块 ID，避免模型越权改整份简历。
     target_section_id: int
 
+    # 评测/对照实验用检索模式：auto / on / off，空则读取全局 AGENT_RETRIEVAL_MODE。
+    retrieval_mode: str | None
+
     # Studio 本地调试时可以直接传 mock 数据，避免必须启动 Java。
     resume_snapshot: dict[str, Any]
     # sectionCode -> JSON Schema，reviewer 用它校验 patch 的 afterJson。
@@ -50,6 +53,7 @@ class ResumeAgentOutput(MessagesState, total=False):
     clarification_payload: dict[str, Any]
     approval_payload: dict[str, Any]
     errors: list[str]
+    executed_nodes: list[str]
 
 
 class ResumeAgentState(MessagesState, total=False):
@@ -97,6 +101,8 @@ class ResumeAgentState(MessagesState, total=False):
     target_section_id: int
     # clarifier interrupt 恢复后写入的用户回答列表。
     clarification_answers: list[dict[str, Any]]
+    # A/B 评测用检索模式：auto/on/off，空则读取全局 AGENT_RETRIEVAL_MODE。
+    retrieval_mode: str | None
 
     # 3. bootstrap_node 从 Java 加载出来的权威上下文。
     # 3.1 resume_snapshot 是后续所有“不能编造事实”校验的基础。
@@ -166,3 +172,4 @@ class ResumeAgentState(MessagesState, total=False):
     event_seq: int
     # 节点失败或网关异常时追加错误信息，最终同步给 Java/前端。
     errors: list[str]
+    executed_nodes: list[str]

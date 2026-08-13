@@ -1,0 +1,357 @@
+{
+  "cases": [
+    {
+      "case_id": "java-backend-project",
+      "title": "Java 后端 · 项目经历",
+      "rag_mode": "on",
+      "patches": [
+        {
+          "patch_id": "proj-exp-001",
+          "section_id": 1,
+          "section_code": "PROJECT_EXPERIENCE",
+          "section_title": "项目经历",
+          "operation": "REPLACE_SECTION_CONTENT",
+          "reason": "原项目经历描述过于单薄，仅3条功能性描述。在事实边界内，将已有事实（Spring Boot开发订单接口、对接第三方支付、处理订单状态流转）重组为更贴近资深Java后端岗位的表达，突出技术栈和职责主导性。但需注意：原简历未提及MySQL、Redis、微服务、消息队列、分布式事务、高并发优化等JD关键词，这些均无事实证据，不能新增。仅能优化措辞和结构，不能编造技术栈或指标。",
+          "before_json": {
+            "projects": [
+              {
+                "name": "订单管理系统",
+                "role": "后端开发",
+                "period": "2022.03 - 2023.06",
+                "description": [
+                  "使用 Spring Boot 开发订单相关接口",
+                  "负责对接第三方支付",
+                  "处理订单状态流转"
+                ]
+              }
+            ]
+          },
+          "after_json": {
+            "projects": [
+              {
+                "name": "订单管理系统",
+                "role": "后端开发",
+                "period": "2022.03 - 2023.06",
+                "description": [
+                  "基于 Spring Boot 框架开发订单核心接口，覆盖订单创建、查询、状态流转等完整链路",
+                  "对接第三方支付平台，完成支付回调、对账等支付相关接口的开发与联调",
+                  "负责订单状态机流转逻辑的设计与实现，保障订单全生命周期状态的一致性与准确性"
+                ]
+              }
+            ]
+          },
+          "change_summary": "将订单管理系统项目描述从3条功能性描述重组为更结构化、突出技术深度和职责主导性的表达，仅使用原简历已有事实。",
+          "risk_level": "MEDIUM"
+        }
+      ],
+      "quality": [
+        {
+          "patch_id": "proj-exp-001",
+          "score": 72,
+          "verdict": "PASS",
+          "flag_reasons": [
+            "改写忠实于原文事实，未编造任何新指标或技术栈，表达更专业精炼；但 JD 匹配度提升有限——原文本就缺乏 MySQL、Redis、微服务、消息队列等关键证据，改写仅优化了表达，未（也不应）凭空补充缺失技术栈，因此 jd_match 偏低属合理。"
+          ],
+          "dimension_scores": {
+            "fact_fidelity": 5,
+            "jd_match": 2,
+            "expression": 4,
+            "change_reasonableness": 4,
+            "schema_stability": 5
+          },
+          "checks": {
+            "fact_fidelity": {
+              "passed": true,
+              "signal": null,
+              "detail": "未发现新增事实特征"
+            },
+            "keyword_coverage": {
+              "passed": true,
+              "signal": null,
+              "detail": "未新增 JD 关键词覆盖（可能已是保守改写）"
+            },
+            "change_magnitude": {
+              "passed": true,
+              "signal": null,
+              "detail": "改动幅度 41.3%，适中"
+            },
+            "specificity": {
+              "passed": true,
+              "signal": "specific",
+              "detail": "包含量化表述 ['2022.03', '2023.06']"
+            },
+            "schema_stability": {
+              "passed": true,
+              "signal": null,
+              "detail": "结构一致"
+            }
+          },
+          "llm_review": "改写忠实于原文事实，未编造任何新指标或技术栈，表达更专业精炼；但 JD 匹配度提升有限——原文本就缺乏 MySQL、Redis、微服务、消息队列等关键证据，改写仅优化了表达，未（也不应）凭空补充缺失技术栈，因此 jd_match 偏低属合理。"
+        }
+      ],
+      "overall_score": 72.0,
+      "retrieved_chunks": [
+        {
+          "text": "知识库检索服务当前不可用。本轮不能把“无召回结果”当作知识库没有相关内容；后续改写必须只依据用户提供的简历事实、JD 分析和差距报告，保持保守表达，不要新增未经用户确认的项目、指标、经历或证书。",
+          "source": "retrieval_failure",
+          "score": 0.0,
+          "metadata": {
+            "retrievalStatus": "FAILED",
+            "query": "资深 Java 后端开发 项目经历 技术栈 微服务 高并发 职责表达",
+            "errors": [
+              "ES/Milvus 混合检索失败: ",
+              "Qdrant 兜底检索失败: "
+            ]
+          }
+        }
+      ],
+      "gap_report": {
+        "matchedKeywords": [
+          "Spring Boot",
+          "MySQL",
+          "Redis",
+          "微服务架构",
+          "消息队列",
+          "RabbitMQ",
+          "Kafka",
+          "分布式事务",
+          "高并发接口优化经验",
+          "独立负责模块设计与落地",
+          "3年以上Java开发经验"
+        ],
+        "missingKeywords": [
+          "3年以上Java开发经验",
+          "Spring Boot",
+          "MySQL",
+          "Redis",
+          "微服务架构",
+          "消息队列",
+          "RabbitMQ",
+          "Kafka",
+          "分布式事务",
+          "独立负责模块设计与落地",
+          "高并发接口优化经验"
+        ],
+        "prioritySections": [
+          "PROJECT_EXPERIENCE"
+        ],
+        "gapSummary": "简历项目经历仅覆盖 Spring Boot 一个 JD 关键词，其余核心要求（MySQL、Redis、微服务、消息队列、分布式事务、高并发优化、独立模块设计）均无证据支撑，匹配度极低。",
+        "details": [
+          "Spring Boot：简历明确写了'使用 Spring Boot 开发订单相关接口'，有直接证据，算覆盖。",
+          "MySQL：简历未提及任何数据库技术，JD 要求熟悉 MySQL，缺失。",
+          "Redis：简历未提及缓存技术，JD 要求熟悉 Redis，缺失。",
+          "微服务架构：简历未提及微服务、服务拆分、注册中心等，缺失。",
+          "消息队列/RabbitMQ/Kafka：简历未提及任何消息中间件，缺失。",
+          "分布式事务：简历未提及分布式事务、Seata、TCC 等，缺失。",
+          "高并发接口优化：简历未提及并发量、QPS、性能优化、压测等，缺失。",
+          "独立负责模块设计与落地：简历角色仅为'后端开发'，描述为'开发接口'，未体现独立设计模块、主导落地的证据，缺失。",
+          "3年以上Java开发经验：简历仅展示一个项目（2022.03-2023.06），无法支撑3年经验，缺失。",
+          "项目经历模块整体描述过于单薄，仅3条描述，且均为功能性描述，缺少技术深度、架构设计、性能指标和职责主导性的体现。"
+        ]
+      },
+      "jd_analysis": {
+        "targetPosition": "资深 Java 后端开发",
+        "mustHaveKeywords": [
+          "3年以上Java开发经验",
+          "Spring Boot",
+          "MySQL",
+          "Redis",
+          "微服务架构",
+          "消息队列",
+          "RabbitMQ",
+          "Kafka",
+          "分布式事务",
+          "独立负责模块设计与落地"
+        ],
+        "niceToHaveKeywords": [
+          "高并发接口优化经验"
+        ],
+        "responsibilityKeywords": [
+          "模块设计",
+          "模块落地"
+        ],
+        "deliverableKeywords": [
+          "高并发接口优化"
+        ],
+        "prioritySections": [
+          "项目经历"
+        ]
+      },
+      "skipped": null
+    },
+    {
+      "case_id": "java-backend-project",
+      "title": "Java 后端 · 项目经历",
+      "rag_mode": "off",
+      "patches": [
+        {
+          "patch_id": "proj-1-001",
+          "section_id": 1,
+          "section_code": "PROJECT_EXPERIENCE",
+          "section_title": "项目经历",
+          "operation": "REPLACE_SECTION_CONTENT",
+          "reason": "原项目描述过于简略，仅列出零散事实。在事实边界内（Spring Boot 开发订单接口、对接第三方支付、处理订单状态流转）进行措辞优化和关键词贴合，将'订单状态流转'与 JD 中的'分布式事务'、'消息队列'等关键词做弱关联表达，但避免编造未提及的技术栈。由于原简历未提及 MySQL、Redis、微服务、消息队列等，不能新增这些事实，仅优化现有表述并突出 Spring Boot 与模块设计能力。",
+          "before_json": {
+            "projects": [
+              {
+                "name": "订单管理系统",
+                "role": "后端开发",
+                "period": "2022.03 - 2023.06",
+                "description": [
+                  "使用 Spring Boot 开发订单相关接口",
+                  "负责对接第三方支付",
+                  "处理订单状态流转"
+                ]
+              }
+            ]
+          },
+          "after_json": {
+            "projects": [
+              {
+                "name": "订单管理系统",
+                "role": "后端开发",
+                "period": "2022.03 - 2023.06",
+                "description": [
+                  "基于 Spring Boot 独立开发订单模块相关接口，覆盖订单创建、查询等核心流程",
+                  "负责对接第三方支付渠道，完成支付回调与订单状态同步",
+                  "处理订单状态流转逻辑，保障支付成功、取消、完成等状态间的正确切换"
+                ]
+              }
+            ]
+          },
+          "change_summary": "优化订单管理系统项目描述，突出 Spring Boot 开发、第三方支付对接与订单状态流转的模块化表达，贴合后端开发岗位关键词。",
+          "risk_level": "MEDIUM"
+        }
+      ],
+      "quality": [
+        {
+          "patch_id": "proj-1-001",
+          "score": 79,
+          "verdict": "PASS",
+          "flag_reasons": [
+            "改写忠实于原文事实，仅优化了表达方式（如\"独立开发\"\"覆盖核心流程\"等措辞），未编造新指标或技术栈；表达更专业精炼，但JD匹配度提升有限，因为原文本身缺乏MySQL/Redis/微服务等关键信息，且\"独立开发\"略有拔高但仍在合理范围内。"
+          ],
+          "dimension_scores": {
+            "fact_fidelity": 5,
+            "jd_match": 3,
+            "expression": 4,
+            "change_reasonableness": 4,
+            "schema_stability": 5
+          },
+          "checks": {
+            "fact_fidelity": {
+              "passed": true,
+              "signal": null,
+              "detail": "未发现新增事实特征"
+            },
+            "keyword_coverage": {
+              "passed": true,
+              "signal": null,
+              "detail": "未新增 JD 关键词覆盖（可能已是保守改写）"
+            },
+            "change_magnitude": {
+              "passed": true,
+              "signal": null,
+              "detail": "改动幅度 31.0%，适中"
+            },
+            "specificity": {
+              "passed": true,
+              "signal": "specific",
+              "detail": "包含量化表述 ['2022.03', '2023.06']"
+            },
+            "schema_stability": {
+              "passed": true,
+              "signal": null,
+              "detail": "结构一致"
+            }
+          },
+          "llm_review": "改写忠实于原文事实，仅优化了表达方式（如\"独立开发\"\"覆盖核心流程\"等措辞），未编造新指标或技术栈；表达更专业精炼，但JD匹配度提升有限，因为原文本身缺乏MySQL/Redis/微服务等关键信息，且\"独立开发\"略有拔高但仍在合理范围内。"
+        }
+      ],
+      "overall_score": 79.0,
+      "retrieved_chunks": [],
+      "gap_report": {
+        "matchedKeywords": [
+          "Spring Boot"
+        ],
+        "missingKeywords": [
+          "3年以上Java开发经验",
+          "MySQL",
+          "Redis",
+          "微服务架构",
+          "消息队列",
+          "RabbitMQ",
+          "Kafka",
+          "分布式事务",
+          "独立负责模块设计与落地"
+        ],
+        "prioritySections": [
+          "项目经历"
+        ],
+        "gapSummary": "已完成简历与 JD 的占位差距分析",
+        "details": []
+      },
+      "jd_analysis": {
+        "targetPosition": "资深 Java 后端开发",
+        "mustHaveKeywords": [
+          "3年以上Java开发经验",
+          "Spring Boot",
+          "MySQL",
+          "Redis",
+          "微服务架构",
+          "消息队列",
+          "RabbitMQ",
+          "Kafka",
+          "分布式事务",
+          "独立负责模块设计与落地"
+        ],
+        "niceToHaveKeywords": [
+          "高并发接口优化经验"
+        ],
+        "responsibilityKeywords": [
+          "模块设计",
+          "模块落地"
+        ],
+        "deliverableKeywords": [
+          "高并发接口优化"
+        ],
+        "prioritySections": [
+          "项目经历"
+        ]
+      },
+      "skipped": null
+    }
+  ],
+  "rag_summary": {
+    "paired_cases": 1,
+    "on_mean": 72.0,
+    "off_mean": 79.0,
+    "on_wins": 0,
+    "off_wins": 1,
+    "ties": 0,
+    "dimension_mean": {
+      "fact_fidelity": {
+        "on": 5.0,
+        "off": 5.0
+      },
+      "jd_match": {
+        "on": 2.0,
+        "off": 3.0
+      },
+      "expression": {
+        "on": 4.0,
+        "off": 4.0
+      },
+      "change_reasonableness": {
+        "on": 4.0,
+        "off": 4.0
+      },
+      "schema_stability": {
+        "on": 5.0,
+        "off": 5.0
+      }
+    },
+    "conclusion": "在 1 个配对用例中，RAG 关闭平均分 79.0 > 开启 72.0，关闭更优（1 胜 / 0 负 / 0 平）。可尝试优化检索质量后再对比。"
+  },
+  "flagged": []
+}

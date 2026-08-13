@@ -32,19 +32,21 @@ class AgentFactory:
         """创建底层 ChatModel，供 create_agent 使用。
 
         配置来源：
-        1. MiniMax API key / base_url / model 从 settings 读取。
+        1. LLM API key / base_url / model 从 settings 读取。
         2. temperature 固定较低，减少结构化输出波动。
         3. 未配置 key 时抛错，让节点走本地兜底逻辑。
         """
         settings = get_settings()
-        if not settings.minimax_api_key or settings.minimax_api_key.startswith("your_"):
-            raise ValueError("MINIMAX_API_KEY 未配置，跳过真实 Agent 调用")
+        api_key = settings.effective_llm_api_key
+        if not api_key or api_key.startswith("your_"):
+            raise ValueError("LLM API key 未配置，跳过真实 Agent 调用")
         return ChatOpenAI(
-            model=settings.minimax_chat_model,
+            model=settings.effective_llm_chat_model,
             temperature=0.2,
-            api_key=settings.minimax_api_key,
-            base_url=settings.minimax_base_url,
-            timeout=settings.minimax_timeout_seconds,
+            api_key=api_key,
+            base_url=settings.effective_llm_base_url,
+            timeout=settings.llm_timeout_seconds,
+            default_headers=build_provider_headers(settings.llm_provider, api_key),
         )
 
     def create_structured_agent(
@@ -104,5 +106,12 @@ class AgentFactory:
                 return response_model.model_validate_json(content)
 
         raise ValueError(f"Agent 未返回 {response_model.__name__} 结构化结果")
+
+def build_provider_headers(provider: str, api_key: str) -> dict[str, str] | None:
+    """按模型厂商补充 OpenAI 兼容接口的特殊 header。"""
+    if provider.lower() == "mimo":
+        return {"api-key": api_key}
+    return None
+
 
 agent_factory = AgentFactory()

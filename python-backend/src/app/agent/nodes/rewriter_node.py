@@ -8,8 +8,8 @@ from src.app.agent.memory import build_memory_messages, compact_memory_for_model
 from src.app.agent.prompts.rewriter_prompt import REWRITER_SYSTEM_PROMPT
 from src.app.agent.state import ResumeAgentState
 from src.app.agent.types import ResumeSectionPatch
-from src.app.service.patch_builder_service import patch_builder_service
 from src.app.service.agent_factory import agent_factory
+from src.app.service.patch_builder_service import patch_builder_service
 
 
 class SectionPatchList(BaseModel):
@@ -35,8 +35,10 @@ async def rewriter_node(state: ResumeAgentState) -> ResumeAgentState:
             state.update(memory_updates)
             response = await agent_factory.invoke_agent(build_rewriter_messages(input_state, section), SectionPatchList)
             patches.extend(response.patches)
-        except Exception:
+        except Exception as exc:
             # 单个 section 失败不阻断其他模块，最终由 reviewer 判断是否有可用 patch。
+            section_id = section.get("id") or section.get("sectionId")
+            state.setdefault("errors", []).append(f"Rewriter 生成模块 {section_id} patch 失败: {exc}")
             continue
 
     state["candidate_patches"] = [

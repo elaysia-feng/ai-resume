@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>简历优化质量审计报告</title>
+<style>
+  body { font-family: system-ui, "Microsoft YaHei", sans-serif; margin: 24px; color: #222; background: #fafafa; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 16px; margin-top: 28px; border-left: 4px solid #4a6cf7; padding-left: 8px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; font-size: 13px; }
+  th, td { border: 1px solid #e2e2e2; padding: 6px 10px; text-align: left; }
+  th { background: #f0f3ff; }
+  .score { font-weight: 700; }
+  .verdict-flag { color: #c0392b; font-weight: 700; }
+  .verdict-pass { color: #27ae60; font-weight: 700; }
+  .meta { color: #666; font-size: 12px; }
+  .conclusion { background: #fff8e1; border: 1px solid #f0e2a0; padding: 10px 14px; border-radius: 6px; }
+</style></head><body>
+<h1>简历优化质量审计报告</h1>
+<p class="meta">生成时间 2026-08-12 22:24:52 ｜ 参数：--rag=both ｜ LLM 打分=True ｜ 用例数 2</p>
+
+<h2>RAG A/B 对比</h2>
+<div class="conclusion"><strong>结论：</strong>在 1 个配对用例中，RAG 关闭平均分 79.0 > 开启 72.0，关闭更优（1 胜 / 0 负 / 0 平）。可尝试优化检索质量后再对比。</div>
+<table>
+  <tr><th>指标</th><th>RAG 开启</th><th>RAG 关闭</th></tr>
+  <tr><td>平均总分</td><td>72.0</td><td>79.0</td></tr>
+  <tr><td>胜场 / 平</td><td>0</td><td>1（平 0）</td></tr>
+  <tr><td>事实保真</td><td>5.0</td><td>5.0</td></tr>
+<tr><td>JD 匹配</td><td>2.0</td><td>3.0</td></tr>
+<tr><td>表达质量</td><td>4.0</td><td>4.0</td></tr>
+<tr><td>改动合理性</td><td>4.0</td><td>4.0</td></tr>
+<tr><td>结构合规</td><td>5.0</td><td>5.0</td></tr>
+</table>
+
+<h2>各用例结果</h2>
+<table>
+  <tr><th>用例</th><th>标题</th><th>RAG</th><th>patch 数</th><th>总分</th><th>PASS/FLAG</th><th>备注</th></tr>
+  <tr><td>java-backend-project</td><td>Java 后端 · 项目经历</td><td>on</td><td>1</td><td class='score'>72.0</td><td><span class='verdict-pass'>1 PASS</span> / <span class='verdict-flag'>0 FLAG</span></td><td></td></tr>
+<tr><td>java-backend-project</td><td>Java 后端 · 项目经历</td><td>off</td><td>1</td><td class='score'>79.0</td><td><span class='verdict-pass'>1 PASS</span> / <span class='verdict-flag'>0 FLAG</span></td><td></td></tr>
+</table>
+
+<h2>需人工复核的 FLAG 项（只复核这些即可）</h2>
+<table>
+  <tr><th>用例</th><th>标题</th><th>RAG</th><th>patch</th><th>分数</th><th>理由</th></tr>
+  <tr><td colspan='6'>无 FLAG 项，全部通过 ✓</td></tr>
+</table>
+</body></html>

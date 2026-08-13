@@ -66,27 +66,79 @@
 
 
 
-import os
-import requests
+# import os
+# import requests
 
-api_key = os.getenv("MINIMAX_API_KEY")
-print(api_key)
-resp = requests.get(
-    "https://openrouter.ai/api/v1/models",
-    headers={
-        "Authorization": f"Bearer {api_key}"
-    },
-    timeout=30,
-)
+# api_key = os.getenv("MINIMAX_API_KEY")
+# print(api_key)
+# resp = requests.get(
+#     "https://openrouter.ai/api/v1/models",
+#     headers={
+#         "Authorization": f"Bearer {api_key}"
+#     },
+#     timeout=30,
+# )
 
-resp.raise_for_status()
+# resp.raise_for_status()
 
-models = resp.json()["data"]
+# models = resp.json()["data"]
 
-target = next(
-    m for m in models
-    if m["id"] == "minimax/minimax-m2.7"
-)
+# target = next(
+#     m for m in models
+#     if m["id"] == "minimax/minimax-m2.7"
+# )
 
-print("id =", target["id"])
-print("context_length =", target["context_length"])
+# print("id =", target["id"])
+# print("context_length =", target["context_length"])
+
+# from dotenv import load_dotenv
+# from langchain_openai import ChatOpenAI
+
+
+# def main() -> None:
+#     load_dotenv()
+
+#     import os
+
+#     api_key = os.getenv("MIMO_API_KEY")
+#     model = os.getenv("MIMO_CHAT_MODEL", "mimo-v2.5-pro")
+#     base_url = os.getenv("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1")
+
+#     if not api_key or api_key.startswith("your_"):
+#         raise RuntimeError("请先在 .env 里配置 MIMO_API_KEY")
+
+#     llm = ChatOpenAI(
+#         model=model,
+#         api_key=api_key,
+#         base_url=base_url,
+#         default_headers={"api-key": api_key},
+#         temperature=0.2,
+#         timeout=60,
+#     )
+
+#     response = llm.invoke("agent开发需要掌握什么技能，核心要掌握什么，后端能力很重要还是我的Langgraph能力重要")
+#     print(response.content)
+
+
+# if __name__ == "__main__":
+#     main()
+
+import asyncio
+from redis.asyncio import Redis
+
+async def main():
+    r = Redis(
+        host="127.0.0.1",
+        port=6379,
+        db=0,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        decode_responses=True,
+    )
+
+    try:
+        print(await r.ping())
+    finally:
+        await r.aclose()
+
+asyncio.run(main())

@@ -1,11 +1,12 @@
+import os
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
+
 
 class Settings(BaseSettings):
     """统一管理 Python 服务运行所需的环境配置。"""
@@ -22,17 +23,37 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_debug: bool = False
 
-    # MiniMax 文本模型配置，后续由 LangChain ChatModel 使用。
-    minimax_api_key: str = Field(default=os.getenv("MINIMAX_API_KEY"), alias="MINIMAX_API_KEY")
-    minimax_base_url: str = Field(
-        default=os.getenv("MINIMAX_BASE_URL"),
-        alias="MINIMAX_BASE_URL",
+    # 文本模型配置，后续由 LangChain ChatModel 使用。
+    # llm_* 是 agent_factory 实际读取的"生效配置"；effective_* 属性按 LLM_PROVIDER 选择。
+    llm_provider: str = Field(default="mimo", alias="LLM_PROVIDER")
+    llm_api_key: str = Field(default=os.getenv("MIMO_API_KEY"), alias="MIMO_API_KEY")
+    llm_base_url: str = Field(
+        default="https://api.xiaomimimo.com/v1",
+        alias="MIMO_BASE_URL",
     )
-    minimax_chat_model: str = Field(
-        default="MiniMax-M2.7",
-        alias="MINIMAX_CHAT_MODEL",
+    llm_chat_model: str = Field(
+        default="mimo-v2.5-pro",
+        alias="MIMO_CHAT_MODEL",
     )
-    minimax_timeout_seconds: int = Field(default=60, alias="MINIMAX_TIMEOUT_SECONDS")
+    llm_timeout_seconds: int = Field(default=60, alias="LLM_TIMEOUT_SECONDS")
+
+    # DeepSeek 配置（LLM_PROVIDER=deepseek 时生效，通过 effective_* 属性切换）。
+    deepseek_api_key: str = Field(default=os.getenv("DEEPSEEK_API_KEY"), alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com/v1", alias="DEEPSEEK_BASE_URL")
+    # deepseek-chat 为快速非推理模型（结构化输出稳定）；deepseek-v4-flash 为推理模型（更慢更贵）。
+    deepseek_chat_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_CHAT_MODEL")
+
+    @property
+    def effective_llm_api_key(self) -> str:
+        return self.deepseek_api_key if self.llm_provider.lower() == "deepseek" else self.llm_api_key
+
+    @property
+    def effective_llm_base_url(self) -> str:
+        return self.deepseek_base_url if self.llm_provider.lower() == "deepseek" else self.llm_base_url
+
+    @property
+    def effective_llm_chat_model(self) -> str:
+        return self.deepseek_chat_model if self.llm_provider.lower() == "deepseek" else self.llm_chat_model
 
     # 本地向量模型配置，用于生成检索查询和知识库 chunk 的向量。
     embedding_model_name: str = Field(
@@ -67,6 +88,12 @@ class Settings(BaseSettings):
         alias="OPTIMIZE_MAX_CONTEXT_CHARS",
     )
     optimize_retrieve_timeout_seconds: float = Field(default=5.0, alias="OPTIMIZE_RETRIEVE_TIMEOUT_SECONDS")
+
+    # 评测/RAG 对照实验用:auto(默认,LLM 决定是否检索)/on(强制检索)/off(关闭检索)。
+    # 单次 run 可通过 state["retrieval_mode"] 覆盖该全局配置。
+    agent_retrieval_mode: str = Field(default="auto", alias="AGENT_RETRIEVAL_MODE")
+    # 是否用 LLM 给优化结果做 rubric 打分(评测系统用);false 时只跑确定性规则。
+    agent_quality_llm_scoring: bool = Field(default=True, alias="AGENT_QUALITY_LLM_SCORING")
 
     # Agent 与 Java 内部接口配置。
     java_internal_base_url: str = Field(

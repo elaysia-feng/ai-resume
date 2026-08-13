@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -18,12 +19,14 @@ from src.app.agent.nodes.summarize_conversation_node import summarize_conversati
 from src.app.agent.nodes.supervisor_node import supervisor_node
 from src.app.agent.routing import decide_memory_route, decide_review_route, decide_supervisor_route
 from src.app.agent.state import ResumeAgentInput, ResumeAgentOutput, ResumeAgentState
+from src.app.config.settings import get_settings
 from src.app.internal_dto.graph_continue_request import GraphContinueRequest
 from src.app.internal_dto.graph_run_stream_request import GraphRunStreamRequest
 from src.app.internal_dto.run_status_update_request import RunStatusUpdateRequest
 from src.app.service.agent_event_service import agent_event_service
 from src.app.service.java_gateway_service import java_gateway_service
-from src.app.config.settings import get_settings
+
+logger = logging.getLogger("uvicorn.error")
 
 
 # LangGraph 节点名 -> 业务阶段码。
@@ -55,6 +58,8 @@ NODE_MESSAGE_MAP = {
     "approval_packager": "封装待确认修改",
 }
 
+WORKFLOW_NODE_NAMES = tuple(NODE_STAGE_MAP.keys())
+
 
 _CHECKPOINTER: Any | None = None
 _CHECKPOINTER_CONTEXT: Any | None = None
@@ -77,13 +82,13 @@ def build_checkpointer() -> Any | None:
         return _CHECKPOINTER
 
     try:
-        from langgraph.checkpoint.redis import RedisSaver
+        from langgraph.checkpoint.redis import RedisSaver as RedisSaverClass
     except ImportError:
         return None
 
     settings = get_settings()
     try:
-        _CHECKPOINTER_CONTEXT = RedisSaver.from_conn_string(
+        _CHECKPOINTER_CONTEXT = RedisSaverClass.from_conn_string(
             settings.redis_url,
             connection_args={
                 "socket_connect_timeout": 1,
@@ -103,7 +108,42 @@ def build_checkpointer() -> Any | None:
         return None
 
 
-def build_graph():
+async def log_node_run(node_name: str, node_func: Any, state: ResumeAgentState) -> ResumeAgentState:
+    """给节点执行加终端日志，方便本地调试 graph 路径。"""
+    run_id = state.get("run_id", 0)
+    logger.info("[resume-agent] node start runId=%s node=%s", run_id, node_name)
+    try:
+        result = await node_func(state)
+    except Exception:
+        logger.exception("[resume-agent] node failed runId=%s node=%s", run_id, node_name)
+        raise
+
+    if isinstance(result, dict):
+        executed_nodes = [*state.get("executed_nodes", []), node_name]
+        result["executed_nodes"] = executed_nodes
+        logger.info(
+            "[resume-agent] node done runId=%s node=%s status=%s errors=%s patches=%s",
+            run_id,
+            node_name,
+            result.get("status") or state.get("status"),
+            len(result.get("errors") or state.get("errors") or []),
+            len(result.get("candidate_patches") or state.get("candidate_patches") or []),
+        )
+    else:
+        logger.info("[resume-agent] node done runId=%s node=%s", run_id, node_name)
+    return result
+
+
+def logged_node(node_name: str, node_func: Any):
+    """把业务节点包装成 LangGraph 可 await 的节点函数。"""
+
+    async def run(state: ResumeAgentState) -> ResumeAgentState:
+        return await log_node_run(node_name, node_func, state)
+
+    return run
+
+
+def build_graph(checkpointer: Any | None = None):
     """构建给 LangGraph Studio 和 FastAPI 共用的工作流。
 
     这里是整个 Agent 的“施工图”：
@@ -133,16 +173,22 @@ def build_graph():
 
     # TODO 优化这个图, 因为 这个graph的state过于多了, 很有可能传给模型就会爆满
     # 注册节点。节点名会直接显示在 LangGraph Studio 的图里。
-    workflow.add_node("bootstrap", bootstrap_node)
-    workflow.add_node("summarize_conversation", summarize_conversation_node)
-    workflow.add_node("supervisor", supervisor_node)
-    workflow.add_node("jd_analyst", jd_analyst_node)
-    workflow.add_node("gap_analyzer", gap_analyzer_node)
-    workflow.add_node("retriever", retriever_node)
-    workflow.add_node("rewriter", rewriter_node)
-    workflow.add_node("reviewer", reviewer_node)
-    workflow.add_node("clarifier", clarifier_node)
-    workflow.add_node("approval_packager", approval_packager_node)
+    workflow.add_node("bootstrap", logged_node("bootstrap", bootstrap_node))
+    workflow.add_node(
+        "summarize_conversation",
+        logged_node("summarize_conversation", summarize_conversation_node),
+    )
+    workflow.add_node("supervisor", logged_node("supervisor", supervisor_node))
+    workflow.add_node("jd_analyst", logged_node("jd_analyst", jd_analyst_node))
+    workflow.add_node("gap_analyzer", logged_node("gap_analyzer", gap_analyzer_node))
+    workflow.add_node("retriever", logged_node("retriever", retriever_node))
+    workflow.add_node("rewriter", logged_node("rewriter", rewriter_node))
+    workflow.add_node("reviewer", logged_node("reviewer", reviewer_node))
+    workflow.add_node("clarifier", logged_node("clarifier", clarifier_node))
+    workflow.add_node(
+        "approval_packager",
+        logged_node("approval_packager", approval_packager_node),
+    )
 
     # 固定入口：任何 run 都先加载简历、schema、历史消息等上下文。
     workflow.set_entry_point("bootstrap")
@@ -196,7 +242,8 @@ def build_graph():
     # clarifier 等用户补充信息，approval_packager 等用户确认 patch。
     workflow.add_edge("clarifier", "supervisor")
     workflow.add_edge("approval_packager", END)
-    return workflow.compile(checkpointer=build_checkpointer())
+    # 评测脚本可传入 MemorySaver 等 checkpointer；默认走 Redis 生产 checkpointer。
+    return workflow.compile(checkpointer=checkpointer if checkpointer is not None else build_checkpointer())
 
 
 # 官方 LangGraph CLI/Studio 会读取这个变量。
@@ -297,7 +344,12 @@ class AgentGraphService:
         config = self._graph_config(run_id)
         state = await self._load_state_snapshot(config) or self.create_continue_state(request)
         resume_payload = {"answers": [answer.model_dump(by_alias=True) for answer in request.answers]}
-        async for event in self.stream_graph_events(Command(resume=resume_payload), config=config, run_id=run_id, event_state=state):
+        async for event in self.stream_graph_events(
+            Command(resume=resume_payload),
+            config=config,
+            run_id=run_id,
+            event_state=state,
+        ):
             yield event
 
     async def cancel_run(self, run_id: int) -> None:
@@ -363,6 +415,7 @@ class AgentGraphService:
             async for update in self.graph.astream(graph_input or None, config=graph_config, stream_mode="updates"):
                 async for event_text in self._handle_graph_update(state, update):
                     yield event_text
+            log_graph_summary(state)
         except Exception as exc:
             await self.mark_failed(state, exc)
             yield await self._emit_event(
@@ -597,3 +650,20 @@ class AgentGraphService:
 
 
 agent_graph_service = AgentGraphService()
+
+
+def get_skipped_nodes(executed_nodes: list[str] | None) -> list[str]:
+    """根据已执行节点推导本轮未执行节点。"""
+    executed = set(executed_nodes or [])
+    return [node for node in WORKFLOW_NODE_NAMES if node not in executed]
+
+
+def log_graph_summary(state: dict[str, Any]) -> None:
+    """打印本轮 graph 最终执行/跳过节点。"""
+    executed_nodes = state.get("executed_nodes", [])
+    logger.info(
+        "[resume-agent] graph summary runId=%s executed=%s skipped=%s",
+        state.get("run_id", 0),
+        executed_nodes,
+        get_skipped_nodes(executed_nodes),
+    )

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from .controller.dev_resume_controller import router as dev_resume_router
 from .controller.health_controller import router as health_router
 from .internal_controller.graph_controller import router as graph_router
 
@@ -10,4 +11,5 @@ from .internal_controller.graph_controller import router as graph_router
 # - service：封装外部系统、模型、校验、patch 等可复用能力。
 api_router = APIRouter()
 api_router.include_router(health_router)
+api_router.include_router(dev_resume_router)
 api_router.include_router(graph_router)

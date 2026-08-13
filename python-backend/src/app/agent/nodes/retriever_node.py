@@ -1,12 +1,12 @@
-import json
 import asyncio
+import json
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from src.app.agent.agentic_rag.search_rag_with_bm25.query import rag_query
 from src.app.agent.constants import AgentStage
 from src.app.agent.memory import build_memory_messages, compact_memory_for_model
-from src.app.agent.agentic_rag.search_rag_with_bm25.query import rag_query
 from src.app.agent.prompts.retriever_prompt import RETRIEVER_SYSTEM_PROMPT
 from src.app.agent.state import ResumeAgentState
 from src.app.agent.tools.retrieval_tools import search_reference_chunks_tool
@@ -31,7 +31,24 @@ async def retriever_node(state: ResumeAgentState) -> ResumeAgentState:
     state.pop("messages", None)
     state["current_stage"] = AgentStage.RETRIEVER
 
+    mode = resolve_retrieval_mode(state)
+    if mode == "off":
+        # A/B 评测：关闭 RAG，不调用任何检索服务。
+        # rewriter 只能依据简历事实 + JD 分析 + 差距报告改写，不看任何外部参考片段。
+        state["retrieved_chunks"] = []
+        state["retrieval_plan"] = {
+            "shouldRetrieve": False,
+            "minResults": 0,
+            "queries": [],
+            "reason": "评测模式：关闭 RAG 检索",
+        }
+        state.pop("retrieval_error", None)
+        return state
+
     plan = await build_retrieval_plan(input_state)
+    if mode == "on":
+        # A/B 评测：强制开启检索，即使模型认为不需要，也使用确定性兜底计划。
+        plan = force_retrieval_on(plan, input_state)
     chunks = await execute_retrieval_plan(plan, input_state)
     # retrieval_plan 是给调试和前端排查用的；真正喂给 Rewriter 的是 retrieved_chunks。
     state["retrieved_chunks"] = normalize_retrieved_chunks(chunks)
@@ -60,6 +77,31 @@ async def build_retrieval_plan(state: ResumeAgentState) -> RetrievalPlan:
         )
     except Exception:
         return build_fallback_retrieval_plan(state)
+
+
+def resolve_retrieval_mode(state: ResumeAgentState) -> str:
+    """解析本轮检索模式：auto(LLM 决定)/on(强制)/off(关闭)。
+
+    优先级：单次 run 的 state["retrieval_mode"] > 全局 AGENT_RETRIEVAL_MODE > 默认 auto。
+    """
+    mode = (state.get("retrieval_mode") or get_settings().agent_retrieval_mode or "auto").strip().lower()
+    return mode if mode in {"auto", "on", "off"} else "auto"
+
+
+def force_retrieval_on(plan: RetrievalPlan, state: ResumeAgentState) -> RetrievalPlan:
+    """把检索计划强制置为开启；queries 为空时使用确定性兜底计划。
+
+    评测"RAG 开启"对照时用，保证每一轮确实发生了检索，而不是被模型跳过。
+    """
+    if plan.should_retrieve and plan.queries:
+        return plan
+    fallback = build_fallback_retrieval_plan(state)
+    return RetrievalPlan(
+        shouldRetrieve=True,
+        minResults=fallback.minResults or plan.minResults or 2,
+        queries=fallback.queries or plan.queries,
+        reason=f"{plan.reason or ''} | 评测模式：强制开启 RAG 检索",
+    )
 
 
 def build_retriever_messages(state: ResumeAgentState) -> list:
