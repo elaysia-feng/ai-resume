@@ -82,7 +82,7 @@ def build_checkpointer() -> Any | None:
         return _CHECKPOINTER
 
     try:
-        from langgraph.checkpoint.redis import RedisSaver as RedisSaverClass
+        from src.app.agent.redis_checkpoint import AsyncCompatibleRedisSaver as RedisSaverClass
     except ImportError:
         return None
 

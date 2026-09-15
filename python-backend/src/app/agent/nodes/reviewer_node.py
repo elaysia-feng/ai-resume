@@ -11,14 +11,22 @@ from src.app.service.schema_validate_service import schema_validate_service
 
 
 async def reviewer_node(state: ResumeAgentState) -> ResumeAgentState:
-    """Reviewer Agent：审查 patch 的事实一致性和 schema 合法性。"""
+    """审查提案，并为所有未通过的审查累计次数以限制重写循环。
+
+    Args:
+        state: 包含候选提案、目标模块和已失败审查次数的图状态。
+
+    Returns:
+        包含本轮审查结论及累计失败次数的局部状态。
+    """
     input_state = dict(state)
     state = dict(state)
     # reviewer 只写审查结果和是否通过，不新增 messages。
     state.pop("messages", None)
     state["current_stage"] = AgentStage.REVIEWER
-    patches = parse_review_patches(state)
+    # 1. 将提案解析也纳入确定性校验，格式错误应走受限重写流程。
     try:
+        patches = parse_review_patches(state)
         # 先做确定性的 schema / sectionId 校验，避免把明显非法 patch 交给 LLM。
         schema_validate_service.validate_all_patches(
             patches,
@@ -36,12 +44,14 @@ async def reviewer_node(state: ResumeAgentState) -> ResumeAgentState:
             result = ReviewResult(passed=True, notes=["未生成修改提案，跳过 LLM 审查"], rejectedReasons=[])
     except ValueError as exc:
         # 本地校验失败说明 patch 结构或目标模块有问题，应退回 rewriter 重写。
-        state["review_retry_count"] = state.get("review_retry_count", 0) + 1
         result = ReviewResult(passed=False, notes=[], rejectedReasons=[str(exc)])
     except Exception as exc:
         # LLM 审查不可用时，只要本地校验已通过，就允许进入审批，但把风险写入 notes。
         result = ReviewResult(passed=True, notes=[f"LLM 审查不可用，已完成本地校验: {exc}"], rejectedReasons=[])
 
+    # 2. 本地校验和 LLM 拒绝共用计数，确保连续拒绝也能终止。
+    if not result.passed:
+        state["review_retry_count"] = state.get("review_retry_count", 0) + 1
     state["review_result"] = result.model_dump(by_alias=True)
     state["review_passed"] = result.passed
     state["review_notes"] = result.notes if result.passed else result.rejected_reasons
