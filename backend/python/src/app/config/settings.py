@@ -25,8 +25,13 @@ class Settings(BaseSettings):
 
     # 文本模型配置，后续由 LangChain ChatModel 使用。
     # llm_* 是 agent_factory 实际读取的"生效配置"；effective_* 属性按 LLM_PROVIDER 选择。
+    # default 必须是空串而不是 os.getenv(...):
+    #   - os.getenv 在类定义时求值，key 会被冻结进字段 default（还可能把 .env 的真实 key
+    #     带进 model_json_schema / repr）；
+    #   - 环境变量不存在时 os.getenv 返回 None，与 str 类型冲突，pydantic 直接校验失败。
+    # pydantic-settings 自身会按 init > 环境变量 > .env > default 的顺序取值。
     llm_provider: str = Field(default="mimo", alias="LLM_PROVIDER")
-    llm_api_key: str = Field(default=os.getenv("MIMO_API_KEY"), alias="MIMO_API_KEY")
+    llm_api_key: str = Field(default="", alias="MIMO_API_KEY")
     llm_base_url: str = Field(
         default="https://api.xiaomimimo.com/v1",
         alias="MIMO_BASE_URL",
@@ -38,7 +43,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = Field(default=60, alias="LLM_TIMEOUT_SECONDS")
 
     # DeepSeek 配置（LLM_PROVIDER=deepseek 时生效，通过 effective_* 属性切换）。
-    deepseek_api_key: str = Field(default=os.getenv("DEEPSEEK_API_KEY"), alias="DEEPSEEK_API_KEY")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
     deepseek_base_url: str = Field(default="https://api.deepseek.com/v1", alias="DEEPSEEK_BASE_URL")
     # deepseek-chat 为快速非推理模型（结构化输出稳定）；deepseek-v4-flash 为推理模型（更慢更贵）。
     deepseek_chat_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_CHAT_MODEL")
