@@ -85,6 +85,10 @@ def main() -> None:
         "--onedir",
         "--name",
         APP_NAME,
+        # 默认 INFO 会打出 6 万多行 "Analyzing hidden import"，日志 I/O 很重，
+        # 而且失败时真正的错误行容易被淹没。只留告警以上。
+        "--log-level",
+        "WARN",
         "--distpath",
         str(DIST_DIR),
         "--workpath",

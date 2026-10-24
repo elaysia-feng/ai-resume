@@ -136,8 +136,10 @@ jobs:
 
       # Python：PyInstaller 打成独立 exe，同样不需要用户装 Python。
       #
-      # 失败时把日志尾部用 ::error:: 注解打出来：job 日志需要 token 才能下载，
-      # 但注解和 step summary 在 run 页面上匿名可见，排查不用等 token。
+      # 失败诊断：GitHub 每个 step 最多保留 10 条注解，之前的"尾部 80 行"会被
+      # 截到只剩最早的几条，真正的错误行反而看不到。
+      # 改成：只把关键行（ERROR / Traceback / Exception 等）挑出来当注解，
+      # 完整日志另存文件并写进 step summary。
       - name: Package Python runtime
         shell: pwsh
         working-directory: backend/python
@@ -148,10 +150,12 @@ jobs:
           uv run python scripts/build_desktop_bundle.py --clean *>&1 | Tee-Object -FilePath $log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            Write-Host "::error::Python bundle build failed (exit $code)"
-            Get-Content $log -Tail 80 -ErrorAction SilentlyContinue |
-              ForEach-Object { Write-Host "::error::$_" }
-            Add-Content $env:GITHUB_STEP_SUMMARY "## Python bundle build failed (exit $code)`n``````text`n$((Get-Content $log -Tail 80 -ErrorAction SilentlyContinue) -join "`n")`n```````n"
+            $all = @(Get-Content $log -ErrorAction SilentlyContinue)
+            Write-Host "::error::Python bundle build failed (exit $code), log lines=$($all.Count)"
+            $key = @($all | Where-Object { $_ -match 'ERROR|Error:|Traceback|Exception|Fatal|MemoryError|No module named|cannot import|Killed' })
+            if ($key.Count -eq 0) { $key = @($all | Select-Object -Last 8) }
+            $key | Select-Object -First 8 | ForEach-Object { Write-Host "::error::$_" }
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Python bundle build failed (exit $code)`n``````text`n$($all -join "`n")`n```````n"
             throw 'Python bundle build failed'
           }
           $exe = 'dist/desktop/ai-resume-api/ai-resume-api.exe'
@@ -195,9 +199,11 @@ jobs:
           npm run package *>&1 | Tee-Object -FilePath $log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            Write-Host "::error::electron-builder failed (exit $code)"
-            Get-Content $log -Tail 60 -ErrorAction SilentlyContinue |
-              ForEach-Object { Write-Host "::error::$_" }
+            $all = @(Get-Content $log -ErrorAction SilentlyContinue)
+            Write-Host "::error::electron-builder failed (exit $code), log lines=$($all.Count)"
+            $key = @($all | Where-Object { $_ -match 'ERROR|Error|error|⨯|cannot|Cannot|ENOENT|not found' })
+            if ($key.Count -eq 0) { $key = @($all | Select-Object -Last 8) }
+            $key | Select-Object -First 8 | ForEach-Object { Write-Host "::error::$_" }
             throw "electron-builder failed (exit $code)"
           }
         env:
