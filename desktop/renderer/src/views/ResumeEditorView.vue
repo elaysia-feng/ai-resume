@@ -1,154 +1,286 @@
 <template>
-  <div class="editor-layout" :class="layoutClass">
-    <!-- Edit Panel -->
-    <div class="edit-panel" :style="{ width: panelWidth + '%', minWidth: '280px', transition: isDragging ? 'none' : 'width 0.1s' }">
-      <div class="panel-header">
-        <span class="panel-title">模块编辑面板</span>
-        <div class="panel-actions">
-          <!-- Save status indicator -->
-          <span class="save-indicator" :class="saveStatusClass">{{ saveStatusText }}</span>
-          <!-- Main explicit save button (saves all built-in modules immediately) -->
-          <button class="main-save-btn" :disabled="saveStatus === 'saving'" @click="onMainSave">
-            {{ saveStatus === 'saving' ? '保存中...' : '保存全部' }}
-          </button>
-          <!-- Layout Swap Button -->
-          <button class="swap-btn" @click="toggleLayout" title="左右互换">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M7 16l-4-4 4-4M17 8l4 4-4 4M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <!-- Template Selector -->
-          <div class="template-selector">
-            <button
-              v-for="t in templates"
-              :key="t.value"
-              class="template-btn"
-              :class="{ active: store.selectedTemplate.value === t.value }"
-              @click="store.selectedTemplate.value = t.value"
-            >
-              {{ t.label }}
-            </button>
-          </div>
-          <div class="font-size-selector">
-            <span class="font-size-label">正文</span>
-            <button
-              v-for="size in bodyFontOptions"
-              :key="size"
-              class="font-size-btn"
-              :class="{ active: store.resumeBodyFontSize.value === size }"
-              @click="setResumeBodyFontSize(size)"
-            >
-              {{ size }}px
-            </button>
-          </div>
-          <div v-if="supportsSidebarColor" class="sidebar-color-selector">
-            <span class="sidebar-color-label">左栏</span>
-            <button
-              v-for="color in sidebarColorOptions"
-              :key="color.value"
-              class="sidebar-color-btn"
-              :class="{ active: store.sidebarColor.value === color.value }"
-              @click="setSidebarColor(color.value)"
-            >
-              <span class="sidebar-color-btn__swatch" :style="{ background: color.swatch }"></span>
-              <span>{{ color.label }}</span>
-            </button>
-          </div>
-          <button class="export-pdf-btn" :disabled="exportingPdf" @click="onExportPdf">
-            {{ exportingPdf ? '导出中...' : '导出 PDF' }}
-          </button>
-          <button class="add-block-btn" @click="showAddBlock = true">+ 添加模块</button>
-        </div>
+  <div ref="workbenchRef" class="editor-workbench">
+    <!-- ── 顶栏：页面标题 / 保存状态 / 主操作 ───────────────── -->
+    <header class="editor-topbar">
+      <div class="editor-topbar__lead">
+        <h1 class="editor-topbar__title">简历编辑器</h1>
+        <span class="editor-topbar__subtitle">{{ resumeName || '未命名简历' }}</span>
       </div>
 
-      <!-- Section List (scrollable) -->
-      <div class="block-list-container">
-        <div class="block-list">
+      <div class="editor-topbar__status">
+        <button
+          v-if="saveStatus === 'error'"
+          type="button"
+          class="save-indicator is-error"
+          @click="onMainSave"
+        >
+          保存失败，点击重试
+        </button>
+        <span v-else class="save-indicator" :class="saveStatusClass">{{ saveStatusText }}</span>
+      </div>
+
+      <div class="editor-topbar__actions">
+        <button
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--ghost"
+          title="交换编辑区与预览的位置"
+          @click="toggleLayout"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 16l-4-4 4-4M17 8l4 4-4 4M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          交换位置
+        </button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="togglePreview">
+          {{ previewVisible ? '隐藏预览' : '显示预览' }}
+        </button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" :disabled="exportingPdf" @click="onExportPdf">
+          {{ exportingPdf ? '导出中...' : '导出 PDF' }}
+        </button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="saveStatus === 'saving'" @click="onMainSave">
+          {{ saveStatus === 'saving' ? '保存中...' : '保存' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- ── 三栏主体 ─────────────────────────────────────────── -->
+    <div class="editor-body" :class="{ 'is-preview-first': layout === 'edit-right' }">
+      <!-- 左栏：模块导航 + 操作区 -->
+      <aside class="editor-nav" :style="navStyle">
+        <section class="editor-nav__group editor-nav__group--grow">
+          <div class="editor-nav__group-head">
+            <span class="section-nav__caption">简历模块</span>
+            <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="showAddBlock = true">
+              + 添加
+            </button>
+          </div>
+
+          <ul class="section-nav__list ui-scroll">
+            <li
+              v-for="section in store.sections"
+              :key="section.id"
+              class="section-nav__item"
+              :class="{
+                'is-active': activeId === section.id,
+                'is-hidden': !section.visible,
+                'is-drag-over': dragOverId === section.id,
+              }"
+              draggable="true"
+              @dragstart="onDragStart(section.id, $event)"
+              @dragover.prevent="onDragOver(section.id)"
+              @dragleave="onDragLeave"
+              @drop.prevent="onDrop(section.id)"
+              @dragend="onDragEnd"
+              @click="toggleActive(section.id)"
+            >
+              <span class="section-nav__handle" title="拖拽调整顺序" aria-hidden="true">
+                <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+                  <circle cx="2.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/>
+                  <circle cx="2.5" cy="7" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/>
+                  <circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/>
+                </svg>
+              </span>
+              <span class="section-nav__title">{{ section.sectionTitle }}</span>
+              <button
+                type="button"
+                class="section-nav__action"
+                :title="section.visible ? '在简历中隐藏' : '在简历中显示'"
+                @click.stop="store.toggleVisible(section.id)"
+              >
+                <svg v-if="section.visible" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 3l18 18M10.6 5.2A9.9 9.9 0 0112 5c6.4 0 10 7 10 7a17.7 17.7 0 01-3.4 4.2M6.2 6.7A17.6 17.6 0 002 12s3.6 7 10 7a9.8 9.8 0 003.8-.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="section-nav__action section-nav__action--danger"
+                title="删除模块"
+                @click.stop="onRemoveSection(section.id, section.sectionTitle)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </li>
+          </ul>
+
+          <p v-if="!store.sections.length" class="editor-nav__empty">
+            还没有模块，点击右上角「+ 添加」创建。
+          </p>
+        </section>
+
+        <section class="editor-nav__group">
+          <span class="section-nav__caption">外观</span>
+
+          <div class="editor-nav__field">
+            <label class="ui-label" for="editor-template-select">模板</label>
+            <select
+              id="editor-template-select"
+              class="ui-input ui-select"
+              :value="store.selectedTemplate.value"
+              @change="store.selectedTemplate.value = $event.target.value"
+            >
+              <option v-for="t in templates" :key="t.value" :value="t.value">{{ t.label }}</option>
+            </select>
+          </div>
+
+          <div class="editor-nav__field">
+            <span class="ui-label">正文字号</span>
+            <div class="editor-nav__chips">
+              <button
+                v-for="size in bodyFontOptions"
+                :key="size"
+                type="button"
+                class="editor-nav__chip"
+                :class="{ 'is-active': store.resumeBodyFontSize.value === size }"
+                @click="setResumeBodyFontSize(size)"
+              >
+                {{ size }}px
+              </button>
+            </div>
+          </div>
+
+          <div v-if="supportsSidebarColor" class="editor-nav__field">
+            <span class="ui-label">左栏配色</span>
+            <div class="editor-nav__chips">
+              <button
+                v-for="color in sidebarColorOptions"
+                :key="color.value"
+                type="button"
+                class="editor-nav__chip"
+                :class="{ 'is-active': store.sidebarColor.value === color.value }"
+                @click="setSidebarColor(color.value)"
+              >
+                <span class="editor-nav__swatch" :style="{ background: color.swatch }"></span>
+                {{ color.label }}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="editor-nav__group">
+          <span class="section-nav__caption">操作</span>
+          <div class="editor-nav__actions">
+            <button type="button" class="ui-btn ui-btn--sm ui-btn--outline ui-btn--block" :disabled="saveStatus === 'saving'" @click="onMainSave">
+              保存全部
+            </button>
+            <button type="button" class="ui-btn ui-btn--sm ui-btn--outline ui-btn--block" :disabled="exportingPdf" @click="onExportPdf">
+              {{ exportingPdf ? '导出中...' : '导出 PDF' }}
+            </button>
+            <button type="button" class="ui-btn ui-btn--sm ui-btn--outline ui-btn--block" @click="openAgentCopilot">
+              AI 助手
+            </button>
+          </div>
+        </section>
+      </aside>
+
+      <div
+        class="editor-splitter editor-splitter--nav"
+        :class="{ 'is-active': isDragging && resizeTarget === 'nav' }"
+        role="separator"
+        aria-orientation="vertical"
+        title="拖拽调整左栏宽度"
+        @mousedown="startResize('nav', $event)"
+      ></div>
+
+      <!-- 中栏：当前分区编辑区 -->
+      <main class="editor-canvas ui-scroll">
+        <div v-if="activeId && activeSection" class="editor-canvas__inner">
+          <header class="editor-canvas__head">
+            <div>
+              <h2 class="editor-canvas__title">{{ activeSection.sectionTitle }}</h2>
+              <p class="editor-canvas__hint">修改会实时反映到{{ layout === 'edit-left' ? '右侧' : '左侧' }}预览，停止输入 1.5 秒后自动保存。</p>
+            </div>
+            <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="activeId = null">收起</button>
+          </header>
+
+          <component
+            :is="activeEditor"
+            :key="activeId"
+            :model-value="activeSectionContent"
+            :is-active="true"
+            :resume-id="editorResumeId"
+            :schema-type="activeSection?.schemaType ?? 'TEXT'"
+            :is-custom="activeSection?.sectionType === 'CUSTOM'"
+            @update:model-value="onEditorUpdate"
+          />
+        </div>
+
+        <div v-else class="ui-empty editor-canvas__empty">
+          <div class="ui-empty__title">选择一个模块开始编辑</div>
+          <div class="ui-empty__hint">在左侧「简历模块」中点选要编辑的分区，右侧会实时预览排版效果。</div>
+        </div>
+      </main>
+
+      <template v-if="previewVisible && !isNarrow">
+        <div
+          class="editor-splitter editor-splitter--preview"
+          :class="{ 'is-active': isDragging && resizeTarget === 'preview' }"
+          role="separator"
+          aria-orientation="vertical"
+          title="拖拽调整预览宽度"
+          @mousedown="startResize('preview', $event)"
+        ></div>
+      </template>
+
+      <!-- 右栏：实时预览 -->
+      <aside
+        v-if="previewVisible"
+        class="editor-preview"
+        :class="{ 'editor-preview--drawer': isNarrow }"
+        :style="isNarrow ? null : { width: `${previewWidth}px` }"
+      >
+        <header class="editor-preview__head">
+          <span class="editor-preview__title">实时预览</span>
+          <span class="ui-badge">A4</span>
+        </header>
+        <div ref="previewViewportRef" class="editor-preview__viewport ui-scroll">
           <div
-            v-for="section in store.sections"
-            :key="section.id"
-            class="block-item"
-            :class="{ active: activeId === section.id, hidden: !section.visible }"
-            draggable="true"
-            @dragstart="onDragStart(section.id, $event)"
-            @dragover.prevent="onDragOver(section.id)"
-            @dragleave="onDragLeave"
-            @drop.prevent="onDrop(section.id)"
-            @dragend="onDragEnd"
-            @click="toggleActive(section.id)"
+            class="editor-preview__fit"
+            :style="{
+              width: `${PREVIEW_PAGE_WIDTH * previewScale}px`,
+              height: `${previewContentHeight * previewScale}px`,
+            }"
           >
-            <span class="drag-handle">☰</span>
-            <button
-              class="eye-btn"
-              @click.stop="store.toggleVisible(section.id)"
-              :title="section.visible ? '隐藏' : '显示'"
+            <div
+              ref="previewStageRef"
+              class="editor-preview__stage"
+              :style="{ transform: `scale(${previewScale})` }"
             >
-              {{ section.visible ? '👁' : '👁‍🗨' }}
-            </button>
-            <span class="block-name">{{ section.sectionTitle }}</span>
-            <button
-              class="delete-btn"
-              @click.stop="store.removeSection(section.id)"
-            >
-              ×
-            </button>
+              <ResumeTemplate
+                ref="resumeTemplateRef"
+                :template="store.selectedTemplate.value"
+                :sections="store.visibleSections.value"
+                :locale="locale"
+                :body-font-size="store.resumeBodyFontSize.value"
+                :sidebar-color="store.sidebarColor.value"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </aside>
+    </div>
 
-      <!-- Inline Editor Area -->
-      <div v-if="activeId" class="editor-area">
-        <div class="editor-header">
-          <span class="editor-title">{{ activeSection?.sectionTitle }}</span>
-          <button class="close-editor-btn" @click="activeId = null">×</button>
+    <div v-if="isNarrow && previewVisible" class="editor-preview__backdrop" @click="narrowPreviewOpen = false"></div>
+
+    <!-- ── 添加模块抽屉 ─────────────────────────────────────── -->
+    <Transition name="editor-drawer">
+      <aside v-if="showAddBlock" class="editor-drawer">
+        <header class="editor-drawer__head">
+          <span class="editor-drawer__title">添加模块</span>
+          <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="showAddBlock = false">关闭</button>
+        </header>
+        <div class="editor-drawer__body">
+          <AddBlock :added-section-codes="store.sections.map(s => s.sectionCode)" @add-block="onBlockAdded" />
         </div>
-        <component
-          :is="activeEditor"
-          :model-value="activeSectionContent"
-          :is-active="true"
-          :resume-id="editorResumeId"
-          :schema-type="activeSection?.schemaType ?? 'TEXT'"
-          :is-custom="activeSection?.sectionType === 'CUSTOM'"
-          @update:model-value="onEditorUpdate"
-        />
-      </div>
+      </aside>
+    </Transition>
+    <div v-if="showAddBlock" class="editor-drawer__backdrop" @click="showAddBlock = false"></div>
 
-      <!-- Add Block Drawer -->
-      <Transition name="drawer">
-        <div v-if="showAddBlock" class="add-block-drawer">
-          <div class="drawer-header">
-            <span class="drawer-title">添加模块</span>
-            <button class="close-drawer-btn" @click="showAddBlock = false">×</button>
-          </div>
-          <div class="drawer-body">
-            <AddBlock :added-section-codes="store.sections.map(s => s.sectionCode)" @add-block="onBlockAdded" />
-          </div>
-        </div>
-      </Transition>
-      <div v-if="showAddBlock" class="drawer-backdrop" @click="showAddBlock = false" />
-    </div>
-
-    <!-- Resize Handle -->
-    <div
-      class="resize-handle"
-      @mousedown="onResizeStart"
-    >
-      <span class="resize-grip"></span>
-    </div>
-
-    <!-- Preview Panel -->
-    <div class="preview-panel" :style="{ width: previewWidth + '%', minWidth: '280px', transition: isDragging ? 'none' : 'width 0.1s' }">
-      <div class="resume-preview-container">
-        <ResumeTemplate
-          ref="resumeTemplateRef"
-          :template="store.selectedTemplate.value"
-          :sections="store.visibleSections.value"
-          :locale="locale"
-          :body-font-size="store.resumeBodyFontSize.value"
-          :sidebar-color="store.sidebarColor.value"
-        />
-      </div>
-    </div>
     <FloatingAgentCopilot
       :resume-id="editorResumeId"
       :section="activeSection"
@@ -158,8 +290,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   sections,
   visibleSections,
@@ -205,6 +337,75 @@ const editorResumeId = computed(() => {
 });
 const locale = ref('zh');
 
+// A4 预览页宽度（与 resume-template-base.css 的 .resume-page 一致）
+const PREVIEW_PAGE_WIDTH = 794;
+const PREVIEW_PAGE_HEIGHT = 1123;
+
+// ── 面板宽度（localStorage 记忆）────────────────────────────────────────
+const NAV_WIDTH_KEY = 'resume_editor_nav_width';
+const PREVIEW_WIDTH_KEY = 'resume_editor_preview_width';
+const PREVIEW_COLLAPSED_KEY = 'resume_editor_preview_collapsed';
+
+const NAV_MIN = 200;
+const NAV_MAX = 360;
+const NAV_NARROW = 200;
+const PREVIEW_MIN = 320;
+const PREVIEW_MAX = 760;
+const CANVAS_MIN = 380;
+// 工作台可用宽度小于该值时，右栏预览改为抽屉
+const NARROW_BREAKPOINT = 1000;
+
+function readStoredNumber(key, fallback, min, max) {
+  if (typeof window === 'undefined') return fallback;
+  const rawValue = Number(window.localStorage.getItem(key));
+  if (!Number.isFinite(rawValue) || rawValue <= 0) return fallback;
+  return Math.min(max, Math.max(min, rawValue));
+}
+
+function readStoredFlag(key) {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(key) === '1';
+}
+
+function persistStoredNumber(key, value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, String(Math.round(value)));
+}
+
+function persistStoredFlag(key, value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, value ? '1' : '0');
+}
+
+const navWidth = ref(readStoredNumber(NAV_WIDTH_KEY, 248, NAV_MIN, NAV_MAX));
+const previewWidth = ref(readStoredNumber(PREVIEW_WIDTH_KEY, 460, PREVIEW_MIN, PREVIEW_MAX));
+const previewCollapsed = ref(readStoredFlag(PREVIEW_COLLAPSED_KEY));
+
+const isNarrow = ref(false);
+const narrowPreviewOpen = ref(false);
+
+const previewVisible = computed(() => (isNarrow.value ? narrowPreviewOpen.value : !previewCollapsed.value));
+
+const navStyle = computed(() => ({
+  width: `${isNarrow.value ? NAV_NARROW : navWidth.value}px`,
+}));
+
+function togglePreview() {
+  if (isNarrow.value) {
+    narrowPreviewOpen.value = !narrowPreviewOpen.value;
+    return;
+  }
+  previewCollapsed.value = !previewCollapsed.value;
+  persistStoredFlag(PREVIEW_COLLAPSED_KEY, previewCollapsed.value);
+}
+
+// 预览展开后重新计算缩放比例
+watch(previewVisible, async (visible) => {
+  if (!visible) return;
+  await nextTick();
+  observePreview();
+});
+
 // ── Auto-save state ──────────────────────────────────────────────────────
 let saveTimeout = null;
 const saveStatus = ref('idle'); // 'idle' | 'pending' | 'saving' | 'saved' | 'error'
@@ -214,20 +415,25 @@ const resumeTemplateRef = ref(null);
 
 const saveStatusText = computed(() => {
   switch (saveStatus.value) {
-    case 'pending': return 'Unsaved changes';
-    case 'saving':  return 'Saving...';
-    case 'saved':   return 'Saved';
-    case 'error':   return 'Save failed';
-    default:        return '';
+    case 'pending': return '有未保存的修改';
+    case 'saving':  return '保存中...';
+    case 'saved':   return '已保存';
+    case 'error':   return '保存失败';
+    default:        return '内容已同步';
   }
 });
 
 const saveStatusClass = computed(() => ({
-  'indicator-pending': saveStatus.value === 'pending',
-  'indicator-saving': saveStatus.value === 'saving',
-  'indicator-saved':  saveStatus.value === 'saved',
-  'indicator-error':  saveStatus.value === 'error',
+  'is-idle': saveStatus.value === 'idle',
+  'is-pending': saveStatus.value === 'pending',
+  'is-saving': saveStatus.value === 'saving',
+  'is-saved':  saveStatus.value === 'saved',
+  'is-error':  saveStatus.value === 'error',
 }));
+
+const hasUnsavedChanges = computed(() =>
+  saveStatus.value === 'pending' || saveStatus.value === 'saving' || pendingData.value !== null
+);
 
 // Collect the full resume data from the current sections state
 function buildResumePayload() {
@@ -278,10 +484,15 @@ function scheduleAutoSave() {
 
 async function onMainSave() {
   if (!resumeId) return;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
   saveStatus.value = 'saving';
   try {
     const data = buildResumePayload();
     await resumeStore.saveResume(resumeId, data);
+    pendingData.value = null;
     saveStatus.value = 'saved';
     setTimeout(() => { saveStatus.value = 'idle'; }, 2000);
   } catch {
@@ -289,8 +500,68 @@ async function onMainSave() {
   }
 }
 
+// ── 预览缩放 ──────────────────────────────────────────────────────────────
+const workbenchRef = ref(null);
+const previewViewportRef = ref(null);
+const previewStageRef = ref(null);
+const previewScale = ref(1);
+const previewContentHeight = ref(PREVIEW_PAGE_HEIGHT);
+let previewObserver = null;
+let previewStageObserver = null;
+let workbenchObserver = null;
+
+// 工作台宽度受壳层侧边栏影响，用实测宽度判断是否收起预览
+function updateNarrowState() {
+  const workbench = workbenchRef.value;
+  if (!workbench) return;
+  const narrow = workbench.clientWidth < NARROW_BREAKPOINT;
+  if (narrow === isNarrow.value) return;
+  isNarrow.value = narrow;
+  narrowPreviewOpen.value = false;
+}
+
+function updatePreviewScale() {
+  const viewport = previewViewportRef.value;
+  if (!viewport) return;
+  const available = viewport.clientWidth - 32;
+  if (available <= 0) return;
+  const scale = Math.min(1, Math.max(0.3, available / PREVIEW_PAGE_WIDTH));
+  previewScale.value = Number(scale.toFixed(4));
+}
+
+// 预览面板可能一开始就是折叠的，等它显示出来再挂观察器
+function observePreview() {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (previewViewportRef.value && previewObserver) {
+    previewObserver.observe(previewViewportRef.value);
+  }
+  if (previewStageRef.value && previewStageObserver) {
+    previewStageObserver.observe(previewStageRef.value);
+  }
+  updatePreviewScale();
+}
+
 // ── Mount: load resume from API ───────────────────────────────────────────
 onMounted(async () => {
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('beforeunload', onBeforeUnload);
+
+  if (typeof ResizeObserver !== 'undefined') {
+    previewObserver = new ResizeObserver(() => updatePreviewScale());
+    previewStageObserver = new ResizeObserver(() => {
+      const stage = previewStageRef.value;
+      if (stage) {
+        previewContentHeight.value = Math.max(stage.offsetHeight, PREVIEW_PAGE_HEIGHT);
+      }
+    });
+    workbenchObserver = new ResizeObserver(() => updateNarrowState());
+    if (workbenchRef.value) {
+      workbenchObserver.observe(workbenchRef.value);
+    }
+  }
+  observePreview();
+  updateNarrowState();
+
   if (resumeId) {
     try {
       await resumeStore.fetchResume(resumeId);
@@ -309,6 +580,34 @@ onMounted(async () => {
       // error is set on the store
     }
   }
+
+  // 打开即进入第一个模块，避免首屏空白
+  if (!activeId.value && sections.length) {
+    activeId.value = sections[0].id;
+  }
+
+  updatePreviewScale();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize);
+  window.removeEventListener('beforeunload', onBeforeUnload);
+  if (saveTimeout) clearTimeout(saveTimeout);
+  previewObserver?.disconnect();
+  previewStageObserver?.disconnect();
+  workbenchObserver?.disconnect();
+});
+
+function onBeforeUnload(event) {
+  if (!hasUnsavedChanges.value) return;
+  event.preventDefault();
+  event.returnValue = '';
+}
+
+// 离开页面前提示未保存内容
+onBeforeRouteLeave(() => {
+  if (!hasUnsavedChanges.value) return true;
+  return window.confirm('简历还有未保存的修改，确定要离开吗？');
 });
 
 // Default sections pre-filled for brand-new resumes
@@ -400,10 +699,6 @@ const store = {
 const activeId = ref(null);
 const showAddBlock = ref(false);
 const layout = ref('edit-left');
-const panelWidth = ref(40);
-const previewWidth = ref(60);
-const isDragging = ref(false);
-let dragStartX = 0;
 
 const templates = [
   { value: 'classic', label: '标准版' },
@@ -439,15 +734,14 @@ const activeSection = computed(() =>
   store.sections.find((s) => s.id === activeId.value) || null
 );
 
-const layoutClass = computed(() => layout.value);
+const resumeName = computed(() => {
+  const basicSection = store.sections.find((s) => s.sectionCode === 'BASIC');
+  return String(basicSection?.contentJson?.name || '').trim();
+});
+
 const supportsSidebarColor = computed(() =>
   ['modern', 'compact', 'creative', 'dual-creative'].includes(store.selectedTemplate.value)
 );
-
-const LIST_TYPES = new Set([
-  'EDUCATION', 'EXPERIENCE', 'CAMPUS', 'SKILLS',
-  'CERTIFICATES', 'PROJECTS', 'INTERNSHIP', 'CUSTOM',
-]);
 
 const activeEditor = computed(() => {
   const code = activeSection.value?.sectionCode;
@@ -526,6 +820,28 @@ async function onAgentApproved() {
   }
 }
 
+function onRemoveSection(id, title) {
+  if (!window.confirm(`确定删除模块「${title}」吗？删除后该模块内容不再出现在简历中。`)) {
+    return;
+  }
+  store.removeSection(id);
+  if (activeId.value === id) {
+    activeId.value = null;
+  }
+  scheduleAutoSave();
+}
+
+// AI 助手面板由 FloatingAgentCopilot 自行管理开合，这里只负责唤起入口
+function openAgentCopilot() {
+  const launcher = document.querySelector('.copilot-launcher');
+  if (launcher instanceof HTMLElement) {
+    launcher.click();
+    launcher.focus();
+    return;
+  }
+  window.alert('AI 助手面板未就绪，请稍后再试');
+}
+
 function buildExportFilename() {
   const basicSection = sections.find((section) => section.sectionCode === 'BASIC');
   const rawName = String(basicSection?.contentJson?.name || 'resume').trim();
@@ -546,18 +862,30 @@ async function onExportPdf() {
   }
 
   exportingPdf.value = true;
+  // 导出按 A4 原尺寸渲染，先把预览缩放恢复为 100%
+  const restoredScale = previewScale.value;
+  previewScale.value = 1;
+  await nextTick();
   try {
     await exportToPDF(exportElement, buildExportFilename());
   } catch (error) {
     console.error('导出 PDF 失败', error);
     window.alert('导出 PDF 失败，请稍后重试');
   } finally {
+    previewScale.value = restoredScale;
     exportingPdf.value = false;
   }
 }
 
-let draggedId = ref(null);
-let dragOverId = ref(null);
+// ── 窗口尺寸变化 ──────────────────────────────────────────────────────────
+function onWindowResize() {
+  updateNarrowState();
+  updatePreviewScale();
+}
+
+// ── 模块拖拽排序 ──────────────────────────────────────────────────────────
+const draggedId = ref(null);
+const dragOverId = ref(null);
 
 function onDragStart(id, event) {
   draggedId.value = id;
@@ -587,9 +915,17 @@ function onDragEnd() {
   dragOverId.value = null;
 }
 
-function onResizeStart(event) {
+// ── 面板拖拽调宽 ──────────────────────────────────────────────────────────
+const isDragging = ref(false);
+const resizeTarget = ref(null);
+let resizeOriginX = 0;
+let resizeStartWidth = 0;
+
+function startResize(target, event) {
   isDragging.value = true;
-  dragStartX = event.clientX;
+  resizeTarget.value = target;
+  resizeOriginX = event.clientX;
+  resizeStartWidth = target === 'nav' ? navWidth.value : previewWidth.value;
   document.addEventListener('mousemove', onResizeMove);
   document.addEventListener('mouseup', onResizeEnd);
   event.preventDefault();
@@ -597,626 +933,26 @@ function onResizeStart(event) {
 
 function onResizeMove(event) {
   if (!isDragging.value) return;
-  const layoutEl = document.querySelector('.editor-layout');
-  if (!layoutEl) return;
-  const totalWidth = layoutEl.offsetWidth;
-  const delta = (event.clientX - dragStartX) / totalWidth * 100;
-  dragStartX = event.clientX;
+  const delta = event.clientX - resizeOriginX;
 
-  if (layout.value === 'edit-left') {
-    panelWidth.value   = Math.min(70, Math.max(20, panelWidth.value   + delta));
-    previewWidth.value = Math.min(70, Math.max(20, previewWidth.value - delta));
-  } else {
-    panelWidth.value   = Math.min(70, Math.max(20, panelWidth.value   - delta));
-    previewWidth.value = Math.min(70, Math.max(20, previewWidth.value + delta));
+  if (resizeTarget.value === 'nav') {
+    navWidth.value = Math.min(NAV_MAX, Math.max(NAV_MIN, resizeStartWidth + delta));
+    return;
   }
+
+  // 预览默认在右侧，向左拖动变宽；交换位置后方向相反
+  const deltaWidth = layout.value === 'edit-left' ? -delta : delta;
+  const workbenchWidth = workbenchRef.value?.clientWidth ?? window.innerWidth;
+  const maxWidth = Math.max(PREVIEW_MIN, Math.min(PREVIEW_MAX, workbenchWidth - navWidth.value - CANVAS_MIN));
+  previewWidth.value = Math.min(maxWidth, Math.max(PREVIEW_MIN, resizeStartWidth + deltaWidth));
 }
 
 function onResizeEnd() {
   isDragging.value = false;
+  resizeTarget.value = null;
   document.removeEventListener('mousemove', onResizeMove);
   document.removeEventListener('mouseup', onResizeEnd);
+  persistStoredNumber(NAV_WIDTH_KEY, navWidth.value);
+  persistStoredNumber(PREVIEW_WIDTH_KEY, previewWidth.value);
 }
 </script>
-
-<style scoped>
-.editor-layout {
-  --green-primary: #22c55e;
-  --green-light: #4ade80;
-  --green-dark: #16a34a;
-  --white-bg: #ffffff;
-  --gray-bg: #f9fafb;
-  --gray-card: #ffffff;
-  --text-dark: #1a1a2e;
-  --text-body: #374151;
-  --text-muted: #6b7280;
-}
-
-.editor-layout {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: var(--gray-bg);
-}
-
-/* ── Save indicator ─────────────────────────────────────────────────── */
-.save-indicator {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  transition: background 0.2s, color 0.2s;
-  white-space: nowrap;
-}
-
-.indicator-pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.indicator-saving {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.indicator-saved {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.indicator-error {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-/* ── Edit Panel ──────────────────────────────────────────────────────── */
-.edit-panel {
-  display: flex;
-  flex-direction: column;
-  background: var(--white-bg);
-  border-right: 1px solid #bbf7d0;
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* ── Panel Header ────────────────────────────────────────────────────── */
-.panel-header {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: var(--white-bg);
-  flex-shrink: 0;
-}
-
-.panel-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--green-dark);
-}
-
-.panel-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* ── Template Selector ───────────────────────────────────────────────── */
-.template-selector {
-  display: flex;
-  gap: 4px;
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.template-btn {
-  padding: 5px 12px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.template-btn.active {
-  background: var(--green-primary);
-  color: #fff;
-  font-weight: 600;
-}
-
-.template-btn:hover:not(.active) {
-  color: var(--green-dark);
-  background: #dcfce7;
-}
-
-.font-size-selector {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 4px 3px 10px;
-  border: 1px solid #d1fae5;
-  border-radius: 10px;
-  background: #f0fdf4;
-}
-
-.font-size-label {
-  color: var(--green-dark);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.font-size-btn {
-  padding: 5px 8px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.font-size-btn.active {
-  background: #22c55e;
-  color: #ffffff;
-}
-
-.font-size-btn:hover:not(.active) {
-  background: #dcfce7;
-  color: var(--green-dark);
-}
-
-.sidebar-color-selector {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px 4px 10px;
-  border: 1px solid #d1fae5;
-  border-radius: 10px;
-  background: #f0fdf4;
-}
-
-.sidebar-color-label {
-  color: var(--green-dark);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.sidebar-color-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
-}
-
-.sidebar-color-btn__swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  flex-shrink: 0;
-}
-
-.sidebar-color-btn.active {
-  background: #22c55e;
-  color: #ffffff;
-}
-
-.sidebar-color-btn:hover:not(.active) {
-  background: #dcfce7;
-  color: var(--green-dark);
-}
-
-.export-pdf-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px;
-  border: 1.5px solid #0f766e;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #0f766e;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
-  white-space: nowrap;
-}
-
-.export-pdf-btn:hover:not(:disabled) {
-  background: #0f766e;
-  color: #ffffff;
-}
-
-.export-pdf-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-/* ── Add Block Button ───────────────────────────────────────────────── */
-.add-block-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1.5px solid var(--green-primary);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--green-primary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.add-block-btn:hover {
-  background: var(--green-primary);
-  color: #fff;
-}
-
-/* ── Block List ─────────────────────────────────────────────────────── */
-.block-list-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-}
-
-.block-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.block-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--white-bg);
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  user-select: none;
-}
-
-.block-item:hover {
-  border-color: var(--green-light);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
-}
-
-.block-item.active {
-  border-color: var(--green-primary);
-  background: #f0fdf4;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-}
-
-.block-item.drag-over {
-  border-color: var(--green-primary);
-  border-style: dashed;
-  background: #f0fdf4;
-}
-
-.block-item.hidden {
-  opacity: 0.45;
-}
-
-.block-item.hidden .block-name {
-  text-decoration: line-through;
-}
-
-.drag-handle {
-  color: #9ca3af;
-  cursor: grab;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  padding: 2px;
-  font-size: 14px;
-  transition: color 0.15s;
-}
-
-.drag-handle:hover {
-  color: var(--green-primary);
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-.eye-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px 4px;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-}
-
-.eye-btn:hover {
-  opacity: 0.6;
-}
-
-.block-name {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-body);
-}
-
-.block-item.active .block-name {
-  color: var(--green-dark);
-}
-
-/* ── Swap Button ────────────────────────────────────────────────────── */
-.swap-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1.5px solid #e5e7eb;
-  background: var(--white-bg);
-  border-radius: 8px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-
-.swap-btn:hover {
-  border-color: var(--green-primary);
-  color: var(--green-primary);
-  background: #dcfce7;
-}
-
-/* ── Main Save Button ───────────────────────────────────────────────── */
-.main-save-btn {
-  padding: 6px 14px;
-  border: none;
-  border-radius: 8px;
-  background: var(--green-primary);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.main-save-btn:hover:not(:disabled) {
-  background: var(--green-dark);
-}
-
-.main-save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Delete Button ───────────────────────────────────────────────────── */
-.delete-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  color: #9ca3af;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-  opacity: 0;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.block-item:hover .delete-btn {
-  opacity: 1;
-}
-
-.delete-btn:hover {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-/* ── Editor Area ────────────────────────────────────────────────────── */
-.editor-area {
-  border-top: 1px solid #e5e7eb;
-  padding: 16px;
-  background: var(--white-bg);
-  flex-shrink: 0;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.editor-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.editor-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--green-dark);
-}
-
-.close-editor-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: #f3f4f6;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.close-editor-btn:hover {
-  background: #e5e7eb;
-  color: var(--text-body);
-}
-
-/* ── Add Block Drawer ───────────────────────────────────────────────── */
-.add-block-drawer {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 320px;
-  background: var(--white-bg);
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.drawer-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(34, 197, 94, 0.08);
-  z-index: 40;
-}
-
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-}
-
-.drawer-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--green-dark);
-}
-
-.close-drawer-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: #f3f4f6;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.close-drawer-btn:hover {
-  background: #e5e7eb;
-  color: var(--text-body);
-}
-
-.drawer-body {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.drawer-enter-from,
-.drawer-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-/* ── Layout Swap ─────────────────────────────────────────────────────── */
-.editor-layout.edit-right .edit-panel { order: 2; }
-.editor-layout.edit-right .preview-panel { order: 0; }
-.editor-layout.edit-right .resize-handle { order: 1; }
-
-/* ── Resize Handle ───────────────────────────────────────────────────── */
-.resize-handle {
-  width: 6px;
-  cursor: col-resize;
-  background: #e5e7eb;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-  user-select: none;
-}
-
-.resize-handle:hover,
-.resize-handle:active {
-  background: var(--green-primary);
-}
-
-.resize-grip {
-  width: 2px;
-  height: 32px;
-  border-radius: 2px;
-  background: #d1d5db;
-  transition: background 0.15s;
-}
-
-.resize-handle:hover .resize-grip,
-.resize-handle:active .resize-grip {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-/* ── Preview Panel ───────────────────────────────────────────────────── */
-.preview-panel {
-  flex: 1;
-  flex-shrink: 0;
-  overflow: auto;
-  background:
-    radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 28%),
-    linear-gradient(180deg, #f4f7f7 0%, #e9eef2 100%);
-  padding: 28px;
-}
-
-.resume-preview-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin: 0 auto;
-  padding-bottom: 28px;
-  background: transparent;
-  box-shadow: none;
-}
-</style>

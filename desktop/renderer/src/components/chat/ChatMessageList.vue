@@ -1,27 +1,30 @@
 <template>
-  <div ref="listRef" class="chat-message-list">
-    <p v-if="loading" class="chat-state-hint">加载消息中…</p>
+  <div ref="listRef" class="chat-message-list ui-scroll">
+    <div class="chat-stream">
+      <p v-if="loading" class="chat-state-hint">消息加载中…</p>
 
-    <div v-else-if="messages.length === 0" class="chat-empty">
-      <h2 class="chat-empty-title">开始和 AI 聊聊你的简历</h2>
-      <p class="chat-empty-desc">
-        我可以帮你梳理项目经历、优化表达、准备面试题；如果设置了工作区目录，还能一起分析本地文件。
-      </p>
-      <div class="chat-examples">
-        <button
-          v-for="example in examples"
-          :key="example"
-          class="chat-example"
-          @click="$emit('use-example', example)"
-        >
-          {{ example }}
-        </button>
+      <div v-else-if="messages.length === 0" class="ui-empty chat-empty">
+        <h2 class="ui-empty__title">开始和 AI 聊聊你的简历</h2>
+        <p class="ui-empty__hint">
+          我可以帮你梳理项目经历、优化表达、准备面试题；设置了工作区目录后，还能一起分析本地文件。
+        </p>
+        <div class="chat-examples">
+          <button
+            v-for="example in examples"
+            :key="example"
+            class="chat-example"
+            type="button"
+            @click="$emit('use-example', example)"
+          >
+            {{ example }}
+          </button>
+        </div>
       </div>
-    </div>
 
-    <template v-else>
-      <ChatMessageItem v-for="message in messages" :key="message.id" :message="message" />
-    </template>
+      <template v-else>
+        <ChatMessageItem v-for="message in messages" :key="message.id" :message="message" />
+      </template>
+    </div>
 
     <p v-if="error" class="chat-error-banner">{{ error }}</p>
   </div>
@@ -72,54 +75,63 @@ function scrollToBottom() {
 <style scoped>
 .chat-message-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: var(--ui-space-5) 0 var(--ui-space-4);
+}
+
+/* 消息正文控制在可读行长内，1440px 以上不再拉满整屏 */
+.chat-stream {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 var(--ui-space-6);
 }
 
 .chat-state-hint {
-  font-size: 0.875rem;
+  font-size: var(--ui-text-sm);
   color: var(--chat-text-muted);
 }
 
 .chat-empty {
-  max-width: 560px;
-  margin: 8vh auto 0;
-  text-align: center;
-}
-
-.chat-empty-title {
-  margin: 0 0 8px;
-  font-size: 1.25rem;
-  color: var(--chat-text);
-}
-
-.chat-empty-desc {
-  margin: 0 0 20px;
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  color: var(--chat-text-muted);
+  margin-top: var(--ui-space-8);
 }
 
 .chat-examples {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  max-width: 640px;
 }
 
 .chat-example {
-  padding: 10px 14px;
-  font-size: 0.875rem;
-  color: var(--chat-text);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
   background: var(--chat-surface);
   border: 1px solid var(--chat-border);
   border-radius: var(--chat-radius-md);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition: color var(--ui-duration-fast) var(--ui-ease-out),
+    border-color var(--ui-duration-fast) var(--ui-ease-out),
+    background var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .chat-example:hover {
-  color: var(--chat-accent);
-  border-color: var(--chat-accent);
+  color: var(--ui-fg-accent);
+  border-color: var(--ui-accent-border);
+  background: var(--ui-accent-soft);
+}
+
+.chat-example:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+@media (max-width: 768px) {
+  .chat-stream {
+    padding: 0 var(--ui-space-4);
+  }
 }
 </style>

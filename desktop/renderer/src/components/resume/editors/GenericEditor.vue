@@ -1,91 +1,104 @@
 <template>
-  <div class="generic-editor">
+  <div class="re-editor">
     <div v-if="isActive">
-      <!-- TEXT: textarea editor -->
-      <div v-if="schemaType === 'TEXT'" class="text-editor">
+      <!-- TEXT：富文本 -->
+      <div v-if="schemaType === 'TEXT'" class="re-field">
+        <label class="ui-label">正文内容</label>
         <RichTextEditor
-          class="text-rich-editor"
+          class="re-rich"
           :model-value="localText"
           placeholder="请输入文本内容..."
           min-height="180px"
           @update:model-value="handleTextChange"
         />
-        <div class="editor-actions">
-          <!-- Built-in sections auto-save (no button shown); CUSTOM sections require explicit save -->
-          <button v-if="isCustom" class="save-btn" @click="saveText">保存</button>
-          <span v-else class="auto-save-hint">自动保存</span>
+        <div class="re-editor__actions">
+          <!-- 内置模块自动保存；自定义模块需要显式保存 -->
+          <button v-if="isCustom" type="button" class="ui-btn ui-btn--sm ui-btn--primary" @click="saveText">保存</button>
+          <span v-else class="re-summary__muted">自动保存</span>
         </div>
       </div>
 
-      <!-- LIST / TAGS: add-item list editor -->
-      <div v-else class="list-editor">
-        <div
-          v-for="(item, index) in localItems"
-          :key="index"
-          class="list-entry"
-        >
-          <div class="entry-index">{{ index + 1 }}</div>
-          <div class="entry-fields">
-            <!-- LIST items have a 'text' field -->
-            <input
-              v-if="schemaType === 'LIST'"
-              class="entry-input"
-              type="text"
-              v-model="item.text"
-              placeholder="输入内容..."
-              @input="emitUpdate"
-            />
-            <!-- TAGS items use a tag chip -->
-            <div v-else class="tag-chip">
-              <span class="tag-text">{{ item }}</span>
-              <button class="tag-remove" @click="removeItem(index)">×</button>
-            </div>
-          </div>
-          <button class="entry-delete" @click="removeItem(index)">删除</button>
+      <!-- LIST / TAGS：条目列表 -->
+      <div v-else class="re-editor__list">
+        <div v-if="!localItems.length" class="ui-empty">
+          <div class="ui-empty__title">这个模块还没有内容</div>
+          <div class="ui-empty__hint">在下方输入框填写内容后回车，或点击「+ 添加」。</div>
         </div>
 
-        <!-- Add item row -->
-        <div class="add-row">
+        <div v-else class="re-list">
+          <article v-for="(item, index) in localItems" :key="index" class="ui-card re-entry">
+            <header class="re-entry__head">
+              <span class="re-entry__title">
+                <span class="re-entry__index">{{ index + 1 }}</span>
+                第 {{ index + 1 }} 条
+              </span>
+              <button
+                type="button"
+                class="ui-btn ui-btn--sm ui-btn--ghost re-entry__remove"
+                @click="removeItem(index)"
+              >
+                删除
+              </button>
+            </header>
+
+            <div v-if="schemaType === 'LIST'" class="re-field">
+              <label class="ui-label" :for="`gen-item-${index}`">内容</label>
+              <input
+                :id="`gen-item-${index}`"
+                class="ui-input"
+                :class="{ 're-input--invalid': entryErrors[index] }"
+                type="text"
+                :value="item.text"
+                placeholder="输入内容..."
+                @input="updateItem(index, $event.target.value)"
+                @blur="touch(index)"
+              />
+              <p v-if="entryErrors[index]" class="re-error">{{ entryErrors[index] }}</p>
+            </div>
+
+            <div v-else class="re-field">
+              <span class="ui-label">标签</span>
+              <span class="re-item__tag">
+                {{ item }}
+                <button type="button" class="re-item__tag-remove" title="移除标签" @click="removeItem(index)">×</button>
+              </span>
+            </div>
+          </article>
+        </div>
+
+        <div class="re-add-row">
           <input
-            v-if="schemaType === 'LIST'"
-            class="add-input"
-            type="text"
             v-model="newItemText"
-            placeholder="输入内容后回车添加..."
+            class="ui-input"
+            type="text"
+            :placeholder="schemaType === 'LIST' ? '输入内容后回车添加...' : '输入标签后回车添加...'"
             @keydown.enter.prevent="addItem"
           />
-          <input
-            v-else
-            class="add-input"
-            type="text"
-            v-model="newItemText"
-            placeholder="输入标签后回车添加..."
-            @keydown.enter.prevent="addItem"
-          />
-          <button class="add-btn" @click="addItem">+ 添加</button>
+          <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="addItem">+ 添加</button>
         </div>
       </div>
     </div>
 
-    <!-- Summary mode -->
-    <div v-else class="summary-mode">
-      <div v-if="schemaType === 'TEXT'" class="summary-text">
-        {{ summaryText || '暂无内容' }}
-      </div>
-      <div v-else class="summary-list">
-        <span v-for="(item, i) in localItems" :key="i" class="summary-tag">
-          {{ schemaType === 'LIST' ? item.text : item }}
-        </span>
-        <span v-if="!localItems || localItems.length === 0" class="summary-empty">
-          暂无内容
-        </span>
-      </div>
+    <!-- 折叠态摘要 -->
+    <div v-else class="re-summary">
+      <template v-if="schemaType === 'TEXT'">
+        <p v-if="summaryText" class="re-summary__text">{{ summaryText }}</p>
+        <p v-else class="re-summary__muted">暂无内容</p>
+      </template>
+      <template v-else>
+        <div v-if="localItems.length" class="re-summary__tags">
+          <span v-for="(item, index) in localItems" :key="index" class="ui-badge">
+            {{ schemaType === 'LIST' ? item.text : item }}
+          </span>
+        </div>
+        <p v-else class="re-summary__muted">暂无内容</p>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import RichTextEditor from '../../common/RichTextEditor.vue'
 import { stripRichText } from '../../../utils/richText.js'
 
@@ -146,6 +159,13 @@ function emitUpdate() {
   emit('update:modelValue', [...localItems.value])
 }
 
+function updateItem(index, value) {
+  localItems.value = localItems.value.map((item, itemIndex) =>
+    itemIndex === index ? { ...item, text: value } : item
+  )
+  emitUpdate()
+}
+
 function addItem() {
   const text = newItemText.value.trim()
   if (!text) return
@@ -164,210 +184,23 @@ function removeItem(index) {
   localItems.value = updated
   emitUpdate()
 }
+
+// ── 必填校验（失焦后提示）───────────────────────────────────────────────
+const touched = reactive({})
+
+function touch(index) {
+  touched[index] = true
+}
+
+const entryErrors = computed(() => {
+  const errors = {}
+  if (props.schemaType !== 'LIST') return errors
+  localItems.value.forEach((item, index) => {
+    if (!touched[index]) return
+    if (!String(item?.text || '').trim()) {
+      errors[index] = '这一条还没有内容'
+    }
+  })
+  return errors
+})
 </script>
-
-<style scoped>
-.generic-editor {
-  padding: 4px 0;
-}
-
-/* TEXT editor */
-.text-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.text-rich-editor {
-  width: 100%;
-}
-
-.editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-}
-
-.save-btn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #22c55e;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s;
-}
-
-.save-btn:hover {
-  background: #16a34a;
-}
-
-.auto-save-hint {
-  font-size: 12px;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-/* LIST/TAGS editor */
-.list-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.list-entry {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.entry-index {
-  font-size: 12px;
-  font-weight: 700;
-  color: #9ca3af;
-  width: 20px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.entry-fields {
-  flex: 1;
-  min-width: 0;
-}
-
-.entry-input {
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
-  background: #fff;
-  transition: border-color 0.15s;
-}
-
-.entry-input:focus {
-  border-color: #22c55e;
-}
-
-.tag-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: #dcfce7;
-  border-radius: 999px;
-  font-size: 13px;
-  color: #22c55e;
-}
-
-.tag-text {
-  font-weight: 500;
-}
-
-.tag-remove {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #22c55e;
-  font-size: 14px;
-  padding: 0 2px;
-  line-height: 1;
-}
-
-.entry-delete {
-  background: none;
-  border: none;
-  color: #ef4444;
-  font-size: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0 4px;
-}
-
-.entry-delete:hover {
-  text-decoration: underline;
-}
-
-/* Add row */
-.add-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.add-input {
-  flex: 1;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
-  background: #fff;
-  transition: border-color 0.15s;
-}
-
-.add-input:focus {
-  border-color: #22c55e;
-}
-
-.add-btn {
-  padding: 8px 14px;
-  border: 1.5px dashed #22c55e;
-  border-radius: 6px;
-  background: none;
-  color: #22c55e;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.add-btn:hover {
-  background: #dcfce7;
-}
-
-/* Summary mode */
-.summary-mode {
-  padding: 4px 0;
-}
-
-.summary-text {
-  font-size: 14px;
-  color: #1a1a2e;
-  line-height: 1.6;
-}
-
-.summary-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.summary-tag {
-  padding: 3px 10px;
-  background: #dcfce7;
-  border-radius: 999px;
-  font-size: 12px;
-  color: #22c55e;
-}
-
-.summary-empty {
-  font-size: 13px;
-  color: #9ca3af;
-}
-</style>

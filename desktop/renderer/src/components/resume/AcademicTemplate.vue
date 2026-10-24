@@ -1,29 +1,27 @@
 <template>
   <article class="resume-template resume-template--academic">
     <header class="resume-basic-header academic-header">
-      <div class="resume-basic-header__main">
-        <div class="resume-basic-header__identity">
-          <h1 class="resume-basic-header__name">{{ basicProfile.name }}</h1>
-          <p v-if="basicProfile.title" class="resume-basic-header__title">{{ basicProfile.title }}</p>
+      <img
+        v-if="basicProfile.avatar"
+        :src="basicProfile.avatar"
+        alt="avatar"
+        class="resume-basic-header__avatar academic-header__avatar"
+      />
 
-          <div v-if="basicProfile.contacts.length" class="resume-basic-header__contacts">
-            <span
-              v-for="item in basicProfile.contacts"
-              :key="item.field"
-              class="resume-basic-header__contact"
-            >
-              <span class="resume-basic-header__contact-label">{{ item.label }}</span>
-              <span>{{ item.value }}</span>
-            </span>
-          </div>
+      <div class="resume-basic-header__identity">
+        <h1 class="resume-basic-header__name">{{ basicProfile.name }}</h1>
+        <p v-if="basicProfile.title" class="resume-basic-header__title">{{ basicProfile.title }}</p>
+
+        <div v-if="basicProfile.contacts.length" class="resume-basic-header__contacts">
+          <span
+            v-for="item in basicProfile.contacts"
+            :key="item.field"
+            class="resume-basic-header__contact"
+          >
+            <span class="resume-basic-header__contact-label">{{ item.label }}</span>
+            <span>{{ item.value }}</span>
+          </span>
         </div>
-
-        <img
-          v-if="basicProfile.avatar"
-          :src="basicProfile.avatar"
-          alt="avatar"
-          class="resume-basic-header__avatar academic-header__avatar"
-        />
       </div>
 
       <div v-if="jobIntentItems.length" class="resume-meta-pills academic-header__pills">
@@ -34,7 +32,9 @@
       </div>
     </header>
 
-    <div class="academic-divider academic-header__divider"></div>
+    <div class="academic-rule" aria-hidden="true">
+      <span class="academic-rule__tick"></span>
+    </div>
 
     <div class="academic-body">
       <ResumeSection
@@ -95,56 +95,135 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   学术科研版：居中抬头 + 通栏细线 + 衬线模块标题
+   近乎单色的严谨版面，教育背景前置。
+   ======================================== */
 .resume-template--academic {
-  --resume-color-accent: #1e3a5f;
-  --resume-color-accent-soft: rgba(30, 58, 95, 0.1);
-  --resume-color-border: #c8d6e5;
-  --resume-color-surface: #f7f9fc;
-  --resume-color-surface-strong: #edf2f7;
-  --resume-color-heading: #0f2744;
-  --resume-color-text: #1a365d;
-  --resume-color-text-soft: #2d4a7a;
-  --resume-color-text-faint: #5a7ba8;
-  padding: 48px 52px 54px;
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-text: var(--ui-neutral-700);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-neutral-100);
+
+  --resume-font-name: 24px;
+  --resume-font-title: 12px;
+  --resume-font-contact: 9.5px;
+  --resume-font-pill: 9.5px;
+  --resume-section-title-size: 11.5px;
+
+  padding: 50px 56px 56px;
+}
+
+/* ---------- 抬头：整体居中 ---------- */
+.academic-header {
+  align-items: center;
+  gap: var(--ui-space-3);
+  text-align: center;
+}
+
+.academic-header .resume-basic-header__identity {
+  width: 100%;
+}
+
+.academic-header .resume-basic-header__name {
+  font-size: var(--resume-font-name);
+  letter-spacing: 0.08em;
+}
+
+.academic-header .resume-basic-header__title {
+  margin-top: 8px;
+  letter-spacing: 0.06em;
 }
 
 .academic-header__avatar {
-  width: 96px;
-  height: 96px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
-  border: 3px solid var(--resume-color-accent);
+  border: 1px solid var(--resume-color-border);
+}
+
+/* 联系方式排成居中一行，用中点分隔 */
+.academic-header .resume-basic-header__contacts {
+  justify-content: center;
+  gap: 2px var(--ui-space-3);
+  margin-top: var(--ui-space-4);
+}
+
+.academic-header .resume-basic-header__contact {
+  font-size: var(--resume-font-contact);
+}
+
+.academic-header .resume-basic-header__contact:not(:last-child)::after {
+  content: '·';
+  margin-left: var(--ui-space-3);
+  color: var(--resume-color-text-faint);
+}
+
+.academic-header .resume-basic-header__contact-label {
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
 }
 
 .academic-header__pills {
-  padding-top: 2px;
+  justify-content: center;
 }
 
-.academic-header__divider {
-  margin-top: 20px;
+/* 抬头下方：短促的强调刻度 + 通栏细线 */
+.academic-rule {
+  position: relative;
+  height: 1px;
+  margin-top: var(--ui-space-6);
+  background: var(--resume-color-border);
+}
+
+.academic-rule__tick {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 72px;
   height: 3px;
-  background: linear-gradient(90deg, var(--resume-color-accent), var(--resume-color-accent-soft), transparent);
-  border-radius: 2px;
+  transform: translateX(-50%);
+  background: var(--resume-color-accent);
 }
 
+/* ---------- 正文 ---------- */
 .academic-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-top: 22px;
+  gap: var(--ui-space-5);
+  margin-top: var(--ui-space-6);
 }
 
+/* 模块标题：衬线体 + 通栏细线，左端叠一小段强调色 */
 .resume-template--academic :deep(.resume-section-block__head) {
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--resume-color-accent);
+  position: relative;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--resume-color-border);
+}
+
+.resume-template--academic :deep(.resume-section-block__head)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 52px;
+  height: 2px;
+  background: var(--resume-color-accent);
 }
 
 .resume-template--academic :deep(.resume-section-block__title) {
-  color: var(--resume-color-accent);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family: var(--resume-font-display);
+  color: var(--resume-color-heading);
+  letter-spacing: 0.12em;
 }
 
+/* 条目之间只用细线，不加卡片 */
 .resume-template--academic :deep(.resume-entry) {
   padding-bottom: 12px;
   border-bottom: 1px solid var(--resume-color-border);
@@ -156,12 +235,25 @@ const orderedSections = computed(() => {
 }
 
 .resume-template--academic :deep(.resume-entry__title) {
-  color: var(--resume-color-heading);
-  font-weight: 700;
+  font-family: var(--resume-font-display);
+  letter-spacing: 0.01em;
 }
 
 .resume-template--academic :deep(.resume-entry__date) {
   padding-top: 2px;
-  color: var(--resume-color-text-faint);
+  letter-spacing: 0.02em;
+}
+
+.resume-template--academic :deep(.resume-chip) {
+  border: 1px solid var(--resume-color-border);
+  font-weight: 600;
+}
+
+/* 打印时保留强调刻度 */
+@media print {
+  .resume-template--academic {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>

@@ -1,88 +1,126 @@
+/* ============================================================
+   简历纸面基础样式（A4 210mm × 297mm）
+   ------------------------------------------------------------
+   1. 只引用 --ui-* 变量，不写死颜色。
+   2. 纸面是「文档」而不是「界面」：配色固定为浅色，
+      不随界面深浅色主题变化，保证屏幕预览 / 打印 / 导出 PDF 观感一致。
+   3. 不使用 vh 等视口单位，纸面宽度变化时内容能自然重排。
+   ============================================================ */
+
+/* ---------- 纸面外壳 ---------- */
 .resume-page-shell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--ui-space-3);
+  width: 100%;
 }
 
 .resume-page-status {
-  align-self: stretch;
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .resume-page-status__badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.16);
-  color: #475569;
-  font-size: 12px;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border: 1px solid var(--ui-warning-border);
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-warning-soft);
+  color: var(--ui-warning);
+  font-size: var(--ui-text-xs);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  line-height: var(--ui-line-normal);
 }
 
 .resume-page-status__badge::before {
   content: '';
+  flex-shrink: 0;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
 }
 
-.resume-page-status__badge--warning {
-  background: rgba(249, 115, 22, 0.14);
-  color: #c2410c;
-}
-
+/* ---------- A4 纸张本体：210mm × 297mm @ 96dpi = 794px × 1123px ---------- */
 .resume-page {
   width: 794px;
   min-height: 1123px;
-  background: #ffffff;
-  border: 1px solid #d9e0ea;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+  background: var(--resume-color-page, var(--ui-neutral-0));
+  border: 1px solid var(--resume-color-border, var(--ui-neutral-200));
+  border-radius: 3px;
+  box-shadow: var(--ui-shadow-lg);
+  color: var(--resume-color-text, var(--ui-neutral-800));
 }
 
 .resume-page--overflow {
-  border-color: rgba(249, 115, 22, 0.45);
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(249, 115, 22, 0.08);
+  border-color: var(--ui-warning-border);
+  box-shadow: var(--ui-shadow-lg), 0 0 0 3px var(--ui-warning-soft);
 }
 
 .resume-page__content {
   width: 100%;
 }
 
+/* ---------- 打印 ---------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  .resume-page {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .resume-page-status {
+    display: none;
+  }
+}
+
+/* ---------- 模板排版基线 ---------- */
 .resume-template {
-  --resume-font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Helvetica Neue', Arial, sans-serif;
-  --resume-color-page: #ffffff;
-  --resume-color-text: #1f2937;
-  --resume-color-text-soft: #475569;
-  --resume-color-text-faint: #6b7280;
-  --resume-color-heading: #0f172a;
-  --resume-color-accent: #1d4ed8;
-  --resume-color-accent-soft: rgba(29, 78, 216, 0.12);
-  --resume-color-border: #dbe3ef;
-  --resume-color-surface: #f8fafc;
-  --resume-color-surface-strong: #eff6ff;
-  --resume-shadow-card: 0 8px 20px rgba(15, 23, 42, 0.04);
+  /* 字体：标题用 display（衬线），正文用 sans */
+  --resume-font-body: var(--ui-font-sans);
+  --resume-font-display: var(--ui-font-display);
+
+  /* 纸面色板（固定浅色，与界面主题解耦） */
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-text: var(--ui-neutral-800);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-brand-50);
+  --resume-shadow-card: var(--ui-shadow-xs);
+
+  /* 字号 */
   --resume-font-name: 26px;
   --resume-font-title: 12px;
   --resume-font-contact: 10px;
   --resume-font-pill: 10px;
-  --resume-section-title-size: 10px;
+  --resume-section-title-size: 11px;
   --resume-text-size: 9px;
   --resume-meta-size: 9px;
   --resume-title-size: 11px;
   --resume-date-size: 9px;
   --resume-chip-size: 9px;
+
   font-family: var(--resume-font-body);
   color: var(--resume-color-text);
   background: var(--resume-color-page);
   line-height: 1.6;
   word-break: break-word;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .resume-template *,
@@ -95,17 +133,18 @@
   color: inherit;
 }
 
+/* ---------- 头部（姓名 / 职位 / 联系方式） ---------- */
 .resume-basic-header {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--ui-space-4);
 }
 
 .resume-basic-header__main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 24px;
+  gap: var(--ui-space-6);
 }
 
 .resume-basic-header__identity {
@@ -116,32 +155,34 @@
 .resume-basic-header__name {
   margin: 0;
   color: var(--resume-color-heading);
+  font-family: var(--resume-font-display);
   font-size: var(--resume-font-name);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .resume-basic-header__title {
-  margin: 8px 0 0;
+  margin: var(--ui-space-2) 0 0;
   color: var(--resume-color-text-soft);
   font-size: var(--resume-font-title);
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .resume-basic-header__contacts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: 14px;
+  gap: var(--ui-space-1) var(--ui-space-4);
+  margin-top: var(--ui-space-3);
   color: var(--resume-color-text-soft);
   font-size: var(--resume-font-contact);
 }
 
 .resume-basic-header__contact {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: baseline;
+  gap: var(--ui-space-1);
   min-width: 0;
 }
 
@@ -153,35 +194,38 @@
 .resume-basic-header__avatar {
   width: 96px;
   height: 96px;
-  border-radius: 18px;
-  object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: #f8fafc;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--resume-color-border);
+  background: var(--resume-color-surface);
+  object-fit: cover;
 }
 
+/* ---------- 求职意向小标签 ---------- */
 .resume-meta-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
 .resume-meta-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  border-radius: 999px;
+  gap: var(--ui-space-1);
+  padding: 3px var(--ui-space-2);
+  border-radius: var(--ui-radius-full);
   background: var(--resume-color-accent-soft);
   color: var(--resume-color-accent);
   font-size: var(--resume-font-pill);
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .resume-meta-pill__label {
-  opacity: 0.78;
+  opacity: 0.75;
 }
 
+/* ---------- 分隔线 ---------- */
 .resume-divider {
   width: 100%;
   height: 1px;

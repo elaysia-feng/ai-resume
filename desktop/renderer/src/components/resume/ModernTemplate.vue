@@ -140,36 +140,45 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   现代风：左侧信息栏 + 右侧主栏，留白多、层级清楚
+   左栏配色跟随编辑器的「左栏配色」设置。
+   ======================================== */
 .resume-template--modern {
-  --resume-color-accent: #0f766e;
-  --resume-color-accent-soft: rgba(15, 118, 110, 0.14);
-  --resume-color-border: #d8e6e3;
-  --resume-color-surface: #f5fbfa;
-  --resume-color-surface-strong: #e8f6f3;
-  --resume-color-heading: #134e4a;
-  --resume-color-text: #1f2937;
-  --resume-color-text-soft: #476a68;
-  --resume-color-text-faint: #6b7280;
-  display: grid;
-  --resume-font-name: 24px;
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-text: var(--ui-neutral-700);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-brand-50);
+
+  --resume-font-name: 23px;
   --resume-font-title: 11px;
   --resume-font-contact: 9.5px;
   --resume-font-pill: 9.5px;
-  grid-template-columns: 220px minmax(0, 1fr);
+  --resume-section-title-size: 12px;
+
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr);
   min-height: 1123px;
 }
 
 .resume-template--modern-single {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
+/* ---------- 左栏 ---------- */
 .modern-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 28px 18px 30px;
-  background: var(--resume-sidebar-bg);
-  border-right: 1px solid var(--resume-sidebar-border);
+  gap: 16px;
+  padding: 30px 20px 32px;
+  background: var(--resume-sidebar-bg, var(--resume-color-surface));
+  border-right: 1px solid var(--resume-sidebar-border, var(--resume-color-border));
 }
 
 .modern-profile {
@@ -184,9 +193,10 @@ const orderedSections = computed(() => {
 }
 
 .modern-profile__avatar {
-  width: 70px;
-  height: 70px;
-  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
 }
 
 .modern-profile__identity {
@@ -197,17 +207,27 @@ const orderedSections = computed(() => {
 
 .modern-profile__name {
   margin: 0;
-  color: var(--resume-sidebar-heading);
-  font-size: 22px;
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
+  font-size: 21px;
   font-weight: 800;
-  line-height: 1.06;
+  line-height: 1.1;
   letter-spacing: 0.01em;
+}
+
+/* 姓名下方一条短强调线，代替彩色装饰 */
+.modern-profile__name::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 2px;
+  margin-top: 8px;
+  background: var(--resume-sidebar-accent, var(--resume-color-accent));
 }
 
 .modern-profile__title {
   margin: 0;
-  color: var(--resume-sidebar-text-soft);
-  font-size: 11px;
+  color: var(--resume-sidebar-text-soft, var(--resume-color-text-soft));
+  font-size: var(--resume-font-title);
   font-weight: 600;
   line-height: 1.5;
 }
@@ -215,46 +235,43 @@ const orderedSections = computed(() => {
 .modern-sidebar__panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 11px;
-  border-radius: 14px;
-  background: var(--resume-sidebar-panel-bg);
-  border: 1px solid var(--resume-sidebar-panel-border);
-  backdrop-filter: blur(4px);
+  gap: 9px;
+  padding: 12px 13px;
+  border-radius: var(--ui-radius-lg);
+  background: var(--resume-sidebar-panel-bg, var(--resume-color-page));
+  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
 }
 
 .modern-sidebar__panel-title {
   margin: 0;
-  color: var(--resume-sidebar-heading);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 .modern-intent-list {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
 .modern-intent-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .modern-intent-item__label {
-  color: var(--resume-sidebar-text-faint);
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .modern-intent-item__value {
-  color: var(--resume-sidebar-accent);
-  font-size: 10px;
+  color: var(--resume-sidebar-text, var(--resume-color-text));
+  font-size: 10.5px;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -262,7 +279,7 @@ const orderedSections = computed(() => {
 .modern-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .modern-contact-item {
@@ -272,17 +289,17 @@ const orderedSections = computed(() => {
 }
 
 .modern-contact-item__label {
-  color: var(--resume-sidebar-text-faint);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .modern-contact-item__value {
-  color: var(--resume-sidebar-text);
-  font-size: 11px;
-  line-height: 1.6;
+  color: var(--resume-sidebar-text, var(--resume-color-text));
+  font-size: 10.5px;
+  line-height: 1.55;
+  word-break: break-word;
 }
 
 .modern-sidebar__sections {
@@ -291,25 +308,26 @@ const orderedSections = computed(() => {
   gap: 16px;
 }
 
+/* ---------- 右栏 ---------- */
 .modern-main {
-  padding: 30px 28px 34px;
+  padding: 32px 32px 36px;
 }
 
 .modern-hero {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 12px;
+  gap: 10px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
 .modern-hero__name {
   margin: 0;
   color: var(--resume-color-heading);
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: 0.02em;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
 }
 
 .modern-hero__title {
@@ -326,31 +344,55 @@ const orderedSections = computed(() => {
 .modern-main__sections {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .modern-main__sections--with-header {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
+/* 模块标题：通栏细线 + 标题左侧强调条 */
 .resume-template--modern :deep(.resume-section-block__head) {
-  padding-bottom: 7px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
+.resume-template--modern :deep(.resume-section-block__title) {
+  padding-left: 9px;
+  border-left: 3px solid var(--resume-color-accent);
+  letter-spacing: 0.06em;
+}
+
+/* 条目做成浅底卡片，和正文拉开层次 */
+.resume-template--modern :deep(.resume-entry) {
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-md);
+  background: var(--resume-color-surface);
+  border: 1px solid var(--resume-color-border);
+}
+
+.resume-template--modern :deep(.resume-entry__title) {
+  letter-spacing: 0.01em;
+}
+
+.resume-template--modern :deep(.resume-section-block--compact .resume-entry) {
+  padding: 9px 10px;
+}
+
+/* 左栏内的文字改用左栏配色变量，深色左栏也能读 */
 .modern-sidebar :deep(.resume-section-block__head) {
-  border-bottom-color: var(--resume-sidebar-divider);
+  border-bottom-color: var(--resume-sidebar-divider, var(--resume-color-border));
 }
 
 .modern-sidebar :deep(.resume-entry),
 .modern-sidebar :deep(.resume-kv) {
-  background: var(--resume-sidebar-panel-bg);
-  border-color: var(--resume-sidebar-panel-border);
+  background: var(--resume-sidebar-panel-bg, transparent);
+  border-color: var(--resume-sidebar-panel-border, transparent);
 }
 
 .modern-sidebar :deep(.resume-section-block__title),
 .modern-sidebar :deep(.resume-entry__title) {
-  color: var(--resume-sidebar-heading);
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
 }
 
 .modern-sidebar :deep(.resume-entry__subtitle),
@@ -358,7 +400,7 @@ const orderedSections = computed(() => {
 .modern-sidebar :deep(.resume-entry__date),
 .modern-sidebar :deep(.resume-kv__label),
 .modern-sidebar :deep(.resume-chip__meta) {
-  color: var(--resume-sidebar-text-faint);
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
 }
 
 .modern-sidebar :deep(.resume-rich-text),
@@ -366,31 +408,19 @@ const orderedSections = computed(() => {
 .modern-sidebar :deep(.resume-entry__bullets),
 .modern-sidebar :deep(.resume-kv__value),
 .modern-sidebar :deep(.resume-bullet-list) {
-  color: var(--resume-sidebar-text);
+  color: var(--resume-sidebar-text, var(--resume-color-text));
 }
 
 .modern-sidebar :deep(.resume-chip) {
-  background: var(--resume-sidebar-chip-bg);
-  color: var(--resume-sidebar-accent);
+  background: var(--resume-sidebar-chip-bg, var(--resume-color-surface-strong));
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
 }
 
-.resume-template--modern :deep(.resume-entry) {
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--resume-color-surface);
-  border: 1px solid rgba(15, 118, 110, 0.08);
-}
-
-.resume-template--modern :deep(.resume-entry__title) {
-  letter-spacing: 0;
-}
-
-.resume-template--modern :deep(.resume-section-block--compact .resume-entry) {
-  padding: 7px 8px;
-  border-radius: 8px;
-}
-
-.resume-template--modern :deep(.resume-section-block--compact .resume-section-block__head) {
-  padding-bottom: 6px;
+/* 打印时保留左栏底色 */
+@media print {
+  .resume-template--modern {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>

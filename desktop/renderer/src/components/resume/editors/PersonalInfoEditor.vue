@@ -1,124 +1,166 @@
 <template>
-  <div class="personal-info-editor">
-    <!-- Avatar upload -->
-    <div class="avatar-upload">
-      <div class="avatar-preview" @click="triggerUpload">
-        <img v-if="avatarPreviewUrl" :src="avatarPreviewUrl" class="avatar-img" />
-        <div v-else class="avatar-placeholder">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 4a4 4 0 100 8 4 4 0 000-8zM6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
+  <div class="re-editor">
+    <!-- 头像 -->
+    <div class="re-avatar">
+      <div class="re-avatar__preview" title="点击上传头像" @click="triggerUpload">
+        <img v-if="avatarPreviewUrl" :src="avatarPreviewUrl" class="re-avatar__img" alt="简历头像" />
+        <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 4a4 4 0 100 8 4 4 0 000-8zM6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
       </div>
-      <div class="avatar-actions">
-        <button class="avatar-btn" :disabled="avatarUploading" @click="triggerUpload">
+      <div class="re-avatar__actions">
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" :disabled="avatarUploading" @click="triggerUpload">
           {{ avatarUploading ? '上传中...' : '上传头像' }}
         </button>
-        <button v-if="modelValue.avatar" class="avatar-remove" :disabled="avatarUploading" @click="removeAvatar">移除</button>
-        <span v-if="avatarMessage" class="avatar-message">{{ avatarMessage }}</span>
+        <button
+          v-if="modelValue.avatar"
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--ghost"
+          :disabled="avatarUploading"
+          @click="removeAvatar"
+        >
+          移除头像
+        </button>
+        <span
+          v-if="avatarMessage"
+          class="re-avatar__message"
+          :class="{ 'is-error': avatarMessageType === 'error', 'is-success': avatarMessageType === 'success' }"
+        >
+          {{ avatarMessage }}
+        </span>
       </div>
-      <input ref="fileInput" type="file" accept="image/*" class="hidden-input" @change="onFileChange" />
+      <input ref="fileInput" type="file" accept="image/*" class="re-avatar__input" @change="onFileChange" />
     </div>
 
-    <!-- Active (edit) mode -->
-    <div v-if="isActive" class="form-grid">
-      <div class="field">
-        <label class="field-label">姓名</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.name"
-          placeholder="请输入姓名"
-          @input="update('name', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">职位</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.title"
-          placeholder="请输入职位"
-          @input="update('title', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">邮箱</label>
-        <input
-          class="field-input"
-          type="email"
-          :value="modelValue.email"
-          placeholder="请输入邮箱"
-          @input="update('email', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">电话</label>
-        <input
-          class="field-input"
-          type="tel"
-          :value="modelValue.phone"
-          placeholder="请输入电话"
-          @input="update('phone', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">所在城市</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.location"
-          placeholder="请输入所在城市"
-          @input="update('location', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">微信</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.wechat"
-          placeholder="请输入微信号"
-          @input="update('wechat', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">GitHub</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.github"
-          placeholder="请输入 GitHub 地址"
-          @input="update('github', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">个人网站</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.website"
-          placeholder="请输入个人网站"
-          @input="update('website', $event.target.value)"
-        />
+    <!-- 编辑态 -->
+    <div v-if="isActive">
+      <p v-if="missingCount > 0" class="re-notice">
+        还有 {{ missingCount }} 个必填项未填写，标记 <span class="re-required">*</span> 的字段需要补充。
+      </p>
+
+      <div class="re-form">
+        <div class="re-field">
+          <label class="ui-label" for="basic-name">姓名 <span class="re-required">*</span></label>
+          <input
+            id="basic-name"
+            class="ui-input"
+            :class="{ 're-input--invalid': fieldErrors.name }"
+            type="text"
+            :value="modelValue.name"
+            placeholder="请输入姓名"
+            @input="update('name', $event.target.value)"
+            @blur="touch('name')"
+          />
+          <p v-if="fieldErrors.name" class="re-error">{{ fieldErrors.name }}</p>
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-title">职位</label>
+          <input
+            id="basic-title"
+            class="ui-input"
+            type="text"
+            :value="modelValue.title"
+            placeholder="如：Java 后端开发工程师"
+            @input="update('title', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-email">邮箱 <span class="re-required">*</span></label>
+          <input
+            id="basic-email"
+            class="ui-input"
+            :class="{ 're-input--invalid': fieldErrors.email }"
+            type="email"
+            :value="modelValue.email"
+            placeholder="如：zhangsan@example.com"
+            @input="update('email', $event.target.value)"
+            @blur="touch('email')"
+          />
+          <p v-if="fieldErrors.email" class="re-error">{{ fieldErrors.email }}</p>
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-phone">电话 <span class="re-required">*</span></label>
+          <input
+            id="basic-phone"
+            class="ui-input"
+            :class="{ 're-input--invalid': fieldErrors.phone }"
+            type="tel"
+            :value="modelValue.phone"
+            placeholder="如：138-0013-8000"
+            @input="update('phone', $event.target.value)"
+            @blur="touch('phone')"
+          />
+          <p v-if="fieldErrors.phone" class="re-error">{{ fieldErrors.phone }}</p>
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-location">所在城市</label>
+          <input
+            id="basic-location"
+            class="ui-input"
+            type="text"
+            :value="modelValue.location"
+            placeholder="如：北京市朝阳区"
+            @input="update('location', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-wechat">微信</label>
+          <input
+            id="basic-wechat"
+            class="ui-input"
+            type="text"
+            :value="modelValue.wechat"
+            placeholder="如：zhangsan_dev"
+            @input="update('wechat', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-github">GitHub</label>
+          <input
+            id="basic-github"
+            class="ui-input"
+            type="text"
+            :value="modelValue.github"
+            placeholder="如：github.com/zhangsan"
+            @input="update('github', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="basic-website">个人网站</label>
+          <input
+            id="basic-website"
+            class="ui-input"
+            type="text"
+            :value="modelValue.website"
+            placeholder="如：zhangsan.com"
+            @input="update('website', $event.target.value)"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- Collapsed (view) mode -->
-    <div v-else class="summary">
-      <span class="summary-name">{{ modelValue.name || '姓名' }}</span>
-      <span class="summary-title">{{ modelValue.title || '职位' }}</span>
-      <div class="summary-contacts">
-        <span v-if="modelValue.email">{{ modelValue.email }}</span>
-        <span v-if="modelValue.phone" class="separator">|</span>
-        <span v-if="modelValue.phone">{{ modelValue.phone }}</span>
+    <!-- 折叠态摘要 -->
+    <div v-else class="re-summary">
+      <span class="re-summary__primary">{{ modelValue.name || '姓名' }}</span>
+      <span class="re-summary__muted">{{ modelValue.title || '职位' }}</span>
+      <div class="re-summary__tags">
+        <span v-if="modelValue.email" class="ui-badge">{{ modelValue.email }}</span>
+        <span v-if="modelValue.phone" class="ui-badge">{{ modelValue.phone }}</span>
+        <span v-if="modelValue.location" class="ui-badge">{{ modelValue.location }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { uploadResumeAvatar } from '../../../api/resumes.js'
 import { extractApiMessage, resolveApiAssetUrl } from '../../../api/request.js'
 
@@ -153,9 +195,44 @@ function update(field, value) {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
 }
 
+// ── 必填校验（失焦后提示）───────────────────────────────────────────────
+const touched = reactive({})
+
+function touch(field) {
+  touched[field] = true
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const fieldErrors = computed(() => {
+  const errors = {}
+  if (touched.name && !String(props.modelValue?.name || '').trim()) {
+    errors.name = '请填写姓名，简历顶部需要展示'
+  }
+  if (touched.phone && !String(props.modelValue?.phone || '').trim()) {
+    errors.phone = '请填写联系电话，HR 通常通过电话沟通'
+  }
+  if (touched.email) {
+    const email = String(props.modelValue?.email || '').trim()
+    if (!email) {
+      errors.email = '请填写邮箱，招聘方通常通过邮箱联系你'
+    } else if (!EMAIL_PATTERN.test(email)) {
+      errors.email = '邮箱格式不正确，例如 name@example.com'
+    }
+  }
+  return errors
+})
+
+const missingCount = computed(() => {
+  const value = props.modelValue || {}
+  const required = ['name', 'email', 'phone']
+  return required.filter((field) => !String(value[field] || '').trim()).length
+})
+
 const fileInput = ref(null)
 const avatarUploading = ref(false)
 const avatarMessage = ref('')
+const avatarMessageType = ref('')
 const avatarPreviewUrl = computed(() => resolveApiAssetUrl(props.modelValue.avatar))
 
 function triggerUpload() {
@@ -168,11 +245,13 @@ async function onFileChange(e) {
 
   if (!file || !file.type.startsWith('image/')) {
     avatarMessage.value = '请选择图片文件'
+    avatarMessageType.value = 'error'
     return
   }
 
   if (!props.resumeId) {
     avatarMessage.value = '简历未初始化，暂时不能上传头像'
+    avatarMessageType.value = 'error'
     return
   }
 
@@ -183,8 +262,10 @@ async function onFileChange(e) {
     const response = await uploadResumeAvatar(props.resumeId, file)
     update('avatar', response?.avatarUrl || response?.avatar || '')
     avatarMessage.value = '头像上传成功'
+    avatarMessageType.value = 'success'
   } catch (error) {
     avatarMessage.value = extractApiMessage(error, '头像上传失败')
+    avatarMessageType.value = 'error'
   } finally {
     avatarUploading.value = false
   }
@@ -192,177 +273,7 @@ async function onFileChange(e) {
 
 function removeAvatar() {
   update('avatar', '')
+  avatarMessage.value = ''
+  avatarMessageType.value = ''
 }
 </script>
-
-<style scoped>
-.personal-info-editor {
-  padding: 16px 0;
-}
-
-/* Avatar */
-.avatar-upload {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.avatar-preview {
-  width: auto;
-  height: auto;
-  max-width: 140px;
-  max-height: 140px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px dashed #d1d5db;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9fafb;
-  transition: border-color 0.15s;
-  flex-shrink: 0;
-}
-
-.avatar-preview:hover {
-  border-color: #22c55e;
-}
-
-.avatar-img {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 140px;
-  object-fit: contain;
-  display: block;
-}
-
-.avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.avatar-btn {
-  padding: 6px 14px;
-  border: 1.5px solid #22c55e;
-  border-radius: 6px;
-  background: transparent;
-  color: #22c55e;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.avatar-btn:hover {
-  background: #22c55e;
-  color: #fff;
-}
-
-.avatar-remove {
-  padding: 6px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: transparent;
-  color: #9ca3af;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.avatar-remove:hover {
-  background: #fef2f2;
-  color: #ef4444;
-  border-color: #fca5a5;
-}
-
-.avatar-btn:disabled,
-.avatar-remove:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.avatar-message {
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.5;
-  max-width: 220px;
-}
-
-.hidden-input {
-  display: none;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-}
-
-.field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 4px;
-}
-
-.field-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.field-input:focus {
-  border-color: #22c55e;
-}
-
-.summary {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.summary-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-
-.summary-title {
-  font-size: 14px;
-  color: #22c55e;
-  font-weight: 500;
-}
-
-.summary-contacts {
-  font-size: 13px;
-  color: #6b7280;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.separator {
-  color: #d1d5db;
-}
-</style>

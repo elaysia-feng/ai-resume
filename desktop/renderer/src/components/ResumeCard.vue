@@ -1,20 +1,28 @@
 <template>
-  <div class="resume-card">
-    <div class="card-body">
-      <h3 class="card-title">{{ resume.title || 'Untitled Resume' }}</h3>
-      <p class="card-template">模板：{{ resume.template || 'classic' }}</p>
-      <p class="card-updated">
-        {{ formatDate(resume.updatedAt) }}
-      </p>
-    </div>
-    <div class="card-actions">
-      <router-link :to="`/editor/${resume.id}`" class="btn-edit">编辑</router-link>
-      <button class="btn-delete" @click="handleDelete">删除</button>
-    </div>
-  </div>
+  <article class="resume-card ui-card">
+    <h3 class="resume-card__title">
+      <!-- 标题链接铺满整张卡片：鼠标点任意位置都能进入编辑，Tab 只需一次 -->
+      <router-link class="resume-card__link" :to="`/editor/${resume.id}`">
+        {{ resume.title || '未命名简历' }}
+      </router-link>
+    </h3>
+
+    <p class="resume-card__meta">
+      <span class="ui-badge">{{ templateLabel }}</span>
+      <span class="resume-card__time">{{ formatDate(resume.updatedAt) }}</span>
+    </p>
+
+    <footer class="resume-card__foot">
+      <span class="resume-card__hint">点击卡片进入编辑</span>
+      <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost resume-card__delete" @click="handleDelete">
+        删除
+      </button>
+    </footer>
+  </article>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useResumeStore } from '../store/resumeStore.js';
 
 const props = defineProps({
@@ -26,9 +34,24 @@ const props = defineProps({
 
 const resumeStore = useResumeStore();
 
+// 模板 id → 中文名（与编辑器里的模板清单保持一致）
+const TEMPLATE_LABELS = {
+  classic: '标准版',
+  modern: '简约求职版',
+  compact: '双列紧凑版',
+  academic: '学术科研版',
+  creative: '创意进阶版',
+  'dual-creative': '双列创意版',
+};
+
+const templateLabel = computed(
+  () => TEMPLATE_LABELS[props.resume.template] || props.resume.template || '标准版'
+);
+
 function formatDate(dateStr) {
   if (!dateStr) return '尚未保存';
   const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '尚未保存';
   const now = new Date();
   const diffMs = now - date;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -39,7 +62,7 @@ function formatDate(dateStr) {
 }
 
 function handleDelete() {
-  if (window.confirm(`确定删除「${props.resume.title || 'Untitled Resume'}」吗？该操作不可恢复。`)) {
+  if (window.confirm(`确定删除「${props.resume.title || '未命名简历'}」吗？该操作不可恢复。`)) {
     resumeStore.removeResume(props.resume.id);
   }
 }
@@ -47,82 +70,95 @@ function handleDelete() {
 
 <style scoped>
 .resume-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 20px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4) var(--ui-space-5) var(--ui-space-3);
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-in-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-in-out);
 }
 
 .resume-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border-color: #d1d5db;
+  border-color: var(--ui-border-strong);
+  box-shadow: var(--ui-shadow-md);
 }
 
-.card-body {
-  flex: 1;
+/* 键盘聚焦在标题链接上时，整张卡片给出焦点提示 */
+.resume-card:focus-within {
+  border-color: var(--ui-border-focus);
+  box-shadow: var(--ui-ring);
 }
 
-.card-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 6px;
-}
-
-.card-updated {
-  font-size: 13px;
-  color: #9ca3af;
+/* ---- 标题 ---- */
+.resume-card__title {
   margin: 0;
+  font-size: var(--ui-text-md);
+  font-weight: 600;
+  line-height: var(--ui-line-tight);
+  color: var(--ui-fg-primary);
+  word-break: break-word;
 }
 
-.card-template {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 0 0 6px;
+.resume-card__link {
+  color: inherit;
+  border-radius: var(--ui-radius-sm);
 }
 
-.card-actions {
+.resume-card__link:focus-visible {
+  outline: none;
+}
+
+/* 链接铺满整张卡片，点击任意位置都能进入编辑 */
+.resume-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--ui-radius-lg);
+}
+
+/* ---- 标签与时间 ---- */
+.resume-card__meta {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  min-width: 0;
 }
 
-.btn-edit {
-  flex: 1;
-  padding: 8px 12px;
-  background: #10d9a0;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.15s;
+.resume-card__time {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.btn-edit:hover {
-  background: #0ea57a;
+/* ---- 底部操作 ---- */
+.resume-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  padding-top: var(--ui-space-2);
+  border-top: 1px solid var(--ui-border-subtle);
 }
 
-.btn-delete {
-  padding: 8px 12px;
-  background: transparent;
-  color: #ef4444;
-  border: 1.5px solid #fecaca;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+.resume-card__hint {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
 }
 
-.btn-delete:hover {
-  background: #fef2f2;
-  border-color: #ef4444;
+/* 删除按钮压在整卡链接之上，避免被链接的覆盖层挡住 */
+.resume-card__delete {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  color: var(--ui-danger);
+}
+
+.resume-card__delete:hover {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger-hover);
 }
 </style>

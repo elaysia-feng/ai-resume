@@ -1,28 +1,61 @@
 <template>
   <div class="chat-composer">
-    <textarea
-      ref="textareaRef"
-      class="chat-composer-input"
-      :value="modelValue"
-      :disabled="disabled"
-      rows="1"
-      placeholder="输入你的问题，Enter 发送，Shift+Enter 换行"
-      @input="handleInput"
-      @keydown="handleKeydown"
-    ></textarea>
+    <div class="chat-composer-inner">
+      <div class="chat-composer-field">
+        <textarea
+          ref="textareaRef"
+          class="chat-composer-input"
+          :value="modelValue"
+          :disabled="disabled"
+          rows="1"
+          placeholder="描述你的需求，例如：帮我把这段项目经历改得更专业"
+          @input="handleInput"
+          @keydown="handleKeydown"
+        ></textarea>
 
-    <div class="chat-composer-actions">
-      <span class="chat-composer-tip">Enter 发送 / Shift+Enter 换行</span>
-      <button v-if="streaming" class="chat-btn chat-btn-danger" @click="$emit('stop')">停止生成</button>
-      <button v-else class="chat-btn chat-btn-primary" :disabled="!modelValue.trim()" @click="$emit('send')">
-        发送
-      </button>
+        <div class="chat-composer-toolbar">
+          <div class="chat-composer-tools">
+            <button
+              v-if="canPickFiles"
+              class="ui-btn ui-btn--ghost ui-btn--sm"
+              type="button"
+              :disabled="disabled"
+              @click="pickAttachments"
+            >
+              ＋ 附件
+            </button>
+            <span class="chat-composer-hint">Enter 发送 · Shift+Enter 换行</span>
+          </div>
+
+          <div class="chat-composer-actions">
+            <button
+              v-if="streaming"
+              class="ui-btn ui-btn--danger ui-btn--sm"
+              type="button"
+              @click="$emit('stop')"
+            >
+              停止生成
+            </button>
+            <button
+              v-else
+              class="ui-btn ui-btn--primary ui-btn--sm"
+              type="button"
+              :disabled="!modelValue.trim()"
+              @click="$emit('send')"
+            >
+              发送
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p v-if="notice" class="chat-composer-notice">{{ notice }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -34,8 +67,23 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'send', 'stop']);
 
 const textareaRef = ref(null);
+const notice = ref('');
+
+// Electron 环境才有原生文件选择框
+const canPickFiles = computed(
+  () => typeof window !== 'undefined' && typeof window.desktop?.pickFiles === 'function'
+);
+
+// 发送后父组件会清空文本，这里同步把输入框收回一行
+watch(
+  () => props.modelValue,
+  () => {
+    resizeTextarea();
+  }
+);
 
 function handleInput(event) {
+  notice.value = '';
   emit('update:modelValue', event.target.value);
   resizeTextarea();
 }
@@ -51,6 +99,25 @@ function handleKeydown(event) {
   event.preventDefault();
   if (!props.disabled && props.modelValue.trim()) {
     emit('send');
+  }
+}
+
+// 选中的文件以路径形式写进输入框，作为本次提问的上下文
+async function pickAttachments() {
+  notice.value = '';
+  try {
+    const result = await window.desktop.pickFiles();
+    const paths = (result?.paths ?? []).filter(Boolean);
+    if (!paths.length) {
+      return;
+    }
+    const context = paths.map((item) => `附件：${item}`).join('\n');
+    const current = props.modelValue.trim();
+    emit('update:modelValue', current ? `${current}\n${context}` : context);
+    await nextTick();
+    resizeTextarea();
+  } catch (error) {
+    notice.value = `选择文件失败：${error?.message || '未知错误'}`;
   }
 }
 
@@ -73,9 +140,30 @@ defineExpose({ focus });
 
 <style scoped>
 .chat-composer {
-  padding: 12px 24px 16px;
+  flex: none;
+  padding: var(--ui-space-3) 0 var(--ui-space-4);
   background: var(--chat-surface);
   border-top: 1px solid var(--chat-border);
+}
+
+/* 与消息流同一条可读行长 */
+.chat-composer-inner {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 var(--ui-space-6);
+}
+
+.chat-composer-field {
+  background: var(--chat-bg);
+  border: 1px solid var(--chat-border-strong);
+  border-radius: var(--chat-radius-md);
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.chat-composer-field:focus-within {
+  border-color: var(--ui-border-focus);
+  box-shadow: var(--ui-ring);
 }
 
 .chat-composer-input {
@@ -83,22 +171,19 @@ defineExpose({ focus });
   width: 100%;
   min-height: 44px;
   max-height: 180px;
-  padding: 10px 12px;
+  padding: var(--ui-space-3);
   font-family: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--ui-text-base);
   line-height: 1.6;
   color: var(--chat-text);
-  background: var(--chat-bg);
-  border: 1px solid var(--chat-border-strong);
-  border-radius: var(--chat-radius-md);
+  background: transparent;
+  border: none;
   resize: none;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.chat-composer-input:focus {
-  border-color: var(--chat-accent);
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+.chat-composer-input::placeholder {
+  color: var(--ui-fg-muted);
 }
 
 .chat-composer-input:disabled {
@@ -106,16 +191,46 @@ defineExpose({ focus });
   cursor: not-allowed;
 }
 
+.chat-composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-2) var(--ui-space-2) var(--ui-space-3);
+}
+
+.chat-composer-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.chat-composer-hint {
+  min-width: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--chat-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-composer-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: var(--ui-space-2);
+  flex: none;
 }
 
-.chat-composer-tip {
-  font-size: 0.75rem;
-  color: var(--chat-text-muted);
+.chat-composer-notice {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--ui-text-xs);
+  color: var(--chat-danger);
+}
+
+@media (max-width: 768px) {
+  .chat-composer-inner {
+    padding: 0 var(--ui-space-4);
+  }
 }
 </style>

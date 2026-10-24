@@ -1,315 +1,296 @@
 <template>
   <div class="auth-page">
-    <!-- Animated gradient mesh background -->
-    <div class="gradient-mesh" aria-hidden="true">
-      <div class="mesh-blob mesh-blob-1"></div>
-      <div class="mesh-blob mesh-blob-2"></div>
-      <div class="mesh-blob mesh-blob-3"></div>
-      <div class="mesh-blob mesh-blob-4"></div>
-    </div>
+    <!-- 左侧品牌区 -->
+    <section class="auth-brand">
+      <div class="auth-brand__inner">
+        <div class="auth-brand__logo">
+          <span class="auth-brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="32" height="32" fill="none">
+              <rect width="48" height="48" rx="13" fill="currentColor" />
+              <path d="M15 15h19v4H19v4h13v4H19v6h-4V15z" fill="var(--ui-bg-surface)" />
+            </svg>
+          </span>
+          <span class="auth-brand__name">AI Resume Forge</span>
+        </div>
 
-    <!-- Floating decorative shapes -->
-    <div class="floating-shapes" aria-hidden="true">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
-    </div>
+        <h1 class="auth-brand__title">三步开通你的工作台</h1>
+        <p class="auth-brand__desc">
+          验证邮箱、设置密码即可开始。账号只保存在本机，简历与面试记录不会上传到外部服务。
+        </p>
 
-    <!-- Auth card -->
-    <div class="auth-card" :class="{ 'is-visible': isLoaded }">
-      <!-- Header -->
-      <div class="auth-header">
-        <h1 class="auth-title">注册账号</h1>
-        <p class="auth-subtitle">使用 QQ 邮箱验证注册</p>
+        <ul class="auth-brand__points">
+          <li class="auth-brand__point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h9" />
+            </svg>
+            <span>邮箱验证码确认身份</span>
+          </li>
+          <li class="auth-brand__point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 4h16v16H4z" />
+              <path d="M4 9h16M9 20V9" />
+            </svg>
+            <span>注册后直接进入模板市场</span>
+          </li>
+          <li class="auth-brand__point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+              <path d="M19 11v1a7 7 0 0 1-14 0v-1M12 19v3" />
+            </svg>
+            <span>随时用模拟面试检验简历</span>
+          </li>
+        </ul>
       </div>
 
-      <!-- Progress indicator -->
-      <div class="progress-track" role="progressbar" :aria-valuenow="activeStep" aria-valuemin="1" aria-valuemax="3">
-        <!-- Connecting lines -->
-        <div class="progress-line">
-          <div class="progress-line-fill" :style="{ width: activeStep >= 2 ? '100%' : '0%' }"></div>
-        </div>
-        <div class="progress-line">
-          <div class="progress-line-fill" :style="{ width: activeStep >= 3 ? '100%' : '0%' }"></div>
-        </div>
+      <!-- 纯 SVG 装饰，不依赖外部图片 -->
+      <svg class="auth-brand__art" viewBox="0 0 300 200" fill="none" aria-hidden="true">
+        <rect x="18" y="14" width="168" height="176" rx="14" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+        <rect x="42" y="44" width="84" height="10" rx="5" fill="currentColor" opacity="0.22" />
+        <rect x="42" y="66" width="120" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
+        <rect x="42" y="82" width="104" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
+        <rect x="42" y="106" width="60" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
+        <rect x="42" y="122" width="112" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
+        <circle cx="196" cy="60" r="26" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+        <path d="M196 50c1.8 5.2 4.8 8.2 10 10-5.2 1.8-8.2 4.8-10 10-1.8-5.2-4.8-8.2-10-10 5.2-1.8 8.2-4.8 10-10z" fill="currentColor" opacity="0.45" />
+        <path d="M236 126h44M236 138h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25" />
+        <circle cx="252" cy="166" r="18" stroke="currentColor" stroke-width="1.5" opacity="0.22" />
+      </svg>
+    </section>
 
-        <!-- Step 1 -->
-        <div class="progress-step" :class="{ 'is-complete': activeStep > 1, 'is-active': activeStep === 1 }">
-          <div class="step-circle">
-            <svg v-if="activeStep > 1" class="step-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            <span v-else>1</span>
-          </div>
-          <span class="step-label">验证邮箱</span>
-        </div>
+    <!-- 右侧表单区 -->
+    <section class="auth-panel">
+      <div class="auth-card ui-card">
+        <header class="auth-card__head">
+          <h2 class="auth-card__title">注册账号</h2>
+          <p class="auth-card__subtitle">使用邮箱验证注册，三步完成</p>
+        </header>
 
-        <!-- Step 2 -->
-        <div class="progress-step" :class="{ 'is-complete': activeStep > 2, 'is-active': activeStep === 2 }">
-          <div class="step-circle">
-            <svg v-if="activeStep > 2" class="step-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            <span v-else>2</span>
-          </div>
-          <span class="step-label">输入验证码</span>
-        </div>
+        <!-- 步骤进度 -->
+        <ol class="auth-steps" :aria-label="`注册进度，当前第 ${activeStep} 步，共 3 步`">
+          <li
+            v-for="step in steps"
+            :key="step.id"
+            class="auth-step"
+            :class="{
+              'is-active': activeStep === step.id,
+              'is-complete': activeStep > step.id,
+            }"
+          >
+            <span class="auth-step__dot">
+              <svg v-if="activeStep > step.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span v-else>{{ step.id }}</span>
+            </span>
+            <span class="auth-step__label">{{ step.label }}</span>
+          </li>
+        </ol>
 
-        <!-- Step 3 -->
-        <div class="progress-step" :class="{ 'is-active': activeStep === 3 }">
-          <div class="step-circle">
-            <span>3</span>
-          </div>
-          <span class="step-label">设置密码</span>
-        </div>
-      </div>
-
-      <!-- Form -->
-      <form class="auth-form" novalidate @submit.prevent="handleSubmit" :class="{ 'shake': shaking }">
-        <!-- Step 1: Send code -->
-        <div class="step-panel" :class="{ 'slide-out-left': activeStep > 1, 'slide-in-right': activeStep === 1 && slideIn }" v-show="activeStep === 1">
-          <div class="form-group">
-            <div class="floating-label-wrap">
+        <form class="auth-form" novalidate @submit.prevent="handleSubmit">
+          <!-- 第 1 步：验证邮箱 -->
+          <template v-if="activeStep === 1">
+            <div class="auth-field">
+              <label class="ui-label" for="email">邮箱地址</label>
               <input
                 id="email"
                 v-model="form.email"
                 type="email"
-                placeholder=" "
+                class="ui-input"
+                placeholder="you@example.com"
                 autocomplete="email"
                 :disabled="countdown > 0"
-                @focus="labelFloat('email', true)"
-                @blur="labelFloat('email', false)"
-                :class="{ 'has-value': form.email }"
               />
-              <label for="email" :class="{ 'floating': form.email || focusedFields.email }">邮箱地址</label>
             </div>
-          </div>
 
-          <div class="form-group">
-            <button
-              type="button"
-              class="send-code-btn"
-              :disabled="countdown > 0 || sendingCode"
-              @click="handleSendCode"
-            >
-              <span v-if="sendingCode">
-                <svg class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                </svg>
-                发送中
-              </span>
-              <span v-else-if="countdown > 0">{{ countdown }}s</span>
-              <span v-else>发送验证码</span>
-            </button>
-          </div>
+            <div class="auth-field">
+              <button
+                type="button"
+                class="ui-btn ui-btn--outline ui-btn--block"
+                :disabled="countdown > 0 || sendingCode"
+                @click="handleSendCode"
+              >
+                <span v-if="sendingCode">发送中…</span>
+                <span v-else-if="countdown > 0">{{ countdown }} 秒后可重发</span>
+                <span v-else>发送验证码</span>
+              </button>
+            </div>
 
-          <p v-if="codeSent" class="code-sent-msg">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            验证码已发送至 {{ form.email }}
-          </p>
+            <p v-if="codeSent" class="auth-hint auth-hint--success">
+              验证码已发送至 {{ form.email }}，请在 60 秒内查收并填写。
+            </p>
+          </template>
 
-          <button
-            type="button"
-            class="auth-btn"
-            :disabled="!form.email.trim() || sendingCode"
-            @click="advanceToStep2"
-          >
-            下一步
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
-        </div>
+          <!-- 第 2 步：输入验证码 -->
+          <template v-else-if="activeStep === 2">
+            <p class="auth-note">请输入发送至 <strong>{{ form.email }}</strong> 的 6 位验证码。</p>
 
-        <!-- Step 2: Verify code -->
-        <div class="step-panel" :class="{ 'slide-out-left': activeStep > 2, 'slide-in-right': activeStep === 2 && slideIn }" v-show="activeStep === 2">
-          <p class="step-hint">请输入发送至 <strong>{{ form.email }}</strong> 的 6 位验证码</p>
-
-          <div class="form-group">
-            <div class="floating-label-wrap">
+            <div class="auth-field">
+              <label class="ui-label" for="code">验证码</label>
               <input
                 id="code"
                 v-model="form.code"
                 type="text"
-                placeholder=" "
+                class="ui-input"
+                placeholder="6 位验证码"
                 maxlength="6"
                 autocomplete="one-time-code"
                 inputmode="numeric"
-                pattern="[0-9]*"
-                @focus="labelFloat('code', true)"
-                @blur="labelFloat('code', false)"
-                :class="{ 'has-value': form.code }"
               />
-              <label for="code" :class="{ 'floating': form.code || focusedFields.code }">6 位验证码</label>
             </div>
-          </div>
 
-          <button
-            type="button"
-            class="back-btn"
-            @click="goBackToStep1"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            重新输入邮箱
-          </button>
-
-          <button
-            type="submit"
-            class="auth-btn"
-            :disabled="form.code.length !== 6 || loading"
-          >
-            <span v-if="loading">
-              <svg class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="goBackToStep1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
-              验证中...
-            </span>
-            <span v-else>验证验证码</span>
-          </button>
-        </div>
+              重新输入邮箱
+            </button>
+          </template>
 
-        <!-- Step 3: Set username/password -->
-        <div class="step-panel" :class="{ 'slide-in-right': activeStep === 3 && slideIn }" v-show="activeStep === 3">
-          <div class="form-group">
-            <div class="floating-label-wrap">
+          <!-- 第 3 步：设置用户名与密码 -->
+          <template v-else>
+            <div class="auth-field">
+              <label class="ui-label" for="username">用户名</label>
               <input
                 id="username"
                 v-model="form.username"
                 type="text"
-                placeholder=" "
+                class="ui-input"
+                placeholder="用于在应用内展示的名字"
                 autocomplete="username"
-                @focus="labelFloat('username', true)"
-                @blur="labelFloat('username', false)"
-                :class="{ 'has-value': form.username }"
               />
-              <label for="username" :class="{ 'floating': form.username || focusedFields.username }">用户名</label>
             </div>
-          </div>
 
-          <div class="form-group">
-            <div class="floating-label-wrap">
-              <input
-                id="password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder=" "
-                minlength="8"
-                autocomplete="new-password"
-                @focus="labelFloat('password', true)"
-                @blur="labelFloat('password', false)"
-                :class="{ 'has-value': form.password }"
-              />
-              <label for="password" :class="{ 'floating': form.password || focusedFields.password }">密码（至少 8 位）</label>
-              <button type="button" class="toggle-password" @click="showPassword = !showPassword" :aria-label="showPassword ? '隐藏密码' : '显示密码'">
-                <svg v-if="!showPassword" class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <svg v-else class="eye-icon eye-icon--closed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                  <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
-              </button>
+            <div class="auth-field">
+              <label class="ui-label" for="password">密码（至少 8 位）</label>
+              <div class="auth-field__control">
+                <input
+                  id="password"
+                  v-model="form.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="ui-input auth-field__input--suffix"
+                  placeholder="设置登录密码"
+                  minlength="8"
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  class="auth-field__suffix"
+                  :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                  @click="showPassword = !showPassword"
+                >
+                  <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-2.6 3.3M6.3 6.7A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9" />
+                    <path d="M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <div class="floating-label-wrap">
-              <input
-                id="confirmPassword"
-                v-model="form.confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                placeholder=" "
-                autocomplete="new-password"
-                @focus="labelFloat('confirmPassword', true)"
-                @blur="labelFloat('confirmPassword', false)"
-                :class="{ 'has-value': form.confirmPassword }"
-              />
-              <label for="confirmPassword" :class="{ 'floating': form.confirmPassword || focusedFields.confirmPassword }">确认密码</label>
-              <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" :aria-label="showConfirmPassword ? '隐藏密码' : '显示密码'">
-                <svg v-if="!showConfirmPassword" class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <svg v-else class="eye-icon eye-icon--closed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                  <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
-              </button>
+            <div class="auth-field">
+              <label class="ui-label" for="confirmPassword">确认密码</label>
+              <div class="auth-field__control">
+                <input
+                  id="confirmPassword"
+                  v-model="form.confirmPassword"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  class="ui-input auth-field__input--suffix"
+                  placeholder="再次输入密码"
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  class="auth-field__suffix"
+                  :aria-label="showConfirmPassword ? '隐藏密码' : '显示密码'"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                >
+                  <svg v-if="!showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-2.6 3.3M6.3 6.7A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9" />
+                    <path d="M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            class="back-btn"
-            @click="goBackToStep2"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            上一步
-          </button>
-
-          <button
-            type="submit"
-            class="auth-btn"
-            :disabled="loading"
-          >
-            <span v-if="loading">
-              <svg class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="goBackToStep2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
-              注册中...
-            </span>
-            <span v-else>完成注册</span>
+              上一步
+            </button>
+          </template>
+
+          <!-- 错误提示 -->
+          <p v-if="validationError" class="auth-alert" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.01" />
+            </svg>
+            <span>{{ validationError }}</span>
+          </p>
+          <p v-if="errorMsg" class="auth-alert" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.01" />
+            </svg>
+            <span>{{ errorMsg }}</span>
+          </p>
+
+          <button
+            v-if="activeStep === 1"
+            type="submit"
+            class="ui-btn ui-btn--primary ui-btn--block auth-submit"
+            :disabled="!form.email.trim() || sendingCode"
+          >
+            下一步
           </button>
-        </div>
+          <button
+            v-else-if="activeStep === 2"
+            type="submit"
+            class="ui-btn ui-btn--primary ui-btn--block auth-submit"
+            :disabled="form.code.length !== 6 || loading"
+          >
+            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
+            <span>{{ loading ? '验证中…' : '验证验证码' }}</span>
+          </button>
+          <button v-else type="submit" class="ui-btn ui-btn--primary ui-btn--block auth-submit" :disabled="loading">
+            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
+            <span>{{ loading ? '注册中…' : '完成注册' }}</span>
+          </button>
+        </form>
 
-        <!-- Error message -->
-        <p v-if="validationError" class="error-msg">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          {{ validationError }}
+        <p class="auth-switch">
+          已有账号？
+          <router-link class="auth-switch__link" to="/login">立即登录</router-link>
         </p>
-        <p v-if="errorMsg" class="error-msg">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          {{ errorMsg }}
-        </p>
-      </form>
-
-      <p class="auth-switch">
-        已有账号？
-        <router-link to="/login" class="auth-link">立即登录</router-link>
-      </p>
-    </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { sendCode, verifyCode, setPassword } from '../api/auth.js';
 import { useAuthStore } from '../store/authStore.js';
-import { gsap } from 'gsap';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const isLoaded = ref(false);
+const steps = [
+  { id: 1, label: '验证邮箱' },
+  { id: 2, label: '输入验证码' },
+  { id: 3, label: '设置密码' },
+];
+
 const activeStep = ref(1);
-const slideIn = ref(true);
-const shaking = ref(false);
 const loading = ref(false);
 const sendingCode = ref(false);
 const countdown = ref(0);
@@ -318,14 +299,6 @@ const validationError = ref('');
 const errorMsg = ref('');
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-
-const focusedFields = reactive({
-  email: false,
-  code: false,
-  username: false,
-  password: false,
-  confirmPassword: false,
-});
 
 let verifyToken = '';
 let countdownTimer = null;
@@ -338,116 +311,55 @@ const form = reactive({
   confirmPassword: '',
 });
 
-function labelFloat(field, value) {
-  focusedFields[field] = value;
-}
+/** 把接口报错翻译成「发生了什么 + 怎么办」 */
+function describeError(err, fallback) {
+  const status = err?.response?.status;
+  const raw = err?.response?.data?.message || err?.message || '';
 
-onMounted(() => {
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      isLoaded.value = true;
-    }, 80);
-  });
-});
-
-function triggerShake() {
-  shaking.value = true;
-  setTimeout(() => { shaking.value = false; }, 600);
-}
-
-// ── Premium button interactions ──────────────────────────────────────────────
-function createRipple(btn, e) {
-  const rect = btn.getBoundingClientRect()
-  const size = Math.max(rect.width, rect.height) * 1.4
-  const x = e.clientX - rect.left - size / 2
-  const y = e.clientY - rect.top - size / 2
-  const ripple = document.createElement('span')
-  ripple.style.cssText = `position:absolute;border-radius:50%;width:${size}px;height:${size}px;left:${x}px;top:${y}px;background:rgba(255,255,255,0.3);pointer-events:none;transform:scale(0)`
-  btn.appendChild(ripple)
-  gsap.to(ripple, { scale: 2.2, opacity: 0, duration: 0.6, ease: 'power2.out', onComplete: () => ripple.remove() })
-}
-
-function setupMagneticBtn(btn) {
-  if (!btn) return
-  btn.addEventListener('mousemove', (e) => {
-    const rect = btn.getBoundingClientRect()
-    const dx = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)
-    const dy = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)
-    gsap.to(btn, { x: dx * 5, y: dy * 3, scale: 1.02, duration: 0.22, ease: 'power2.out', overwrite: 'auto' })
-  })
-  btn.addEventListener('mouseleave', () => {
-    gsap.to(btn, { x: 0, y: 0, scale: 1, duration: 0.55, ease: 'elastic.out(1, 0.5)' })
-  })
-  btn.addEventListener('mousedown', (e) => {
-    gsap.to(btn, { scale: 0.97, duration: 0.1, ease: 'power2.in' })
-    createRipple(btn, e)
-  })
-  btn.addEventListener('mouseup', () => {
-    gsap.to(btn, { scale: 1.02, duration: 0.35, ease: 'elastic.out(1, 0.4)' })
-  })
-}
-
-onMounted(() => {
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      isLoaded.value = true;
-    }, 80);
-  });
-
-  // Setup magnetic + ripple on all major buttons
-  setupMagneticBtn(document.querySelector('.auth-btn'))
-  setupMagneticBtn(document.querySelector('.back-btn'))
-  setupMagneticBtn(document.querySelector('.send-code-btn'))
-
-  // Auth link hover
-  const authLink = document.querySelector('.auth-link')
-  if (authLink) {
-    authLink.addEventListener('mouseenter', () => gsap.to(authLink, { scale: 1.05, duration: 0.2, ease: 'power2.out' }))
-    authLink.addEventListener('mouseleave', () => gsap.to(authLink, { scale: 1, duration: 0.25 }))
+  if (status === 404 || status === 400) {
+    return raw
+      ? `这一步没能完成：${raw}。请确认邮箱与验证码填写正确后重试。`
+      : '这一步没能完成。请确认邮箱与验证码填写正确后重试。';
   }
-})
+  if (status === 429) {
+    return `请求太频繁了${raw ? `：${raw}` : ''}。请等待几十秒后再试一次。`;
+  }
+  if (/network|timeout|failed to fetch|ECONNREFUSED|网络/i.test(raw)) {
+    return `连不上本地服务${raw ? `：${raw}` : ''}。请确认后端服务（:8080 与 :8000）已启动后重试。`;
+  }
+  return raw ? `${raw}` : fallback;
+}
 
 function advanceToStep2() {
   if (!form.email.trim()) {
-    validationError.value = '请输入邮箱地址';
-    triggerShake();
+    validationError.value = '还没填写邮箱。请先填写邮箱地址，再点击「下一步」。';
     return;
   }
   if (!codeSent.value) {
-    validationError.value = '请先发送验证码';
-    triggerShake();
+    validationError.value = '还没收到验证码。请先点击「发送验证码」，收到后再进入下一步。';
     return;
   }
   validationError.value = '';
-  slideIn.value = false;
-  setTimeout(() => {
-    activeStep.value = 2;
-    slideIn.value = true;
-  }, 50);
+  activeStep.value = 2;
 }
 
 function goBackToStep1() {
-  slideIn.value = false;
-  setTimeout(() => {
-    activeStep.value = 1;
-    slideIn.value = true;
-  }, 50);
+  validationError.value = '';
+  errorMsg.value = '';
+  activeStep.value = 1;
 }
 
 function goBackToStep2() {
-  slideIn.value = false;
-  setTimeout(() => {
-    activeStep.value = 2;
-    slideIn.value = true;
-  }, 50);
+  validationError.value = '';
+  errorMsg.value = '';
+  activeStep.value = 2;
 }
 
 async function handleSendCode() {
   validationError.value = '';
   errorMsg.value = '';
   if (!form.email.trim()) {
-    errorMsg.value = '请输入邮箱地址';
-    triggerShake();
+    errorMsg.value = '还没填写邮箱。请先填写邮箱地址，再点击「发送验证码」。';
     return;
   }
   sendingCode.value = true;
@@ -456,8 +368,7 @@ async function handleSendCode() {
     codeSent.value = true;
     startCountdown(60);
   } catch (err) {
-    errorMsg.value = err?.response?.data?.message || err.message || '发送失败，请稍后重试';
-    triggerShake();
+    errorMsg.value = describeError(err, '验证码发送失败，请稍后重试；若持续失败请检查邮箱地址是否正确。');
   } finally {
     sendingCode.value = false;
   }
@@ -474,22 +385,16 @@ async function handleSubmit() {
 
   if (activeStep.value === 2) {
     if (!form.code.trim() || form.code.length !== 6) {
-      validationError.value = '请输入 6 位验证码';
-      triggerShake();
+      validationError.value = '验证码长度不对。请填写邮箱收到的 6 位数字验证码。';
       return;
     }
     loading.value = true;
     try {
       const verifyData = await verifyCode(form.email, form.code);
       verifyToken = verifyData?.verifyToken || verifyData?.token || verifyToken;
-      slideIn.value = false;
-      setTimeout(() => {
-        activeStep.value = 3;
-        slideIn.value = true;
-      }, 50);
+      activeStep.value = 3;
     } catch (err) {
-      errorMsg.value = err?.response?.data?.message || err.message || '验证失败，请稍后重试';
-      triggerShake();
+      errorMsg.value = describeError(err, '验证码校验失败。请检查验证码是否正确或已过期，必要时重新发送。');
     } finally {
       loading.value = false;
     }
@@ -498,18 +403,15 @@ async function handleSubmit() {
 
   if (activeStep.value === 3) {
     if (!form.username.trim()) {
-      validationError.value = '用户名不能为空';
-      triggerShake();
+      validationError.value = '用户名不能为空。请填写一个用于展示的名字。';
       return;
     }
     if (form.password !== form.confirmPassword) {
-      validationError.value = '两次密码输入不一致';
-      triggerShake();
+      validationError.value = '两次输入的密码不一致。请重新确认密码，两处填写要完全相同。';
       return;
     }
     if (form.password.length < 8) {
-      validationError.value = '密码至少 8 位';
-      triggerShake();
+      validationError.value = '密码太短了。请把密码改成至少 8 位。';
       return;
     }
 
@@ -519,8 +421,7 @@ async function handleSubmit() {
       authStore.storeAuthResponse(authData);
       router.push('/');
     } catch (err) {
-      errorMsg.value = err?.response?.data?.message || err.message || '注册失败，请稍后重试';
-      triggerShake();
+      errorMsg.value = describeError(err, '注册失败。请稍后重试，若一直失败请检查后端服务是否已启动。');
     } finally {
       loading.value = false;
     }
@@ -540,643 +441,412 @@ function startCountdown(seconds) {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-/* ─── Page ─────────────────────────────────────────────────────── */
+/* ========================================
+   认证页骨架：左侧品牌区 + 右侧表单区
+   ======================================== */
 .auth-page {
-  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(360px, 480px);
+  min-height: 100%;
+  background: var(--ui-bg-app);
+  color: var(--ui-fg-primary);
+  font-family: var(--ui-font-sans);
+}
+
+/* ---- 左侧品牌区 ---- */
+.auth-brand {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--ui-bg-canvas), var(--ui-bg-app));
+  border-right: 1px solid var(--ui-border);
+}
+
+.auth-brand__inner {
   position: relative;
-  overflow: hidden;
-  background: var(--color-bg);
-  font-family: var(--font-body);
-  padding: var(--space-6) var(--space-4);
-}
-
-/* ─── Gradient mesh ────────────────────────────────────────────── */
-.gradient-mesh {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.mesh-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.55;
-  animation: mesh-drift 20s ease-in-out infinite alternate;
-}
-
-.mesh-blob-1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(110, 231, 183, 0.20) 0%, transparent 70%);
-  top: -200px;
-  left: -150px;
-  animation-duration: 18s;
-}
-
-.mesh-blob-2 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.16) 0%, transparent 70%);
-  bottom: -150px;
-  right: -100px;
-  animation-duration: 22s;
-  animation-delay: -5s;
-}
-
-.mesh-blob-3 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(110, 231, 183, 0.10) 0%, transparent 70%);
-  top: 50%;
-  left: 65%;
-  transform: translate(-50%, -50%);
-  animation-duration: 25s;
-  animation-delay: -10s;
-}
-
-.mesh-blob-4 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, transparent 70%);
-  top: 30%;
-  right: 15%;
-  transform: translate(-50%, -50%);
-  animation-duration: 20s;
-  animation-delay: -8s;
-}
-
-@keyframes mesh-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(30px, -20px) scale(1.05); }
-  66%  { transform: translate(-20px, 30px) scale(0.95); }
-  100% { transform: translate(10px, 10px) scale(1.02); }
-}
-
-/* ─── Floating shapes ─────────────────────────────────────────── */
-.floating-shapes {
-  position: absolute;
-  inset: 0;
   z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--ui-space-12) var(--ui-space-10);
+}
+
+.auth-brand__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-bottom: var(--ui-space-8);
+}
+
+.auth-brand__mark {
+  display: flex;
+  color: var(--ui-accent);
+}
+
+.auth-brand__name {
+  font-size: var(--ui-text-lg);
+  font-weight: 700;
+  color: var(--ui-fg-primary);
+}
+
+.auth-brand__title {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--ui-text-3xl);
+  font-weight: 700;
+  line-height: var(--ui-line-tight);
+  color: var(--ui-fg-primary);
+  text-wrap: pretty;
+}
+
+.auth-brand__desc {
+  margin: 0 0 var(--ui-space-8);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-relaxed);
+  color: var(--ui-fg-secondary);
+  text-wrap: pretty;
+}
+
+.auth-brand__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.auth-brand__point {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-secondary);
+}
+
+.auth-brand__point svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--ui-fg-accent);
+}
+
+/* 纯 SVG 装饰：压在文案下层，不遮挡文字 */
+.auth-brand__art {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 320px;
+  height: auto;
+  color: var(--ui-fg-primary);
+  opacity: 0.5;
   pointer-events: none;
 }
 
-.shape {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(110, 231, 183, 0.12), rgba(52, 211, 153, 0.08));
-  animation: float 12s ease-in-out infinite;
-}
-
-.shape-1 {
-  width: 180px;
-  height: 180px;
-  top: 12%;
-  right: 8%;
-  animation-duration: 14s;
-}
-
-.shape-2 {
-  width: 120px;
-  height: 120px;
-  bottom: 20%;
-  left: 5%;
-  animation-duration: 10s;
-  animation-delay: -3s;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.10), rgba(110, 231, 183, 0.06));
-}
-
-.shape-3 {
-  width: 80px;
-  height: 80px;
-  top: 30%;
-  left: 12%;
-  animation-duration: 16s;
-  animation-delay: -7s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25%       { transform: translateY(-18px) rotate(5deg); }
-  50%       { transform: translateY(-8px) rotate(-3deg); }
-  75%       { transform: translateY(-24px) rotate(3deg); }
-}
-
-/* ─── Card ─────────────────────────────────────────────────────── */
-.auth-card {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-surface);
-  border: 1px solid rgba(229, 229, 229, 0.6);
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: var(--radius-xl);
-  padding: var(--space-10) var(--space-10);
-  box-shadow: var(--shadow-xl), 0 0 80px rgba(110, 231, 183, 0.06);
-  backdrop-filter: blur(20px);
-  opacity: 0;
-  transform: scale(0.95) translateY(16px);
-  transition:
-    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 200ms,
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 200ms;
-}
-
-.auth-card.is-visible {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-
-/* ─── Header ──────────────────────────────────────────────────── */
-.auth-header {
-  text-align: center;
-  margin-bottom: var(--space-8);
-}
-
-.auth-title {
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 var(--space-2);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.auth-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: 0;
-  font-weight: 400;
-}
-
-/* ─── Progress track ──────────────────────────────────────────── */
-.progress-track {
+/* ---- 右侧表单区 ---- */
+.auth-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  margin-bottom: var(--space-10);
-  position: relative;
+  padding: var(--ui-space-10) var(--ui-space-8);
+  background: var(--ui-bg-app);
 }
 
-.progress-line {
-  position: absolute;
-  height: 2px;
-  background: var(--color-border);
-  top: 16px;
-  z-index: 0;
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--ui-space-8);
+  background: var(--ui-bg-surface);
 }
 
-.progress-line:first-of-type {
-  left: calc(50% - 72px);
-  width: 72px;
+.auth-card__head {
+  margin-bottom: var(--ui-space-6);
 }
 
-.progress-line:last-of-type {
-  left: calc(50% + 0px);
-  width: 72px;
+.auth-card__title {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--ui-text-2xl);
+  font-weight: 700;
+  color: var(--ui-fg-primary);
 }
 
-.progress-line-fill {
-  height: 100%;
-  background: var(--color-accent);
-  box-shadow: 0 0 8px rgba(110, 231, 183, 0.5);
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.auth-card__subtitle {
+  margin: 0;
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-secondary);
 }
 
-.progress-step {
+/* ---- 步骤进度 ---- */
+.auth-steps {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  margin: 0 0 var(--ui-space-6);
+  padding: 0;
+}
+
+.auth-step {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  z-index: 1;
-  flex: 1;
-  max-width: 100px;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  position: relative;
 }
 
-.step-circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
+.auth-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: var(--ui-border);
+}
+
+.auth-step.is-complete:not(:last-child)::after {
+  background: var(--ui-accent-border);
+}
+
+.auth-step__dot {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  transition: border-color 0.4s, background 0.4s, color 0.4s, box-shadow 0.4s;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ui-radius-full);
+  border: 1px solid var(--ui-border-strong);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
 }
 
-.progress-step.is-active .step-circle {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.12);
-  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.auth-step__dot svg {
+  width: 13px;
+  height: 13px;
 }
 
-.progress-step.is-complete .step-circle {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: #fff;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(110, 231, 183, 0.3);
+.auth-step.is-active .auth-step__dot {
+  border-color: var(--ui-accent);
+  color: var(--ui-fg-accent);
+  box-shadow: var(--ui-ring);
 }
 
-.step-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  text-align: center;
+.auth-step.is-complete .auth-step__dot {
+  border-color: var(--ui-accent-border);
+  background: var(--ui-accent-soft);
+  color: var(--ui-fg-accent);
+}
+
+.auth-step__label {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
   white-space: nowrap;
 }
 
-.progress-step.is-active .step-label {
-  color: var(--color-accent);
+.auth-step.is-active .auth-step__label {
+  color: var(--ui-fg-accent);
   font-weight: 600;
 }
 
-@keyframes pulse-ring {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.12); }
-  50%       { box-shadow: 0 0 0 7px rgba(110, 231, 183, 0.06); }
-}
-
-/* ─── Step panels ─────────────────────────────────────────────── */
-.step-panel {
-  transition:
-    opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.step-panel.slide-out-left {
-  opacity: 0;
-  transform: translateX(-32px);
-}
-
-.step-panel.slide-in-right {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.step-hint {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--space-6);
-  text-align: center;
-  line-height: 1.5;
-}
-
-.step-hint strong {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-/* ─── Form ─────────────────────────────────────────────────────── */
+/* ---- 表单 ---- */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--ui-space-5);
 }
 
-.auth-form.shake {
-  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  15%       { transform: translateX(-6px); }
-  30%       { transform: translateX(5px); }
-  45%       { transform: translateX(-5px); }
-  60%       { transform: translateX(4px); }
-  75%       { transform: translateX(-3px); }
-  90%       { transform: translateX(2px); }
-}
-
-.form-group {
+.auth-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 }
 
-/* ─── Floating label inputs ───────────────────────────────────── */
-.floating-label-wrap {
+.auth-field__control {
   position: relative;
-}
-
-.floating-label-wrap input {
-  width: 100%;
-  padding: var(--space-4) var(--space-4);
-  padding-top: calc(var(--space-4) + 8px);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-family: var(--font-body);
-  color: var(--color-text);
-  background: var(--color-bg);
-  outline: none;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-}
-
-.floating-label-wrap input:focus {
-  border-color: var(--color-accent);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.10);
-}
-
-.floating-label-wrap input:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-  color: var(--color-text-secondary);
-}
-
-.floating-label-wrap input.has-value,
-.floating-label-wrap input:not(:placeholder-shown) {
-  background: var(--color-surface);
-}
-
-.floating-label-wrap label {
-  position: absolute;
-  left: var(--space-4);
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-base);
-  color: var(--color-text-secondary);
-  pointer-events: none;
-  transition: top 0.2s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s, color 0.2s, font-weight 0.2s;
-  background: transparent;
-  padding: 0 2px;
-}
-
-.floating-label-wrap label.floating {
-  top: 8px;
-  transform: translateY(0);
-  font-size: 11px;
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-.toggle-password {
-  position: absolute;
-  right: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  padding: var(--space-1);
   display: flex;
   align-items: center;
-  border-radius: var(--radius-sm);
-  transition: color 0.15s;
 }
 
-.toggle-password:hover {
-  color: var(--color-accent);
+.auth-field__input--suffix {
+  padding-right: 2.5rem;
 }
 
-.eye-icon {
-  transition: opacity 0.15s;
-}
-
-.eye-icon--closed {
-  opacity: 0.7;
-}
-
-/* ─── Send code button (light style) ──────────────────────────── */
-.send-code-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background: #ffffff;
-  color: #6ee7b7;
-  border: 1.5px solid #6ee7b7;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
+.auth-field__suffix {
+  position: absolute;
+  right: var(--ui-space-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(110, 231, 183, 0.08);
-  position: relative;
-  overflow: hidden;
-}
-
-.send-code-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(110, 231, 183, 0.06) 50%, transparent 60%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
-}
-
-.send-code-btn:hover:not(:disabled)::before {
-  transform: translateX(100%);
-}
-
-.send-code-btn:hover:not(:disabled) {
-  background: #6ee7b7;
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(110, 231, 183, 0.25);
-}
-
-.send-code-btn:active:not(:disabled) {
-  transform: scale(0.97);
-  box-shadow: 0 1px 4px rgba(110, 231, 183, 0.15);
-}
-
-.send-code-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  background: #f3f4f6;
-  color: #9ca3af;
-  border-color: #d1d5db;
-  box-shadow: none;
-}
-
-/* ─── Back button ─────────────────────────────────────────────── */
-.back-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  width: 28px;
+  height: 28px;
   padding: 0;
-  transition: color 0.15s;
-}
-
-.back-btn:hover {
-  color: var(--color-accent);
-}
-
-/* ─── Primary button (light style) ─────────────────────────────── */
-.auth-btn {
-  width: 100%;
-  padding: 14px;
-  background: #ffffff;
-  color: #6ee7b7;
-  border: 1.5px solid #6ee7b7;
-  border-radius: var(--radius-md);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  font-family: var(--font-body);
+  border: none;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-fg-muted);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  transition:
-    background 0.2s,
-    color 0.2s,
-    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(110, 231, 183, 0.08);
-  position: relative;
-  overflow: hidden;
+  transition: color var(--ui-duration-fast) var(--ui-ease-in-out),
+    background var(--ui-duration-fast) var(--ui-ease-in-out);
 }
 
-.auth-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(110, 231, 183, 0.06) 50%, transparent 60%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
+.auth-field__suffix svg {
+  width: 18px;
+  height: 18px;
 }
 
-.auth-btn:hover:not(:disabled)::before {
-  transform: translateX(100%);
+.auth-field__suffix:hover {
+  color: var(--ui-fg-accent);
+  background: var(--ui-bg-hover);
 }
 
-.auth-btn:hover:not(:disabled) {
-  background: #6ee7b7;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(110, 231, 183, 0.3);
+.auth-field__suffix:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
 }
 
-.auth-btn:active:not(:disabled) {
-  transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(110, 231, 183, 0.2);
+.auth-back {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: var(--ui-space-3);
+  color: var(--ui-fg-secondary);
 }
 
-.auth-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  background: #f3f4f6;
-  color: #9ca3af;
-  border-color: #d1d5db;
-  box-shadow: none;
+.auth-back svg {
+  width: 16px;
+  height: 16px;
 }
 
-/* ─── Spinner ─────────────────────────────────────────────────── */
-.btn-spinner {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* ─── Messages ─────────────────────────────────────────────────── */
-.code-sent-msg {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--color-success);
+.auth-note {
   margin: 0;
-  font-weight: 500;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
+  word-break: break-word;
 }
 
-.error-msg {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-error);
-  font-size: var(--text-sm);
+/* ---- 提示信息 ---- */
+.auth-hint {
   margin: 0;
-  padding: var(--space-3) var(--space-4);
-  background: #fef2f2;
-  border-radius: var(--radius-md);
-  border: 1px solid #fecaca;
-  font-weight: 500;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  word-break: break-word;
 }
 
-/* ─── Auth switch ─────────────────────────────────────────────── */
+.auth-hint--success {
+  color: var(--ui-success);
+}
+
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-danger-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
+}
+
+.auth-alert svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.auth-submit {
+  min-height: 2.75rem;
+}
+
+/* ---- 提交中动画 ---- */
+.auth-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ui-accent-fg);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- 底部切换 ---- */
 .auth-switch {
+  margin: var(--ui-space-6) 0 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
   text-align: center;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: var(--space-6) 0 0;
-  font-family: var(--font-body);
 }
 
-.auth-link {
-  color: var(--color-accent);
-  text-decoration: none;
+.auth-switch__link {
+  color: var(--ui-fg-accent);
   font-weight: 600;
-  transition: opacity 0.15s;
 }
 
-.auth-link:hover {
-  opacity: 0.8;
+.auth-switch__link:hover {
   text-decoration: underline;
 }
 
-/* ─── Responsive ──────────────────────────────────────────────── */
-@media (max-width: 480px) {
+/* ========================================
+   窄窗口（1280 以下或分栏放不下）：两栏上下堆叠
+   ======================================== */
+@media (max-width: 1024px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-brand {
+    border-right: none;
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  .auth-brand__inner {
+    max-width: none;
+    padding: var(--ui-space-8) var(--ui-space-6);
+  }
+
+  .auth-brand__logo {
+    margin-bottom: var(--ui-space-5);
+  }
+
+  .auth-brand__title {
+    font-size: var(--ui-text-2xl);
+  }
+
+  .auth-brand__desc {
+    margin-bottom: var(--ui-space-5);
+    font-size: var(--ui-text-base);
+  }
+
+  .auth-brand__art {
+    display: none;
+  }
+
+  .auth-panel {
+    padding: var(--ui-space-8) var(--ui-space-6);
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-brand__points {
+    display: none;
+  }
+
   .auth-card {
-    padding: var(--space-8) var(--space-6);
-    border-radius: var(--radius-lg);
-  }
-
-  .progress-track {
-    margin-bottom: var(--space-8);
-  }
-
-  .progress-line:first-of-type {
-    left: calc(50% - 60px);
-    width: 60px;
-  }
-
-  .progress-line:last-of-type {
-    left: calc(50% + 0px);
-    width: 60px;
-  }
-
-  .step-circle {
-    width: 28px;
-    height: 28px;
-    font-size: 10px;
-  }
-
-  .step-label {
-    font-size: 10px;
-  }
-
-  .auth-title {
-    font-size: var(--text-2xl);
+    padding: var(--ui-space-6);
   }
 }
 </style>

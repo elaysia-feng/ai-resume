@@ -1,69 +1,135 @@
 <template>
   <section class="style-panel">
-    <h2 class="section-title">Style</h2>
+    <header class="style-panel__head">
+      <h2 class="section-title">样式</h2>
+      <p class="style-panel__hint">调整排版后右侧预览会立即更新。</p>
+    </header>
 
     <div class="control-group">
-      <label class="control-label">Font Family</label>
-      <div class="font-options">
+      <label class="ui-label" for="style-font">字体</label>
+      <select
+        id="style-font"
+        class="ui-input ui-select"
+        :value="localStyle.font"
+        @change="update('font', $event.target.value)"
+      >
+        <option v-for="font in fonts" :key="font.value" :value="font.value">
+          {{ font.label }}
+        </option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <span class="ui-label">正文字号</span>
+      <div class="segment" role="group" aria-label="正文字号">
         <button
-          v-for="font in fonts"
-          :key="font"
-          class="font-btn"
-          :class="{ selected: localStyle.font === font }"
-          :style="{ fontFamily: font }"
-          @click="update('font', font)"
+          v-for="size in fontSizes"
+          :key="size"
+          type="button"
+          class="segment__item"
+          :class="{ 'is-active': Number(localStyle.fontSize) === size }"
+          :aria-pressed="Number(localStyle.fontSize) === size"
+          @click="update('fontSize', size)"
         >
-          {{ font }}
+          {{ size }}px
         </button>
       </div>
     </div>
 
     <div class="control-group">
-      <label class="control-label">Accent Color</label>
-      <div class="color-swatches">
-        <button
-          v-for="color in accentColors"
-          :key="color.value"
-          class="swatch-btn"
-          :class="{ selected: localStyle.color === color.value }"
-          :style="{ background: color.value }"
-          :title="color.name"
-          @click="update('color', color.value)"
-        >
-          <span v-if="localStyle.color === color.value" class="swatch-check">&#10003;</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="control-group" v-if="showSidebarColor">
-      <label class="control-label">Sidebar Color</label>
-      <div class="color-swatches">
-        <button
-          v-for="color in sidebarColors"
-          :key="color.value"
-          class="swatch-btn"
-          :class="{ selected: localStyle.sidebarColor === color.value }"
-          :style="{ background: color.value }"
-          :title="color.name"
-          @click="update('sidebarColor', color.value)"
-        >
-          <span v-if="localStyle.sidebarColor === color.value" class="swatch-check">&#10003;</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <label class="control-label">Line Spacing</label>
-      <div class="spacing-options">
+      <span class="ui-label">行距</span>
+      <div class="segment" role="group" aria-label="行距">
         <button
           v-for="sp in spacingOptions"
           :key="sp.value"
-          class="spacing-btn"
-          :class="{ selected: localStyle.spacing === sp.value }"
+          type="button"
+          class="segment__item"
+          :class="{ 'is-active': localStyle.spacing === sp.value }"
+          :aria-pressed="localStyle.spacing === sp.value"
           @click="update('spacing', sp.value)"
         >
           {{ sp.label }}
         </button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="ui-label">区块间距</span>
+      <div class="segment" role="group" aria-label="区块间距">
+        <button
+          v-for="gap in gapOptions"
+          :key="gap.value"
+          type="button"
+          class="segment__item"
+          :class="{ 'is-active': localStyle.sectionGap === gap.value }"
+          :aria-pressed="localStyle.sectionGap === gap.value"
+          @click="update('sectionGap', gap.value)"
+        >
+          {{ gap.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="ui-label">强调色</span>
+      <div class="swatches">
+        <button
+          v-for="color in accentColors"
+          :key="color.value"
+          type="button"
+          class="swatch"
+          :class="{ 'is-active': localStyle.color === color.value }"
+          :style="{ background: color.value }"
+          :title="color.name"
+          :aria-label="color.name"
+          :aria-pressed="localStyle.color === color.value"
+          @click="update('color', color.value)"
+        >
+          <span v-if="localStyle.color === color.value" class="swatch__check">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <div v-if="showSidebarColor" class="control-group">
+      <span class="ui-label">左栏配色</span>
+      <div class="swatches">
+        <button
+          v-for="color in sidebarColors"
+          :key="color.value"
+          type="button"
+          class="swatch swatch--block"
+          :class="{ 'is-active': localStyle.sidebarColor === color.value }"
+          :title="color.name"
+          :aria-pressed="localStyle.sidebarColor === color.value"
+          @click="update('sidebarColor', color.value)"
+        >
+          <span class="swatch__chip" :style="{ background: color.swatch }"></span>
+          {{ color.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="ui-label">区块分隔线</span>
+      <label class="switch">
+        <input
+          type="checkbox"
+          class="switch__input"
+          :checked="localStyle.dividers !== false"
+          @change="update('dividers', $event.target.checked)"
+        />
+        <span class="switch__track" aria-hidden="true"></span>
+        <span class="switch__text">{{ localStyle.dividers !== false ? '显示' : '隐藏' }}</span>
+      </label>
+    </div>
+
+    <div class="style-panel__preview-wrap">
+      <span class="ui-label">实时预览</span>
+      <div class="style-panel__preview" :style="previewStyle">
+        <p class="preview-name">张明</p>
+        <p class="preview-job">Java 后端开发工程师</p>
+        <p class="preview-section">项目经历</p>
+        <p class="preview-body">负责核心交易链路的设计与实现，推动接口响应时间下降 40%。</p>
       </div>
     </div>
   </section>
@@ -93,147 +159,303 @@ function update(key, value) {
   emit('update:modelValue', { ...localStyle })
 }
 
-const fonts = ['Inter', 'Merriweather', 'Roboto', 'Georgia']
+// 字体栈与设计系统保持一致：界面字体为系统栈，衬线走 --ui-font-display
+const fonts = [
+  { value: 'Inter', label: '系统无衬线（默认）', stack: "var(--ui-font-sans)" },
+  { value: 'Roboto', label: 'Roboto', stack: "'Roboto', var(--ui-font-sans)" },
+  { value: 'Merriweather', label: 'Merriweather', stack: "'Merriweather', Georgia, var(--ui-font-display)" },
+  { value: 'Georgia', label: 'Georgia 衬线', stack: "Georgia, 'Songti SC', var(--ui-font-display)" },
+]
 
 const accentColors = [
-  { value: '#22c55e', name: 'Green' },
-  { value: '#3b82f6', name: 'Blue' },
-  { value: '#10b981', name: 'Green' },
-  { value: '#f59e0b', name: 'Amber' },
-  { value: '#ef4444', name: 'Red' },
+  { value: 'var(--ui-brand-600)', name: '品牌绿' },
+  { value: 'var(--ui-info)', name: '天蓝' },
+  { value: 'var(--ui-warning)', name: '琥珀' },
+  { value: 'var(--ui-danger)', name: '砖红' },
+  { value: 'var(--ui-neutral-800)', name: '墨黑' },
+  { value: 'var(--ui-brand-800)', name: '松绿' },
 ]
 
 const sidebarColors = [
-  { value: 'blue',  name: 'Blue' },
-  { value: 'black', name: 'Black' },
-  { value: 'white', name: 'White' },
-  { value: 'gray',  name: 'Gray' },
+  {
+    value: 'blue',
+    name: '深蓝',
+    label: '深蓝',
+    swatch: 'linear-gradient(180deg, color-mix(in srgb, var(--ui-info) 82%, var(--ui-neutral-950)) 0%, color-mix(in srgb, var(--ui-info) 55%, var(--ui-neutral-950)) 100%)',
+  },
+  { value: 'black', name: '墨黑', label: '墨黑', swatch: 'linear-gradient(180deg, var(--ui-neutral-900) 0%, var(--ui-neutral-800) 100%)' },
+  { value: 'white', name: '纯白', label: '纯白', swatch: 'linear-gradient(180deg, var(--ui-neutral-0) 0%, var(--ui-neutral-50) 100%)' },
+  { value: 'gray', name: '浅灰', label: '浅灰', swatch: 'linear-gradient(180deg, var(--ui-neutral-100) 0%, var(--ui-neutral-50) 100%)' },
 ]
 
 const showSidebarColor = computed(() => localStyle.template === 'modern')
 
+const fontSizes = [9, 10, 11, 12]
+
 const spacingOptions = [
-  { label: 'Compact',   value: 'compact'   },
-  { label: 'Normal',     value: 'normal'    },
-  { label: 'Relaxed',   value: 'relaxed'   },
+  { label: '紧凑', value: 'compact' },
+  { label: '标准', value: 'normal' },
+  { label: '宽松', value: 'relaxed' },
 ]
+
+const gapOptions = [
+  { label: '紧凑', value: 'compact' },
+  { label: '标准', value: 'normal' },
+  { label: '宽松', value: 'relaxed' },
+]
+
+const lineHeightMap = { compact: 1.35, normal: 1.6, relaxed: 1.85 }
+const gapMap = { compact: 10, normal: 16, relaxed: 22 }
+
+const previewStyle = computed(() => {
+  const font = fonts.find((item) => item.value === localStyle.font) || fonts[0]
+  const fontSize = Number(localStyle.fontSize) || 10
+
+  return {
+    fontFamily: font.stack,
+    fontSize: `${fontSize}px`,
+    lineHeight: String(lineHeightMap[localStyle.spacing] || lineHeightMap.normal),
+    '--preview-accent': localStyle.color || 'var(--ui-brand-600)',
+    '--preview-gap': `${gapMap[localStyle.sectionGap] || gapMap.normal}px`,
+    '--preview-divider': localStyle.dividers === false ? 'none' : '1px solid var(--ui-border)',
+  }
+})
 </script>
 
 <style scoped>
 .style-panel {
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  padding: var(--ui-space-5);
+}
+
+.style-panel__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 20px;
+  margin: 0;
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.style-panel__hint {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
 }
 
 .control-group {
-  margin-bottom: 24px;
-}
-
-.control-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-  margin-bottom: 10px;
-}
-
-/* Font buttons */
-.font-options {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
-.font-btn {
-  padding: 10px 14px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+.control-group :deep(.ui-label) {
+  margin-bottom: var(--ui-space-2);
+}
+
+/* ---------- 分段选择 ---------- */
+.segment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.segment__item {
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
   cursor: pointer;
-  text-align: left;
-  font-size: 15px;
-  color: #374151;
-  transition: border-color 0.2s, background 0.2s;
+  transition: background var(--ui-duration-fast) var(--ui-ease-out),
+    color var(--ui-duration-fast) var(--ui-ease-out);
 }
 
-.font-btn:hover {
-  border-color: #22c55e;
+.segment__item:hover {
+  background: var(--ui-bg-hover);
+  color: var(--ui-fg-primary);
 }
 
-.font-btn.selected {
-  border-color: #22c55e;
-  background: #dcfce7;
+.segment__item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.segment__item.is-active {
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-accent);
   font-weight: 600;
+  box-shadow: var(--ui-shadow-xs);
 }
 
-/* Color swatches */
-.color-swatches {
+/* ---------- 色板 ---------- */
+.swatches {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
 }
 
-.swatch-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  cursor: pointer;
-  display: flex;
+.swatch {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s, border-color 0.2s;
-}
-
-.swatch-btn:hover {
-  transform: scale(1.1);
-}
-
-.swatch-btn.selected {
-  border-color: #1a1a2e;
-}
-
-.swatch-check {
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-/* Spacing buttons */
-.spacing-options {
-  display: flex;
-  gap: 8px;
-}
-
-.spacing-btn {
-  flex: 1;
-  padding: 10px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+  gap: var(--ui-space-2);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--ui-radius-md);
   cursor: pointer;
-  font-size: 13px;
+  box-shadow: inset 0 0 0 1px var(--ui-border);
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
+    transform var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.swatch:hover {
+  transform: translateY(-1px);
+}
+
+.swatch:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.swatch.is-active {
+  border-color: var(--ui-accent);
+}
+
+.swatch--block {
+  width: auto;
+  padding: 0 var(--ui-space-2) 0 3px;
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-xs);
   font-weight: 500;
-  color: #374151;
-  transition: border-color 0.2s, background 0.2s;
 }
 
-.spacing-btn:hover {
-  border-color: #22c55e;
+.swatch--block.is-active {
+  color: var(--ui-fg-primary);
 }
 
-.spacing-btn.selected {
-  border-color: #22c55e;
-  background: #dcfce7;
-  color: #22c55e;
+.swatch__chip {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--ui-radius-xs);
+  box-shadow: inset 0 0 0 1px var(--ui-border);
+}
+
+.swatch__check {
+  color: var(--ui-accent-fg);
+  font-size: 14px;
   font-weight: 700;
+  text-shadow: 0 1px 2px var(--ui-overlay);
+}
+
+/* ---------- 开关 ---------- */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch__track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-bg-active);
+  transition: background var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-xs);
+  transition: transform var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--ui-accent);
+}
+
+.switch__input:checked + .switch__track::after {
+  transform: translateX(16px);
+}
+
+.switch__input:focus-visible + .switch__track {
+  box-shadow: var(--ui-ring);
+}
+
+.switch__text {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
+}
+
+/* ---------- 实时预览 ---------- */
+.style-panel__preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--ui-border);
+}
+
+.style-panel__preview {
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+}
+
+.preview-name {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 700;
+  color: var(--ui-fg-primary);
+}
+
+.preview-job {
+  margin: 2px 0 0;
+  font-size: 1.1em;
+  color: var(--ui-fg-secondary);
+}
+
+.preview-section {
+  margin: var(--preview-gap) 0 0;
+  padding-bottom: 3px;
+  border-bottom: var(--preview-divider);
+  font-weight: 700;
+  color: var(--preview-accent);
+}
+
+.preview-body {
+  margin: var(--ui-space-1) 0 0;
+  color: var(--ui-fg-primary);
 }
 </style>

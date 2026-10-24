@@ -1,5 +1,23 @@
 <template>
-  <button v-if="!open" class="copilot-launcher" type="button" @click="open = true">AI</button>
+  <button
+    v-if="!open"
+    class="copilot-launcher"
+    type="button"
+    title="打开 AI 助手"
+    aria-label="打开 AI 助手"
+    @click="open = true"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+      <path d="M18 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+    </svg>
+  </button>
+
   <section
     v-else
     class="floating-copilot"
@@ -7,34 +25,64 @@
     :style="panelStyle"
   >
     <header class="floating-copilot__header" @mousedown="startDrag">
-      <div>
-        <strong>Agent Copilot</strong>
-        <span>{{ sectionTitle }}</span>
+      <div class="floating-copilot__heading">
+        <strong class="floating-copilot__title">AI 助手</strong>
+        <span class="floating-copilot__subtitle">{{ sectionTitle }}</span>
       </div>
       <div class="floating-copilot__tools">
-        <button type="button" @click.stop="minimized = !minimized">{{ minimized ? '展开' : '最小化' }}</button>
-        <button type="button" @click.stop="open = false">关闭</button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click.stop="minimized = !minimized">
+          {{ minimized ? '展开' : '最小化' }}
+        </button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click.stop="open = false">关闭</button>
       </div>
     </header>
 
     <div v-if="!minimized" class="floating-copilot__body">
       <div class="floating-copilot__row">
-        <select v-model="sessionId" @change="loadSessionDetail">
+        <select v-model="sessionId" class="ui-input ui-select" aria-label="选择会话" @change="loadSessionDetail">
           <option :value="null">选择会话</option>
           <option v-for="session in sessions" :key="session.id" :value="session.id">
             {{ session.sessionTitle || `Session ${session.id}` }}
           </option>
         </select>
-        <button type="button" @click="newSession">New Session</button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="newSession">新建会话</button>
       </div>
 
-      <textarea v-model="jobDescription" rows="4" placeholder="目标岗位 JD，会保存在当前 session"></textarea>
-      <textarea v-model="userInput" rows="3" placeholder="说明希望 AI 如何优化当前模块"></textarea>
+      <div class="floating-copilot__field">
+        <label class="ui-label" for="floating-copilot-jd">目标岗位 JD</label>
+        <textarea
+          id="floating-copilot-jd"
+          v-model="jobDescription"
+          class="ui-input"
+          rows="4"
+          placeholder="目标岗位 JD，会保存在当前 session"
+        ></textarea>
+      </div>
+
+      <div class="floating-copilot__field">
+        <label class="ui-label" for="floating-copilot-input">优化要求</label>
+        <textarea
+          id="floating-copilot-input"
+          v-model="userInput"
+          class="ui-input"
+          rows="3"
+          placeholder="说明希望 AI 如何优化当前模块"
+        ></textarea>
+      </div>
 
       <div class="floating-copilot__actions">
-        <label><input type="checkbox" :checked="useMock" @change="toggleMock" /> Mock</label>
-        <button type="button" :disabled="running || !canStart" @click="startRun">
-          {{ running ? '运行中...' : '优化当前模块' }}
+        <label class="switch">
+          <input type="checkbox" class="switch__input" :checked="useMock" @change="toggleMock" />
+          <span class="switch__track" aria-hidden="true"></span>
+          <span class="switch__text">Mock</span>
+        </label>
+        <button
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--primary"
+          :disabled="running || !canStart"
+          @click="startRun"
+        >
+          {{ running ? '运行中…' : '优化当前模块' }}
         </button>
       </div>
 
@@ -42,36 +90,38 @@
       <p v-if="statusText" class="floating-copilot__status">{{ statusText }}</p>
 
       <div v-if="messages.length" class="floating-copilot__history">
-        <strong>最近历史</strong>
+        <strong class="floating-copilot__block-title">最近历史</strong>
         <p v-for="message in messages.slice(-4)" :key="message.id">
-          {{ message.role }}：{{ message.content }}
+          <span class="floating-copilot__role">{{ message.role }}</span>{{ message.content }}
         </p>
       </div>
 
       <div v-if="events.length" class="floating-copilot__events">
         <p v-for="event in events" :key="`${event.runId}-${event.eventSeq}-${event.eventType}`">
-          <span>{{ event.stageCode || event.eventType }}</span>{{ event.message }}
+          <span class="floating-copilot__stage">{{ event.stageCode || event.eventType }}</span>{{ event.message }}
         </p>
       </div>
 
       <div v-if="clarificationPayload?.questions?.length" class="floating-copilot__box">
-        <strong>需要补充信息</strong>
-        <label v-for="question in clarificationPayload.questions" :key="question.fieldKey">
-          {{ question.question }}
-          <textarea v-model="clarificationAnswers[question.fieldKey]" rows="2"></textarea>
+        <strong class="floating-copilot__block-title">需要补充信息</strong>
+        <label v-for="question in clarificationPayload.questions" :key="question.fieldKey" class="floating-copilot__question">
+          <span class="ui-label">{{ question.question }}</span>
+          <textarea v-model="clarificationAnswers[question.fieldKey]" class="ui-input" rows="2"></textarea>
         </label>
-        <button type="button" :disabled="running" @click="continueRun">提交补充</button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="running" @click="continueRun">
+          提交补充
+        </button>
       </div>
 
       <div v-if="approvalPayload" class="floating-copilot__box">
-        <strong>{{ approvalPayload.summary || '待确认修改' }}</strong>
+        <strong class="floating-copilot__block-title">{{ approvalPayload.summary || '待确认修改' }}</strong>
         <div v-for="patch in approvalPayload.patches || []" :key="patch.patchId" class="floating-copilot__patch">
-          <span>{{ patch.sectionTitle || sectionTitle }}</span>
-          <p>{{ patch.changeSummary || patch.reason }}</p>
-          <pre>{{ formatJson(patch.afterJson) }}</pre>
+          <span class="floating-copilot__patch-title">{{ patch.sectionTitle || sectionTitle }}</span>
+          <p class="floating-copilot__patch-summary">{{ patch.changeSummary || patch.reason }}</p>
+          <pre class="floating-copilot__code">{{ formatJson(patch.afterJson) }}</pre>
         </div>
-        <button type="button" :disabled="approving" @click="approveRun">
-          {{ approving ? '应用中...' : '确认应用' }}
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="approving" @click="approveRun">
+          {{ approving ? '应用中…' : '确认应用' }}
         </button>
       </div>
     </div>
@@ -257,10 +307,14 @@ async function approveRun() {
   approving.value = true;
   try {
     const patches = approvalPayload.value.patches || [];
-    const response = await approveAgentRun(approvalPayload.value.runId, {
-      resumeId: props.resumeId,
-      approvedPatchIds: patches.map((patch) => patch.patchId),
-    }, { mock: useMock.value });
+    const response = await approveAgentRun(
+      approvalPayload.value.runId,
+      {
+        resumeId: props.resumeId,
+        approvedPatchIds: patches.map((patch) => patch.patchId),
+      },
+      { mock: useMock.value },
+    );
     statusText.value = '已确认应用';
     await loadSessionDetail();
     emit('approved', response);
@@ -304,33 +358,60 @@ function formatJson(value) {
 </script>
 
 <style scoped>
+/* ---------- 悬浮球 ---------- */
 .copilot-launcher {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: var(--ui-space-6);
+  bottom: var(--ui-space-6);
   z-index: 80;
-  width: 54px;
-  height: 54px;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--ui-accent-border);
   border-radius: 50%;
-  background: #16a34a;
-  color: #fff;
-  font-weight: 800;
-  box-shadow: 0 16px 36px rgba(22, 163, 74, 0.28);
+  background: var(--ui-accent);
+  color: var(--ui-accent-fg);
   cursor: pointer;
+  box-shadow: var(--ui-shadow-lg);
+  transition: transform var(--ui-duration-fast) var(--ui-ease-out),
+    background var(--ui-duration-fast) var(--ui-ease-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-out);
 }
 
+.copilot-launcher:hover {
+  transform: translateY(-2px);
+  background: var(--ui-accent-hover);
+  box-shadow: var(--ui-shadow-xl);
+}
+
+.copilot-launcher:active {
+  transform: translateY(0);
+  background: var(--ui-accent-active);
+}
+
+.copilot-launcher:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring), var(--ui-shadow-lg);
+}
+
+/* ---------- 浮动面板 ---------- */
 .floating-copilot {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 80;
+  display: flex;
+  flex-direction: column;
   width: 420px;
   max-height: min(760px, calc(100vh - 24px));
-  border: 1px solid #d1fae5;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 20px 54px rgba(15, 23, 42, 0.22);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  box-shadow: var(--ui-shadow-xl);
   overflow: hidden;
 }
 
@@ -342,113 +423,239 @@ function formatJson(value) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  background: #f0fdf4;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-bg-sunken);
   cursor: move;
 }
 
-.floating-copilot__header div:first-child {
-  display: grid;
-  gap: 2px;
-}
-
-.floating-copilot__header span,
-.floating-copilot__status,
-.floating-copilot__history p,
-.floating-copilot__events p {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.floating-copilot__tools,
-.floating-copilot__row,
-.floating-copilot__actions {
+.floating-copilot__heading {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
-.floating-copilot__body {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  max-height: calc(100vh - 120px);
-  overflow: auto;
+.floating-copilot__title {
+  font-size: var(--ui-text-md);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
 }
 
-.floating-copilot textarea,
-.floating-copilot select {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 8px;
-  font: inherit;
-}
-
-.floating-copilot button {
-  border: 0;
-  border-radius: 7px;
-  padding: 7px 10px;
-  background: #16a34a;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
+.floating-copilot__subtitle {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.floating-copilot button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.floating-copilot__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  flex-shrink: 0;
 }
 
-.floating-copilot__tools button {
-  background: #dcfce7;
-  color: #166534;
+.floating-copilot__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.floating-copilot__row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.floating-copilot__row :deep(select) {
+  flex: 1;
+  min-width: 0;
+}
+
+.floating-copilot__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-copilot__field :deep(.ui-label) {
+  margin-bottom: var(--ui-space-1);
+}
+
+.floating-copilot__field :deep(textarea) {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.floating-copilot__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
 }
 
 .floating-copilot__error {
   margin: 0;
-  color: #b91c1c;
-  font-size: 13px;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-danger-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: var(--ui-text-sm);
+}
+
+.floating-copilot__status {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
 }
 
 .floating-copilot__history,
 .floating-copilot__events,
-.floating-copilot__box,
-.floating-copilot__patch {
-  display: grid;
-  gap: 7px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 9px;
-  background: #f8fafc;
+.floating-copilot__box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
 }
 
-.floating-copilot__events span {
+.floating-copilot__block-title {
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.floating-copilot__history p,
+.floating-copilot__events p {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
+  word-break: break-word;
+}
+
+.floating-copilot__role {
+  margin-right: 4px;
+  color: var(--ui-fg-muted);
+}
+
+.floating-copilot__stage {
   display: inline-block;
-  min-width: 96px;
-  color: #16a34a;
-  font-weight: 700;
+  min-width: 88px;
+  color: var(--ui-fg-accent);
+  font-weight: 600;
+  font-family: var(--ui-font-mono);
 }
 
-.floating-copilot__box label {
-  display: grid;
-  gap: 5px;
-  color: #334155;
-  font-size: 13px;
+.floating-copilot__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
 }
 
-.floating-copilot__patch pre {
+.floating-copilot__question :deep(.ui-label) {
+  margin-bottom: 0;
+}
+
+.floating-copilot__question :deep(textarea) {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.floating-copilot__patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+}
+
+.floating-copilot__patch-title {
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  color: var(--ui-fg-secondary);
+}
+
+.floating-copilot__patch-summary {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-primary);
+}
+
+.floating-copilot__code {
   max-height: 180px;
   overflow: auto;
   margin: 0;
-  padding: 8px;
-  border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
-  font-size: 12px;
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-inverse);
+  color: var(--ui-fg-inverse);
+  font-family: var(--ui-font-mono);
+  font-size: var(--ui-text-xs);
+  line-height: 1.6;
+}
+
+/* ---------- 开关 ---------- */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch__track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-bg-active);
+  transition: background var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-xs);
+  transition: transform var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--ui-accent);
+}
+
+.switch__input:checked + .switch__track::after {
+  transform: translateX(16px);
+}
+
+.switch__input:focus-visible + .switch__track {
+  box-shadow: var(--ui-ring);
+}
+
+.switch__text {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
 }
 
 @media (max-width: 720px) {
@@ -459,7 +666,7 @@ function formatJson(value) {
     bottom: 0;
     width: 100%;
     max-height: 82vh;
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
     transform: none !important;
   }
 }

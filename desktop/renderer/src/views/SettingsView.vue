@@ -1,155 +1,200 @@
 <template>
   <div class="settings-page">
-    <header class="settings-header">
-      <div>
+    <header class="page-head">
+      <div class="page-head__text">
         <h1 class="page-title">设置</h1>
-        <p class="page-subtitle">配置模型接入与后端地址，桌面端会写入安装目录的 config/application.yaml。</p>
+        <p class="page-subtitle">配置对话模型、Agent 模型、服务地址与后端进程状态。桌面端保存后会写入安装目录的 config/application.yaml。</p>
       </div>
-      <div class="header-actions">
-        <button class="ghost-btn" :disabled="loading" @click="loadConfig">
-          {{ loading ? '加载中...' : '重新加载' }}
+      <div class="page-head__actions">
+        <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadConfig">
+          {{ loading ? '加载中…' : '重新加载' }}
         </button>
       </div>
     </header>
 
-    <p v-if="environmentTip" class="environment-tip">{{ environmentTip }}</p>
+    <p v-if="environmentTip" class="notice notice--warning">{{ environmentTip }}</p>
 
-    <!-- 区块一：对话模型（Java 链路） -->
-    <section class="panel-card">
-      <div class="panel-head">
-        <div>
-          <h3>对话模型（Java 链路）</h3>
-          <p>这一组配置给 Java 后端的对话循环用，走 Anthropic 兼容端点。</p>
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label class="field-label" for="chat-base-url">Base URL</label>
-          <input id="chat-base-url" v-model="config.chat.baseUrl" type="text" placeholder="https://api.minimaxi.com/anthropic" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="chat-api-key">API Key</label>
-          <div class="input-action">
-            <input id="chat-api-key" v-model="config.chat.apiKey" :type="showChatKey ? 'text' : 'password'" placeholder="sk-..." autocomplete="off" />
-            <button class="toggle-btn" type="button" @click="showChatKey = !showChatKey">
-              {{ showChatKey ? '隐藏' : '显示' }}
-            </button>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label" for="chat-model">模型名</label>
-          <input id="chat-model" v-model="config.chat.model" type="text" placeholder="MiniMax-M3.1-Flash" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="chat-max-tokens">最大输出 token</label>
-          <input id="chat-max-tokens" v-model.number="config.chat.maxTokens" type="number" min="1" step="1" />
-        </div>
-      </div>
-    </section>
-
-    <!-- 区块二：Agent 模型（Python 链路） -->
-    <section class="panel-card">
-      <div class="panel-head">
-        <div>
-          <h3>Agent 模型（Python 链路）</h3>
-          <p>这一组配置给 Python AI 运行时用，走 OpenAI 兼容端点。</p>
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label class="field-label" for="agent-provider">供应商</label>
-          <select id="agent-provider" v-model="config.agent.provider">
-            <option v-for="option in providerOptions" :key="option" :value="option">{{ option }}</option>
-          </select>
-          <span class="field-hint">选择 deepseek 或 mimo 会自动填入对应的 Base URL 与模型名，custom 需要自己填写。</span>
-        </div>
-        <div class="field">
-          <label class="field-label" for="agent-base-url">Base URL</label>
-          <input id="agent-base-url" v-model="config.agent.baseUrl" type="text" placeholder="https://api.deepseek.com/v1" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="agent-api-key">API Key</label>
-          <div class="input-action">
-            <input id="agent-api-key" v-model="config.agent.apiKey" :type="showAgentKey ? 'text' : 'password'" placeholder="sk-..." autocomplete="off" />
-            <button class="toggle-btn" type="button" @click="showAgentKey = !showAgentKey">
-              {{ showAgentKey ? '隐藏' : '显示' }}
-            </button>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label" for="agent-model">模型名</label>
-          <input id="agent-model" v-model="config.agent.model" type="text" placeholder="deepseek-chat" />
-        </div>
-      </div>
-    </section>
-
-    <!-- 区块三：服务地址 -->
-    <section class="panel-card">
-      <div class="panel-head">
-        <div>
-          <h3>服务地址</h3>
-          <p>桌面端启动后端进程时使用的监听地址，改完需要重启后端。</p>
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label class="field-label" for="server-host">Java 后端 host</label>
-          <input id="server-host" v-model="config.server.host" type="text" placeholder="127.0.0.1" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="server-port">Java 后端 port</label>
-          <input id="server-port" v-model.number="config.server.port" type="number" min="1" max="65535" step="1" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="python-host">Python 运行时 host</label>
-          <input id="python-host" v-model="config.python.host" type="text" placeholder="127.0.0.1" />
-        </div>
-        <div class="field">
-          <label class="field-label" for="python-port">Python 运行时 port</label>
-          <input id="python-port" v-model.number="config.python.port" type="number" min="1" max="65535" step="1" />
-        </div>
-        <div class="field field-wide">
-          <label class="field-label" for="internal-token">内部接口令牌 internalToken</label>
-          <input id="internal-token" v-model="config.internalToken" type="text" placeholder="change-me" autocomplete="off" />
-          <span class="field-hint">Java 与 Python 两端必须一致，否则两端互相调用会失败。</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 区块四：后端进程状态 -->
-    <section class="panel-card">
-      <div class="panel-head">
-        <div>
-          <h3>后端进程状态</h3>
-          <p>查看两个后端进程是否在运行，以及最近一次退出原因。</p>
-        </div>
-        <button class="ghost-btn" :disabled="restarting" @click="restartBackends">
-          {{ restarting ? '重启中...' : '重启后端' }}
+    <div class="settings-layout">
+      <!-- 左侧分区目录：点击切换右侧区块 -->
+      <nav class="section-nav" aria-label="设置分区目录">
+        <p class="section-nav__caption">配置分区</p>
+        <button
+          v-for="section in SECTIONS"
+          :key="section.id"
+          type="button"
+          class="section-nav__item"
+          :class="{ 'is-active': activeSection === section.id }"
+          :aria-current="activeSection === section.id ? 'true' : undefined"
+          @click="activeSection = section.id"
+        >
+          <span class="section-nav__title">{{ section.title }}</span>
+          <span class="section-nav__meta">{{ sectionMeta(section.id) }}</span>
         </button>
-      </div>
-      <div class="process-list">
-        <div v-for="item in processStates" :key="item.id" class="process-item">
-          <div class="process-main">
-            <span class="process-name">{{ processLabel(item.id) }}</span>
-            <span class="status-badge" :class="item.running ? 'running' : 'stopped'">
-              {{ item.running ? '运行中' : '未运行' }}
-            </span>
-          </div>
-          <div class="process-meta">
-            <span>已重启 {{ item.restarts }} 次</span>
-            <span>
-              最近退出：{{ item.lastExitReason || '无' }}
-              <template v-if="item.lastExitCode !== null">（退出码 {{ item.lastExitCode }}）</template>
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
+      </nav>
 
-    <footer class="settings-footer">
-      <p v-if="message" class="save-message" :class="messageType">{{ message }}</p>
-      <button class="primary-btn" :disabled="saving" @click="saveConfig">
-        {{ saving ? '保存中...' : '保存配置' }}
+      <div class="section-body">
+        <!-- 区块一：对话模型（Java 链路） -->
+        <section v-show="activeSection === 'chat'" class="ui-card block">
+          <header class="block__head">
+            <div>
+              <h2 class="block__title">对话模型（Java 链路）</h2>
+              <p class="block__desc">这一组配置给 Java 后端的对话循环用，走 Anthropic 兼容端点。</p>
+            </div>
+            <span class="ui-badge ui-badge--accent">{{ config.chat.model || '未设置模型' }}</span>
+          </header>
+
+          <div class="field-grid">
+            <div class="field">
+              <label class="ui-label" for="chat-base-url">Base URL</label>
+              <input id="chat-base-url" v-model="config.chat.baseUrl" class="ui-input" type="text" placeholder="https://api.minimaxi.com/anthropic" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="chat-api-key">API Key</label>
+              <div class="input-with-action">
+                <input id="chat-api-key" v-model="config.chat.apiKey" class="ui-input" :type="showChatKey ? 'text' : 'password'" placeholder="sk-…" autocomplete="off" />
+                <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="showChatKey = !showChatKey">
+                  {{ showChatKey ? '隐藏' : '显示' }}
+                </button>
+              </div>
+              <p class="field__hint">密钥只写入本机配置文件，不会上传到第三方服务。</p>
+            </div>
+            <div class="field">
+              <label class="ui-label" for="chat-model">模型名</label>
+              <input id="chat-model" v-model="config.chat.model" class="ui-input" type="text" placeholder="MiniMax-M3.1-Flash" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="chat-max-tokens">最大输出 token</label>
+              <input id="chat-max-tokens" v-model.number="config.chat.maxTokens" class="ui-input" type="number" min="1" step="1" />
+              <p class="field__hint">单次请求允许生成的最大 token 数。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 区块二：Agent 模型（Python 链路） -->
+        <section v-show="activeSection === 'agent'" class="ui-card block">
+          <header class="block__head">
+            <div>
+              <h2 class="block__title">Agent 模型（Python 链路）</h2>
+              <p class="block__desc">这一组配置给 Python AI 运行时用，走 OpenAI 兼容端点。</p>
+            </div>
+            <span class="ui-badge ui-badge--accent">{{ config.agent.provider || 'custom' }}</span>
+          </header>
+
+          <div class="field-grid">
+            <div class="field">
+              <label class="ui-label" for="agent-provider">供应商</label>
+              <select id="agent-provider" v-model="config.agent.provider" class="ui-input ui-select">
+                <option v-for="option in providerOptions" :key="option" :value="option">{{ option }}</option>
+              </select>
+              <p class="field__hint">选择 deepseek 或 mimo 会自动填入对应的 Base URL 与模型名，custom 需要自己填写。</p>
+            </div>
+            <div class="field">
+              <label class="ui-label" for="agent-base-url">Base URL</label>
+              <input id="agent-base-url" v-model="config.agent.baseUrl" class="ui-input" type="text" placeholder="https://api.deepseek.com/v1" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="agent-api-key">API Key</label>
+              <div class="input-with-action">
+                <input id="agent-api-key" v-model="config.agent.apiKey" class="ui-input" :type="showAgentKey ? 'text' : 'password'" placeholder="sk-…" autocomplete="off" />
+                <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="showAgentKey = !showAgentKey">
+                  {{ showAgentKey ? '隐藏' : '显示' }}
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label class="ui-label" for="agent-model">模型名</label>
+              <input id="agent-model" v-model="config.agent.model" class="ui-input" type="text" placeholder="deepseek-chat" />
+            </div>
+          </div>
+        </section>
+
+        <!-- 区块三：服务地址 -->
+        <section v-show="activeSection === 'server'" class="ui-card block">
+          <header class="block__head">
+            <div>
+              <h2 class="block__title">服务地址</h2>
+              <p class="block__desc">桌面端启动后端进程时使用的监听地址，改完需要重启后端。</p>
+            </div>
+            <span class="ui-badge">{{ serverAddressText }}</span>
+          </header>
+
+          <div class="field-grid">
+            <div class="field">
+              <label class="ui-label" for="server-host">Java 后端 host</label>
+              <input id="server-host" v-model="config.server.host" class="ui-input" type="text" placeholder="127.0.0.1" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="server-port">Java 后端 port</label>
+              <input id="server-port" v-model.number="config.server.port" class="ui-input" type="number" min="1" max="65535" step="1" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="python-host">Python 运行时 host</label>
+              <input id="python-host" v-model="config.python.host" class="ui-input" type="text" placeholder="127.0.0.1" />
+            </div>
+            <div class="field">
+              <label class="ui-label" for="python-port">Python 运行时 port</label>
+              <input id="python-port" v-model.number="config.python.port" class="ui-input" type="number" min="1" max="65535" step="1" />
+            </div>
+            <div class="field field--wide">
+              <label class="ui-label" for="internal-token">内部接口令牌 internalToken</label>
+              <div class="input-with-action">
+                <input id="internal-token" v-model="config.internalToken" class="ui-input" :type="showToken ? 'text' : 'password'" placeholder="change-me" autocomplete="off" />
+                <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="showToken = !showToken">
+                  {{ showToken ? '隐藏' : '显示' }}
+                </button>
+              </div>
+              <p class="field__hint">Java 与 Python 两端必须一致，否则两端互相调用会失败。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 区块四：后端进程状态 -->
+        <section v-show="activeSection === 'process'" class="ui-card block">
+          <header class="block__head">
+            <div>
+              <h2 class="block__title">后端进程状态</h2>
+              <p class="block__desc">查看两个后端进程是否在运行，以及最近一次退出原因。</p>
+            </div>
+            <button class="ui-btn ui-btn--outline" :disabled="restarting" @click="restartBackends">
+              {{ restarting ? '重启中…' : '重启后端' }}
+            </button>
+          </header>
+
+          <ul class="process-list">
+            <li v-for="item in processStates" :key="item.id" class="process-item">
+              <div class="process-item__head">
+                <span class="process-item__name">{{ processLabel(item.id) }}</span>
+                <span class="ui-badge" :class="processBadge(item).tone">{{ processBadge(item).label }}</span>
+              </div>
+              <dl class="process-item__meta">
+                <div class="process-item__row">
+                  <dt>监听地址</dt>
+                  <dd>{{ processAddress(item.id) }}</dd>
+                </div>
+                <div class="process-item__row">
+                  <dt>重启次数</dt>
+                  <dd>{{ item.restarts }} 次</dd>
+                </div>
+                <div class="process-item__row">
+                  <dt>最近退出</dt>
+                  <dd>
+                    {{ item.lastExitReason || '无' }}
+                    <span v-if="item.lastExitCode !== null">（退出码 {{ item.lastExitCode }}）</span>
+                  </dd>
+                </div>
+              </dl>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <footer class="save-bar">
+      <p class="save-message" :class="messageType === 'success' ? 'is-success' : messageType === 'error' ? 'is-error' : ''" role="status" aria-live="polite">
+        {{ message }}
+      </p>
+      <button class="ui-btn ui-btn--primary" :disabled="saving" @click="saveConfig">
+        {{ saving ? '保存中…' : '保存配置' }}
       </button>
     </footer>
   </div>
@@ -165,6 +210,14 @@ const PROVIDER_PRESETS = {
 };
 
 const PROVIDER_OPTIONS = ['deepseek', 'mimo', 'custom'];
+
+// 左侧目录的四个分区，语义与原来的四个卡片一致
+const SECTIONS = [
+  { id: 'chat', title: '对话模型' },
+  { id: 'agent', title: 'Agent 模型' },
+  { id: 'server', title: '服务地址' },
+  { id: 'process', title: '后端进程' },
+];
 
 // 浏览器调试模式下的本地存储键
 const LOCAL_CONFIG_KEY = 'ai_resume_forge_app_config';
@@ -203,8 +256,10 @@ const saving = ref(false);
 const restarting = ref(false);
 const showChatKey = ref(false);
 const showAgentKey = ref(false);
+const showToken = ref(false);
 const message = ref('');
 const messageType = ref('');
+const activeSection = ref('chat');
 
 // 初始化期间不触发供应商自动填充，避免覆盖已保存的配置
 const providerReady = ref(false);
@@ -231,6 +286,26 @@ const processStates = computed(() => {
     lastExitReason: '',
   });
 });
+
+const serverAddressText = computed(() => {
+  const host = config.value.server.host || '127.0.0.1';
+  return `http://${host}:${config.value.server.port}`;
+});
+
+// 目录右侧的一行摘要，让每个分区当前配置一目了然
+function sectionMeta(sectionId) {
+  if (sectionId === 'chat') {
+    return config.value.chat.model || '未设置模型';
+  }
+  if (sectionId === 'agent') {
+    return config.value.agent.model || '未设置模型';
+  }
+  if (sectionId === 'server') {
+    return serverAddressText.value;
+  }
+  const running = processStates.value.filter((item) => item.running).length;
+  return `${running}/${processStates.value.length} 运行中`;
+}
 
 watch(
   () => config.value.agent.provider,
@@ -427,6 +502,27 @@ function processLabel(id) {
   return id;
 }
 
+// 进程状态徽标：运行中 / 重启中 / 异常退出 / 已停止
+function processBadge(item) {
+  if (restarting.value) {
+    return { label: '重启中', tone: 'ui-badge--warning' };
+  }
+  if (item.running) {
+    return { label: '运行中', tone: 'ui-badge--success' };
+  }
+  if (item.lastExitCode !== null && item.lastExitCode !== 0) {
+    return { label: '异常退出', tone: 'ui-badge--danger' };
+  }
+  return { label: '已停止', tone: '' };
+}
+
+function processAddress(id) {
+  if (id === 'python') {
+    return `${config.value.python.host || '127.0.0.1'}:${config.value.python.port}`;
+  }
+  return `${config.value.server.host || '127.0.0.1'}:${config.value.server.port}`;
+}
+
 function describeError(error) {
   return error?.message || String(error || '未知错误');
 }
@@ -436,280 +532,317 @@ function describeError(error) {
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 960px;
+  gap: var(--ui-space-6);
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 0;
 }
 
-.settings-header {
+/* ---------- 页头 ---------- */
+.page-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--ui-space-4);
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a2e;
   margin: 0;
+  font-size: var(--ui-text-2xl);
+  font-weight: 700;
+  line-height: var(--ui-line-tight);
+  color: var(--ui-fg-primary);
 }
 
 .page-subtitle {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: #6b7280;
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-secondary);
 }
 
-.header-actions {
+.page-head__actions {
   display: flex;
-  gap: 12px;
+  flex-shrink: 0;
+  gap: var(--ui-space-2);
 }
 
-.environment-tip {
+/* ---------- 环境提示 ---------- */
+.notice {
   margin: 0;
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #92400e;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 12px;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
 }
 
-.panel-card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 22px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+.notice--warning {
+  background: var(--ui-warning-soft);
+  border: 1px solid var(--ui-warning-border);
+  color: var(--ui-fg-primary);
 }
 
-.panel-head {
+/* ---------- 布局：左侧目录 + 右侧分区 ---------- */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: var(--ui-space-6);
+  align-items: start;
+}
+
+.section-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  position: sticky;
+  top: 0;
+}
+
+.section-nav__caption {
+  margin: 0 0 var(--ui-space-2);
+  padding-left: var(--ui-space-3);
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.section-nav__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
+    color var(--ui-duration-fast) var(--ui-ease-in-out),
+    border-color var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.section-nav__item:hover {
+  background: var(--ui-bg-hover);
+  color: var(--ui-fg-primary);
+}
+
+.section-nav__item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.section-nav__item.is-active {
+  background: var(--ui-bg-selected);
+  border-color: var(--ui-accent-border);
+  color: var(--ui-fg-primary);
+}
+
+.section-nav__title {
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+}
+
+.section-nav__meta {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-nav__item.is-active .section-nav__meta {
+  color: var(--ui-fg-secondary);
+}
+
+/* ---------- 分区卡片 ---------- */
+.section-body {
+  min-width: 0;
+}
+
+.block {
+  padding: var(--ui-space-6);
+}
+
+.block__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--ui-space-4);
+  padding-bottom: var(--ui-space-4);
+  margin-bottom: var(--ui-space-5);
+  border-bottom: 1px solid var(--ui-border);
 }
 
-.panel-head h3 {
+.block__title {
   margin: 0;
-  font-size: 18px;
-  color: #111827;
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
 }
 
-.panel-head p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b7280;
+.block__desc {
+  margin: var(--ui-space-1) 0 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
 }
 
+/* ---------- 表单 ---------- */
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--ui-space-5);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   min-width: 0;
 }
 
-.field-wide {
+.field--wide {
   grid-column: 1 / -1;
 }
 
-.field-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+.field__hint {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--ui-text-xs);
+  line-height: var(--ui-line-normal);
+  color: var(--ui-fg-muted);
 }
 
-.field-hint {
-  font-size: 12px;
-  line-height: 1.6;
-  color: #6b7280;
-}
-
-.field input,
-.field select {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #111827;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.field input:focus,
-.field select:focus {
-  outline: none;
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
-}
-
-.input-action {
+.input-with-action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
-.input-action input {
+.input-with-action .ui-input {
   flex: 1;
   min-width: 0;
 }
 
-.toggle-btn {
-  flex-shrink: 0;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
+/* 下拉框复用 .ui-input 的边框与内边距，这里补一个跟随主题的下拉箭头 */
+.ui-select {
+  appearance: none;
+  padding-right: var(--ui-space-8);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
 
-.toggle-btn:hover {
-  border-color: #86efac;
-  color: #15803d;
-}
-
+/* ---------- 进程状态 ---------- */
 .process-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ui-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .process-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #f8fafc;
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
 }
 
-.process-main {
+.process-item__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
 }
 
-.process-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111827;
+.process-item__name {
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
 }
 
-.status-badge {
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 999px;
+.process-item__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ui-space-3);
+  margin: var(--ui-space-3) 0 0;
 }
 
-.status-badge.running {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.status-badge.stopped {
-  color: #991b1b;
-  background: #fee2e2;
-}
-
-.process-meta {
+.process-item__row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 12px;
-  color: #6b7280;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
 }
 
-.settings-footer {
+.process-item__row dt {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.process-item__row dd {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
+  word-break: break-word;
+}
+
+/* ---------- 保存栏 ---------- */
+.save-bar {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-surface);
 }
 
 .save-message {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  flex: 1;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
 }
 
-.save-message.success {
-  color: #16a34a;
+.save-message.is-success {
+  color: var(--ui-success);
 }
 
-.save-message.error {
-  color: #dc2626;
+.save-message.is-error {
+  color: var(--ui-danger);
 }
 
-.primary-btn,
-.ghost-btn {
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.primary-btn {
-  padding: 10px 18px;
-  border-radius: 10px;
-  background: #22c55e;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.primary-btn:hover:not(:disabled) {
-  background: #16a34a;
-}
-
-.ghost-btn {
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.ghost-btn:hover:not(:disabled) {
-  border-color: #86efac;
-  color: #15803d;
-}
-
-.primary-btn:disabled,
-.ghost-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-@media (max-width: 900px) {
-  .field-grid {
+@media (max-width: 1100px) {
+  .settings-layout {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 640px) {
-  .settings-page {
-    padding: 20px 16px;
+  .section-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
-  .settings-header,
-  .settings-footer {
+  .section-nav__caption {
+    display: none;
+  }
+
+  .section-nav__item {
+    width: auto;
+  }
+}
+
+@media (max-width: 860px) {
+  .field-grid,
+  .process-item__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .page-head,
+  .save-bar {
     flex-direction: column;
     align-items: stretch;
   }

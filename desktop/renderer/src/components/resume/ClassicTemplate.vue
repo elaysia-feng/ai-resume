@@ -95,49 +95,103 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   经典稳重版：单栏通排 + 竖向强调条 + 细分隔线
+   纸面配色固定浅色（只用 --ui-* 中性 / 品牌色阶推导），
+   屏幕预览、打印、导出 PDF 观感一致。
+   ======================================== */
 .resume-template--classic {
-  --resume-color-accent: #1d4f91;
-  --resume-color-accent-soft: rgba(29, 79, 145, 0.1);
-  --resume-color-border: #d8e1ec;
-  --resume-color-surface: #f8fbff;
-  --resume-color-surface-strong: #eef4fb;
-  --resume-color-heading: #102a43;
-  --resume-color-text: #243b53;
-  --resume-color-text-soft: #486581;
-  --resume-color-text-faint: #7b8794;
-  padding: 54px 56px 58px;
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-text: var(--ui-neutral-700);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-brand-50);
+
+  --resume-font-name: 25px;
+  --resume-font-title: 12px;
+  --resume-font-contact: 10px;
+  --resume-font-pill: 10px;
+  --resume-section-title-size: 12px;
+
+  padding: 54px 58px 60px;
+}
+
+/* ---------- 抬头 ---------- */
+.classic-header .resume-basic-header__identity {
+  padding-left: 14px;
+  border-left: 3px solid var(--resume-color-accent);
+}
+
+.classic-header .resume-basic-header__name {
+  font-size: var(--resume-font-name);
+  letter-spacing: 0.02em;
+}
+
+.classic-header .resume-basic-header__title {
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+.classic-header .resume-basic-header__contacts {
+  gap: 2px var(--ui-space-5);
+  margin-top: var(--ui-space-3);
+}
+
+.classic-header .resume-basic-header__contact {
+  font-size: var(--resume-font-contact);
+}
+
+.classic-header .resume-basic-header__contact-label {
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
 }
 
 .classic-header__avatar {
-  width: 104px;
-  height: 104px;
-  border-radius: 16px;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--resume-color-border);
 }
 
 .classic-header__pills {
-  padding-top: 2px;
+  padding-top: var(--ui-space-2);
 }
 
+/* 抬头与正文之间：左侧一段强调色，右侧渐隐到分隔线 */
 .classic-header__divider {
-  margin-top: 24px;
-  background: linear-gradient(90deg, var(--resume-color-accent), rgba(29, 79, 145, 0.15));
+  height: 2px;
+  margin-top: var(--ui-space-6);
+  background: linear-gradient(90deg, var(--resume-color-accent) 0%, var(--resume-color-border) 62%);
 }
 
+/* ---------- 正文 ---------- */
 .classic-body {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-top: 24px;
+  gap: var(--ui-space-6);
+  margin-top: var(--ui-space-6);
 }
 
+/* 模块标题：克制的通栏细线，标题本身不上色 */
 .resume-template--classic :deep(.resume-section-block__head) {
-  padding-bottom: 8px;
+  padding-bottom: 7px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
+.resume-template--classic :deep(.resume-section-block__title) {
+  color: var(--resume-color-heading);
+  letter-spacing: 0.06em;
+}
+
+/* 经历条目之间用细线分隔，末条不加分隔线 */
 .resume-template--classic :deep(.resume-entry) {
-  padding-bottom: 14px;
-  border-bottom: 1px dashed rgba(123, 135, 148, 0.28);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--resume-color-border);
 }
 
 .resume-template--classic :deep(.resume-entry:last-child) {
@@ -145,7 +199,24 @@ const orderedSections = computed(() => {
   border-bottom: none;
 }
 
+.resume-template--classic :deep(.resume-entry__title) {
+  letter-spacing: 0.01em;
+}
+
 .resume-template--classic :deep(.resume-entry__date) {
   padding-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+.resume-template--classic :deep(.resume-chip) {
+  border: 1px solid var(--resume-color-border);
+}
+
+/* 打印时保留强调色块，避免只剩颜色区分的关键信息丢失 */
+@media print {
+  .resume-template--classic {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>

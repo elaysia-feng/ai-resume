@@ -1,79 +1,99 @@
 <template>
-  <div class="job-intent-editor">
-    <div v-if="isActive" class="form-grid">
-      <div class="field">
-        <label class="field-label">期望职位</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.desiredPosition"
-          placeholder="请输入期望职位"
-          @input="update('desiredPosition', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">期望城市</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.desiredCity"
-          placeholder="请输入期望城市"
-          @input="update('desiredCity', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">期望薪资</label>
-        <input
-          class="field-input"
-          type="text"
-          :value="modelValue.salaryRange"
-          placeholder="如：20K-30K"
-          @input="update('salaryRange', $event.target.value)"
-        />
-      </div>
-      <div class="field">
-        <label class="field-label">工作性质</label>
-        <select
-          class="field-input"
-          :value="modelValue.employmentType"
-          @change="update('employmentType', $event.target.value)"
-        >
-          <option value="">请选择</option>
-          <option value="全职">全职</option>
-          <option value="兼职">兼职</option>
-          <option value="实习">实习</option>
-          <option value="自由职业">自由职业</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">求职状态</label>
-        <select
-          class="field-input"
-          :value="modelValue.jobStatus"
-          @change="update('jobStatus', $event.target.value)"
-        >
-          <option value="">请选择</option>
-          <option value="在职">在职</option>
-          <option value="离职">离职</option>
-          <option value="应届">应届</option>
-          <option value="随时可入职">随时可入职</option>
-        </select>
+  <div class="re-editor">
+    <div v-if="isActive">
+      <p v-if="missingCount > 0" class="re-notice">
+        还有 {{ missingCount }} 个必填项未填写，标记 <span class="re-required">*</span> 的字段需要补充。
+      </p>
+
+      <div class="re-form">
+        <div class="re-field">
+          <label class="ui-label" for="intent-position">期望职位 <span class="re-required">*</span></label>
+          <input
+            id="intent-position"
+            class="ui-input"
+            :class="{ 're-input--invalid': fieldErrors.desiredPosition }"
+            type="text"
+            :value="modelValue.desiredPosition"
+            placeholder="如：Java 后端开发工程师"
+            @input="update('desiredPosition', $event.target.value)"
+            @blur="touch('desiredPosition')"
+          />
+          <p v-if="fieldErrors.desiredPosition" class="re-error">{{ fieldErrors.desiredPosition }}</p>
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="intent-city">期望城市</label>
+          <input
+            id="intent-city"
+            class="ui-input"
+            type="text"
+            :value="modelValue.desiredCity"
+            placeholder="如：北京"
+            @input="update('desiredCity', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="intent-salary">期望薪资</label>
+          <input
+            id="intent-salary"
+            class="ui-input"
+            type="text"
+            :value="modelValue.salaryRange"
+            placeholder="如：20K-30K"
+            @input="update('salaryRange', $event.target.value)"
+          />
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="intent-type">工作性质</label>
+          <select
+            id="intent-type"
+            class="ui-input ui-select"
+            :value="modelValue.employmentType"
+            @change="update('employmentType', $event.target.value)"
+          >
+            <option value="">请选择</option>
+            <option value="全职">全职</option>
+            <option value="兼职">兼职</option>
+            <option value="实习">实习</option>
+            <option value="自由职业">自由职业</option>
+          </select>
+        </div>
+
+        <div class="re-field">
+          <label class="ui-label" for="intent-status">求职状态</label>
+          <select
+            id="intent-status"
+            class="ui-input ui-select"
+            :value="modelValue.jobStatus"
+            @change="update('jobStatus', $event.target.value)"
+          >
+            <option value="">请选择</option>
+            <option value="在职">在职</option>
+            <option value="离职">离职</option>
+            <option value="应届">应届</option>
+            <option value="随时可入职">随时可入职</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <div v-else class="summary">
-      <span class="summary-primary">{{ modelValue.desiredPosition || '期望职位' }}</span>
-      <div class="summary-tags">
-        <span v-if="modelValue.desiredCity" class="tag">{{ modelValue.desiredCity }}</span>
-        <span v-if="modelValue.salaryRange" class="tag">{{ modelValue.salaryRange }}</span>
-        <span v-if="modelValue.employmentType" class="tag">{{ modelValue.employmentType }}</span>
-        <span v-if="modelValue.jobStatus" class="tag">{{ modelValue.jobStatus }}</span>
+    <div v-else class="re-summary">
+      <span class="re-summary__primary">{{ modelValue.desiredPosition || '期望职位' }}</span>
+      <div class="re-summary__tags">
+        <span v-if="modelValue.desiredCity" class="ui-badge">{{ modelValue.desiredCity }}</span>
+        <span v-if="modelValue.salaryRange" class="ui-badge">{{ modelValue.salaryRange }}</span>
+        <span v-if="modelValue.employmentType" class="ui-badge">{{ modelValue.employmentType }}</span>
+        <span v-if="modelValue.jobStatus" class="ui-badge">{{ modelValue.jobStatus }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, reactive } from 'vue'
+
 const props = defineProps({
   modelValue: {
     type: Object,
@@ -96,70 +116,23 @@ const emit = defineEmits(['update:modelValue'])
 function update(field, value) {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
 }
+
+// ── 必填校验（失焦后提示）───────────────────────────────────────────────
+const touched = reactive({})
+
+function touch(field) {
+  touched[field] = true
+}
+
+const fieldErrors = computed(() => {
+  const errors = {}
+  if (touched.desiredPosition && !String(props.modelValue?.desiredPosition || '').trim()) {
+    errors.desiredPosition = '请填写期望职位，HR 会据此匹配岗位'
+  }
+  return errors
+})
+
+const missingCount = computed(() =>
+  String(props.modelValue?.desiredPosition || '').trim() ? 0 : 1
+)
 </script>
-
-<style scoped>
-.job-intent-editor {
-  padding: 16px 0;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-}
-
-.field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 4px;
-}
-
-.field-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s;
-  background-color: #fff;
-}
-
-.field-input:focus {
-  border-color: #22c55e;
-}
-
-.summary {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.summary-primary {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.summary-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag {
-  font-size: 12px;
-  background: #dcfce7;
-  color: #22c55e;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-</style>

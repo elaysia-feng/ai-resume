@@ -1,47 +1,88 @@
 <template>
-  <div class="preview-panel">
-    <header class="preview-banner">
-      <div class="banner-left">
-        <span class="banner-dot"></span>
-        <span class="banner-text">Preview Mode</span>
+  <section class="preview-panel">
+    <header class="preview-panel__bar">
+      <div class="preview-panel__lead">
+        <span class="preview-panel__title">简历预览</span>
+        <span class="ui-badge">A4</span>
       </div>
-      <button class="close-btn" @click="emit('close')">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-        Close
-      </button>
+
+      <div class="preview-panel__zoom" role="group" aria-label="预览缩放">
+        <button
+          v-for="option in zoomOptions"
+          :key="option.value"
+          type="button"
+          class="preview-panel__zoom-btn"
+          :class="{ 'is-active': zoomMode === option.value }"
+          :aria-pressed="zoomMode === option.value"
+          @click="zoomMode = option.value"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+
+      <div class="preview-panel__actions">
+        <button
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--outline"
+          :disabled="Boolean(exporting)"
+          @click="handleExport('pdf')"
+        >
+          {{ exporting === 'pdf' ? '导出中…' : '导出 PDF' }}
+        </button>
+        <button
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--outline"
+          :disabled="Boolean(exporting)"
+          @click="handleExport('image')"
+        >
+          {{ exporting === 'image' ? '导出中…' : '导出图片' }}
+        </button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="emit('close')">
+          关闭
+        </button>
+      </div>
     </header>
 
-    <div class="preview-scroll">
-      <div class="a4-sheet">
-        <div v-if="resumeData" class="resume-content">
-          <div v-if="resumeData.name" class="r-name">{{ resumeData.name }}</div>
-          <div v-if="resumeData.title" class="r-title">{{ resumeData.title }}</div>
-          <div v-if="resumeData.contact" class="r-contact">{{ resumeData.contact }}</div>
+    <p v-if="errorMessage" class="preview-panel__error">{{ errorMessage }}</p>
 
-          <template v-if="resumeData.sections">
-            <div v-for="(section, key) in resumeData.sections" :key="key" class="r-section">
-              <div class="r-section-title">{{ section.title }}</div>
-              <div v-for="(item, idx) in section.items" :key="idx" class="r-item">
-                <div v-if="item.header" class="r-item-header">{{ item.header }}</div>
-                <div v-if="item.sub" class="r-item-sub">{{ item.sub }}</div>
-                <div v-if="item.body" class="r-item-body">{{ item.body }}</div>
+    <div ref="viewportRef" class="preview-panel__viewport ui-scroll">
+      <div class="preview-panel__stage" :style="stageStyle">
+        <div ref="sheetRef" class="preview-panel__sheet" :style="sheetScaleStyle">
+          <article v-if="resumeData" class="preview-sheet">
+            <header class="preview-sheet__header">
+              <h1 v-if="resumeData.name" class="preview-sheet__name">{{ resumeData.name }}</h1>
+              <p v-if="resumeData.title" class="preview-sheet__title">{{ resumeData.title }}</p>
+              <p v-if="resumeData.contact" class="preview-sheet__contact">{{ resumeData.contact }}</p>
+            </header>
+
+            <section
+              v-for="(section, key) in resumeData.sections || []"
+              :key="key"
+              class="preview-sheet__section"
+            >
+              <h2 class="preview-sheet__section-title">{{ section.title }}</h2>
+              <div v-for="(item, idx) in section.items || []" :key="idx" class="preview-sheet__item">
+                <p v-if="item.header" class="preview-sheet__item-header">{{ item.header }}</p>
+                <p v-if="item.sub" class="preview-sheet__item-sub">{{ item.sub }}</p>
+                <p v-if="item.body" class="preview-sheet__item-body">{{ item.body }}</p>
               </div>
-            </div>
-          </template>
+            </section>
+          </article>
 
-          <div v-if="!resumeData" class="r-empty">
-            No resume data to preview.
-          </div>
+          <p v-else class="preview-sheet__empty">暂无可预览的简历内容</p>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
-defineProps({
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { exportToImage, exportToPDF } from '../../utils/export.js'
+
+const PAGE_WIDTH = 794
+
+const props = defineProps({
   resumeData: {
     type: Object,
     default: null,
@@ -49,6 +90,113 @@ defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+const viewportRef = ref(null)
+const sheetRef = ref(null)
+const zoomMode = ref('fit')
+const fitScale = ref(1)
+const sheetHeight = ref(1123)
+const exporting = ref('')
+const errorMessage = ref('')
+
+const zoomOptions = [
+  { label: '适应宽度', value: 'fit' },
+  { label: '50%', value: 0.5 },
+  { label: '75%', value: 0.75 },
+  { label: '100%', value: 1 },
+]
+
+const scale = computed(() => {
+  if (zoomMode.value === 'fit') {
+    return fitScale.value
+  }
+  return Number(zoomMode.value)
+})
+
+const stageStyle = computed(() => ({
+  width: `${Math.round(PAGE_WIDTH * scale.value)}px`,
+  height: `${Math.round(sheetHeight.value * scale.value)}px`,
+}))
+
+const sheetScaleStyle = computed(() => ({
+  transform: `scale(${scale.value})`,
+}))
+
+let viewportObserver = null
+let sheetObserver = null
+
+function updateFitScale() {
+  const viewport = viewportRef.value
+  if (!viewport) return
+  const available = viewport.clientWidth - 48
+  if (available <= 0) return
+  fitScale.value = Number(Math.min(1, Math.max(0.25, available / PAGE_WIDTH)).toFixed(4))
+}
+
+function updateSheetHeight() {
+  if (!sheetRef.value) return
+  sheetHeight.value = Math.max(sheetRef.value.offsetHeight, 1123)
+}
+
+onMounted(() => {
+  updateFitScale()
+  updateSheetHeight()
+
+  if (typeof ResizeObserver === 'undefined') return
+
+  viewportObserver = new ResizeObserver(() => {
+    updateFitScale()
+  })
+  if (viewportRef.value) {
+    viewportObserver.observe(viewportRef.value)
+  }
+
+  sheetObserver = new ResizeObserver(() => {
+    updateSheetHeight()
+  })
+  if (sheetRef.value) {
+    sheetObserver.observe(sheetRef.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  viewportObserver?.disconnect()
+  sheetObserver?.disconnect()
+})
+
+function buildFilename() {
+  const rawName = String(props.resumeData?.name || 'resume').trim()
+  const safeName = rawName.replace(/[<>:"/\\|?*\x00-\x1F]/g, '').replace(/\s+/g, '_')
+  return safeName || 'resume'
+}
+
+async function handleExport(type) {
+  if (exporting.value || !sheetRef.value) return
+
+  exporting.value = type
+  errorMessage.value = ''
+
+  // 导出按 A4 原尺寸渲染，先把缩放恢复到 100%
+  const previousZoom = zoomMode.value
+  zoomMode.value = 1
+  await nextTick()
+
+  try {
+    if (type === 'pdf') {
+      await exportToPDF(sheetRef.value, buildFilename())
+    } else {
+      await exportToImage(sheetRef.value, buildFilename())
+    }
+  } catch (error) {
+    console.error('导出失败', error)
+    errorMessage.value = type === 'pdf'
+      ? '导出 PDF 失败，请稍后重试或改用「导出图片」。'
+      : '导出图片失败，请稍后重试。'
+  } finally {
+    zoomMode.value = previousZoom
+    exporting.value = ''
+  }
+}
 </script>
 
 <style scoped>
@@ -56,269 +204,193 @@ const emit = defineEmits(['close'])
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(135deg, #0a0f0d 0%, #0d1410 50%, #0a0f0d 100%);
+  min-height: 0;
+  background: var(--ui-bg-canvas);
+  color: var(--ui-fg-primary);
 }
 
-.preview-banner {
+/* ---------- 顶部工具条 ---------- */
+.preview-panel__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  background: rgba(13, 20, 16, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(57, 255, 20, 0.15);
-  position: relative;
-  flex-shrink: 0;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  gap: var(--ui-space-4);
+  flex-wrap: wrap;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-bg-surface);
 }
 
-.preview-banner::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #39ff14, #00ffff, #39ff14, #00ff88, #39ff14);
-  background-size: 300% 100%;
-  animation: gradient-shift 4s ease infinite;
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.banner-left {
+.preview-panel__lead {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--ui-space-2);
 }
 
-.banner-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #39ff14;
-  box-shadow: 0 0 8px #39ff14, 0 0 16px rgba(57, 255, 20, 0.6), 0 0 24px rgba(57, 255, 20, 0.3);
-  animation: dot-pulse 2s ease-in-out infinite;
-}
-
-@keyframes dot-pulse {
-  0%, 100% { box-shadow: 0 0 8px #39ff14, 0 0 16px rgba(57, 255, 20, 0.6); }
-  50% { box-shadow: 0 0 14px #39ff14, 0 0 28px rgba(57, 255, 20, 0.8), 0 0 40px rgba(57, 255, 20, 0.4); }
-}
-
-.banner-text {
-  font-size: 14px;
+.preview-panel__title {
+  font-size: var(--ui-text-md);
   font-weight: 600;
-  color: #e0ffe8;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 12px rgba(57, 255, 20, 0.5);
 }
 
-.close-btn {
+.preview-panel__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.preview-panel__zoom-btn {
+  padding: 3px var(--ui-space-3);
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-out),
+    color var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.preview-panel__zoom-btn:hover {
+  background: var(--ui-bg-hover);
+  color: var(--ui-fg-primary);
+}
+
+.preview-panel__zoom-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.preview-panel__zoom-btn.is-active {
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-accent);
+  box-shadow: var(--ui-shadow-xs);
+}
+
+.preview-panel__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border: 1px solid rgba(57, 255, 20, 0.35);
-  border-radius: 6px;
-  background: rgba(57, 255, 20, 0.06);
-  color: #39ff14;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  gap: var(--ui-space-2);
 }
 
-.close-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(57, 255, 20, 0.15), rgba(0, 255, 136, 0.1));
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.preview-panel__error {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-danger-border);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: var(--ui-text-sm);
 }
 
-.close-btn:hover {
-  color: #b0ff80;
-  border-color: rgba(57, 255, 20, 0.7);
-  box-shadow: 0 0 16px rgba(57, 255, 20, 0.4), 0 0 8px rgba(57, 255, 20, 0.2), inset 0 0 12px rgba(57, 255, 20, 0.05);
-  transform: translateY(-1px);
-}
-
-.close-btn:hover::before {
-  opacity: 1;
-}
-
-.preview-scroll {
+/* ---------- 画布 ---------- */
+.preview-panel__viewport {
   flex: 1;
-  overflow-y: auto;
-  padding: 32px;
-  display: flex;
-  justify-content: center;
-  background: radial-gradient(ellipse at center, rgba(57, 255, 20, 0.03) 0%, transparent 70%);
+  min-height: 0;
+  overflow: auto;
+  padding: var(--ui-space-6);
 }
 
-.preview-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-.preview-scroll::-webkit-scrollbar-track {
-  background: rgba(57, 255, 20, 0.05);
-}
-.preview-scroll::-webkit-scrollbar-thumb {
-  background: rgba(57, 255, 20, 0.25);
-  border-radius: 3px;
-}
-.preview-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(57, 255, 20, 0.45);
-}
-
-/* A4 sheet: 210mm x 297mm scaled to screen */
-.a4-sheet {
-  width: 595px;
-  min-height: 842px;
-  background: linear-gradient(180deg, #ffffff 0%, #f6fff8 100%);
-  box-shadow:
-    0 0 20px rgba(57, 255, 20, 0.3),
-    0 0 60px rgba(57, 255, 20, 0.12),
-    0 8px 40px rgba(0, 0, 0, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 48px 52px;
-  box-sizing: border-box;
+.preview-panel__stage {
   position: relative;
-  border: 1px solid rgba(57, 255, 20, 0.15);
+  margin: 0 auto;
 }
 
-.a4-sheet::before {
-  content: '';
+.preview-panel__sheet {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #39ff14, #00ffff, #39ff14, #00ff88, #39ff14);
-  background-size: 300% 100%;
-  border-radius: 8px 8px 0 0;
-  animation: gradient-shift 4s ease infinite;
+  width: 794px;
+  min-height: 1123px;
+  transform-origin: top left;
+  background: var(--ui-neutral-0);
+  color: var(--ui-neutral-800);
+  border: 1px solid var(--ui-neutral-200);
+  border-radius: 3px;
+  box-shadow: var(--ui-shadow-lg);
 }
 
-.resume-content {
-  font-family: 'Inter', sans-serif;
-  color: #1a1a2e;
+/* ---------- 纸面内容 ---------- */
+.preview-sheet {
+  padding: 56px 58px 60px;
+  font-family: var(--ui-font-sans);
   font-size: 13px;
   line-height: 1.6;
+  color: var(--ui-neutral-800);
 }
 
-.r-name {
+.preview-sheet__header {
+  padding-bottom: var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-neutral-200);
+}
+
+.preview-sheet__name {
+  margin: 0;
+  font-family: var(--ui-font-display);
   font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #0f1c0f;
-  margin-bottom: 4px;
-  text-shadow: 0 2px 8px rgba(57, 255, 20, 0.15);
-}
-
-.r-title {
-  font-size: 14px;
-  color: #1a7a0a;
-  font-weight: 600;
-  margin-bottom: 6px;
-  text-shadow: 0 0 12px rgba(57, 255, 20, 0.4);
-  animation: title-glow 3s ease-in-out infinite;
-}
-
-@keyframes title-glow {
-  0%, 100% { text-shadow: 0 0 12px rgba(57, 255, 20, 0.4); }
-  50% { text-shadow: 0 0 20px rgba(57, 255, 20, 0.7), 0 0 30px rgba(57, 255, 20, 0.4); }
-}
-
-.r-contact {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 24px;
-}
-
-.r-section {
-  margin-bottom: 20px;
-}
-
-.r-section-title {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #39ff14;
-  border-bottom: 1.5px solid #d1ffd8;
-  padding-bottom: 4px;
-  margin-bottom: 10px;
-  position: relative;
-  text-shadow: 0 0 10px rgba(57, 255, 20, 0.6), 0 0 20px rgba(57, 255, 20, 0.3);
-}
-
-.r-section-title::after {
-  content: '';
-  position: absolute;
-  bottom: -1.5px;
-  left: 0;
-  width: 40px;
-  height: 1.5px;
-  background: linear-gradient(90deg, #39ff14, #00ffff);
-  border-radius: 1px;
-  animation: line-shimmer 3s ease-in-out infinite;
-  box-shadow: 0 0 6px rgba(57, 255, 20, 0.8);
-}
-
-@keyframes line-shimmer {
-  0%, 100% { width: 40px; opacity: 1; }
-  50% { width: 80px; opacity: 0.7; }
-}
-
-.r-item {
-  margin-bottom: 10px;
-  transition: transform 0.2s ease, padding-left 0.2s ease;
-  padding-left: 0;
-  border-radius: 4px;
-}
-
-.r-item:hover {
-  transform: translateX(4px);
-  padding-left: 8px;
-  background: linear-gradient(90deg, rgba(57, 255, 20, 0.06), transparent);
-}
-
-.r-item-header {
-  font-size: 13px;
   font-weight: 700;
-  color: #1a1a2e;
-  transition: color 0.2s ease, text-shadow 0.2s ease;
+  line-height: 1.2;
+  color: var(--ui-neutral-900);
 }
 
-.r-item:hover .r-item-header {
-  color: #1a7a0a;
-  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
-}
-
-.r-item-sub {
-  font-size: 12px;
-  color: #6b7280;
-  font-style: italic;
-}
-
-.r-item-body {
-  font-size: 12px;
-  color: #374151;
-  margin-top: 2px;
-}
-
-.r-empty {
-  text-align: center;
-  padding: 40px;
-  color: #9ca3af;
+.preview-sheet__title {
+  margin: var(--ui-space-1) 0 0;
   font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-neutral-600);
+}
+
+.preview-sheet__contact {
+  margin: var(--ui-space-2) 0 0;
+  font-size: 12px;
+  color: var(--ui-neutral-500);
+}
+
+.preview-sheet__section {
+  margin-top: var(--ui-space-5);
+}
+
+.preview-sheet__section-title {
+  margin: 0 0 var(--ui-space-2);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--ui-neutral-200);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ui-neutral-900);
+}
+
+.preview-sheet__item {
+  margin-bottom: var(--ui-space-3);
+}
+
+.preview-sheet__item-header {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-neutral-900);
+}
+
+.preview-sheet__item-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ui-neutral-600);
+}
+
+.preview-sheet__item-body {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 12px;
+  color: var(--ui-neutral-700);
+  white-space: pre-wrap;
+}
+
+.preview-sheet__empty {
+  margin: 0;
+  padding: var(--ui-space-16) 0;
+  text-align: center;
+  color: var(--ui-neutral-500);
 }
 </style>

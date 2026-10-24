@@ -1,68 +1,404 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ============================================================
+   AI Resume Forge · 设计系统（唯一 token 源）
+
+   规则：
+   1. 新代码一律用 --ui-* 语义变量。
+   2. 其他样式文件**只允许引用**变量，不要再定义 :root 变量。
+   3. 下方「旧变量名兼容区」把历史命名映射到新 token，
+      旧样式不改动也能自动跟随新配色；改完旧代码后逐个删除。
+   4. 字体一律用系统字体栈 —— 桌面端可能完全离线，
+      不能依赖 Google Fonts CDN。
+   ============================================================ */
 
 :root {
-  /* Colors - unified palette */
-  --color-bg: #fafaf9;
-  --color-surface: #ffffff;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #6b7280;
-  --color-accent: #6ee7b7;
-  --color-accent-hover: #34d399;
-  --color-accent-soft: #d1fae5;
-  --color-border: #e5e5e5;
-  --color-error: #ef4444;
-  --color-success: #22c55e;
+  color-scheme: light;
 
-  /* Typography */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Inter', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* ---------- 品牌色（锻造 / 成长）---------- */
+  --ui-brand-50: #f0fdf4;
+  --ui-brand-100: #dcfce7;
+  --ui-brand-200: #bbf7d0;
+  --ui-brand-300: #86efac;
+  --ui-brand-400: #4ade80;
+  --ui-brand-500: #22c55e;
+  --ui-brand-600: #16a34a;
+  --ui-brand-700: #15803d;
+  --ui-brand-800: #166534;
+  --ui-brand-900: #14532d;
 
-  /* Type scale */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
-  --text-6xl: 3.75rem;
+  /* ---------- 中性色（暖灰）---------- */
+  --ui-neutral-0: #ffffff;
+  --ui-neutral-50: #fafaf9;
+  --ui-neutral-100: #f5f5f4;
+  --ui-neutral-200: #e7e5e4;
+  --ui-neutral-300: #d6d3d1;
+  --ui-neutral-400: #a8a29e;
+  --ui-neutral-500: #78716c;
+  --ui-neutral-600: #57534e;
+  --ui-neutral-700: #44403c;
+  --ui-neutral-800: #292524;
+  --ui-neutral-900: #1c1917;
+  --ui-neutral-950: #0c0a09;
 
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-20: 5rem;
-  --space-24: 6rem;
+  /* ---------- 语义：背景 ---------- */
+  --ui-bg-app: var(--ui-neutral-50);
+  --ui-bg-canvas: var(--ui-neutral-100);
+  --ui-bg-surface: var(--ui-neutral-0);
+  --ui-bg-raised: var(--ui-neutral-0);
+  --ui-bg-sunken: var(--ui-neutral-100);
+  --ui-bg-inverse: var(--ui-neutral-900);
+  --ui-bg-hover: rgba(28, 25, 23, 0.05);
+  --ui-bg-active: rgba(28, 25, 23, 0.09);
+  --ui-bg-selected: var(--ui-brand-50);
+  --ui-overlay: rgba(28, 25, 23, 0.45);
 
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  /* ---------- 语义：前景 ---------- */
+  --ui-fg-primary: var(--ui-neutral-900);
+  --ui-fg-secondary: var(--ui-neutral-600);
+  --ui-fg-muted: var(--ui-neutral-400);
+  --ui-fg-subtle: var(--ui-neutral-500);
+  --ui-fg-inverse: var(--ui-neutral-0);
+  --ui-fg-accent: var(--ui-brand-600);
 
-  /* Shadows - premium feel */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
-  --shadow-xl: 0 24px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08);
-  --shadow-glow: 0 0 40px rgba(110, 231, 183, 0.2);
+  /* ---------- 语义：强调色 ---------- */
+  --ui-accent: var(--ui-brand-500);
+  --ui-accent-hover: var(--ui-brand-600);
+  --ui-accent-active: var(--ui-brand-700);
+  --ui-accent-fg: var(--ui-neutral-0);
+  --ui-accent-soft: var(--ui-brand-50);
+  --ui-accent-soft-hover: var(--ui-brand-100);
+  --ui-accent-border: var(--ui-brand-200);
 
-  /* Motion */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 300ms;
-  --duration-slow: 500ms;
-  --duration-slower: 800ms;
+  /* ---------- 语义：描边 ---------- */
+  --ui-border: var(--ui-neutral-200);
+  --ui-border-strong: var(--ui-neutral-300);
+  --ui-border-subtle: var(--ui-neutral-100);
+  --ui-border-focus: var(--ui-brand-400);
+
+  /* ---------- 语义：状态 ---------- */
+  --ui-success: #16a34a;
+  --ui-success-soft: #dcfce7;
+  --ui-success-border: #86efac;
+  --ui-warning: #d97706;
+  --ui-warning-soft: #fef3c7;
+  --ui-warning-border: #fcd34d;
+  --ui-danger: #dc2626;
+  --ui-danger-hover: #b91c1c;
+  --ui-danger-soft: #fee2e2;
+  --ui-danger-border: #fca5a5;
+  --ui-info: #0284c7;
+  --ui-info-soft: #e0f2fe;
+  --ui-info-border: #7dd3fc;
+
+  /* ---------- 圆角 ---------- */
+  --ui-radius-xs: 4px;
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 14px;
+  --ui-radius-xl: 20px;
+  --ui-radius-2xl: 28px;
+  --ui-radius-full: 9999px;
+
+  /* ---------- 间距（补齐了历史上缺失的 5/7/9/10/11）---------- */
+  --ui-space-0: 0;
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.25rem;
+  --ui-space-6: 1.5rem;
+  --ui-space-7: 1.75rem;
+  --ui-space-8: 2rem;
+  --ui-space-9: 2.25rem;
+  --ui-space-10: 2.5rem;
+  --ui-space-11: 2.75rem;
+  --ui-space-12: 3rem;
+  --ui-space-16: 4rem;
+  --ui-space-20: 5rem;
+
+  /* ---------- 字号 ---------- */
+  --ui-text-xs: 0.75rem;
+  --ui-text-sm: 0.8125rem;
+  --ui-text-base: 0.875rem;
+  --ui-text-md: 1rem;
+  --ui-text-lg: 1.125rem;
+  --ui-text-xl: 1.25rem;
+  --ui-text-2xl: 1.5rem;
+  --ui-text-3xl: 1.875rem;
+  --ui-text-4xl: 2.25rem;
+  --ui-line-tight: 1.25;
+  --ui-line-normal: 1.5;
+  --ui-line-relaxed: 1.75;
+
+  /* ---------- 字体（系统字体栈，离线可用）---------- */
+  --ui-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  --ui-font-display: 'Playfair Display', Georgia, 'Songti SC', 'SimSun', serif;
+  --ui-font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+
+  /* ---------- 阴影与焦点环 ---------- */
+  --ui-shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --ui-shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.07), 0 1px 2px rgba(28, 25, 23, 0.04);
+  --ui-shadow-md: 0 4px 12px rgba(28, 25, 23, 0.08), 0 1px 3px rgba(28, 25, 23, 0.05);
+  --ui-shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.1), 0 4px 8px rgba(28, 25, 23, 0.05);
+  --ui-shadow-xl: 0 24px 48px rgba(28, 25, 23, 0.14);
+  --ui-ring: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  --ui-ring-danger: 0 0 0 3px rgba(220, 38, 38, 0.22);
+
+  /* ---------- 动效 ---------- */
+  --ui-duration-fast: 120ms;
+  --ui-duration-normal: 200ms;
+  --ui-duration-slow: 320ms;
+  --ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ui-ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---------- 层级 ---------- */
+  --ui-z-base: 0;
+  --ui-z-sticky: 100;
+  --ui-z-header: 200;
+  --ui-z-sidebar: 300;
+  --ui-z-dropdown: 400;
+  --ui-z-modal: 500;
+  --ui-z-toast: 600;
+
+  /* ---------- 布局 ---------- */
+  --ui-sidebar-width: 232px;
+  --ui-sidebar-width-collapsed: 64px;
+  --ui-header-height: 56px;
+  --ui-content-max: 1440px;
+
+  /* ============================================================
+     旧变量名兼容区 —— 映射到新 token，改完旧代码后逐个删除
+     ============================================================ */
+  --color-bg: var(--ui-bg-canvas);
+  --color-surface: var(--ui-bg-surface);
+  --color-text: var(--ui-fg-primary);
+  --color-text-secondary: var(--ui-fg-secondary);
+  --color-accent: var(--ui-accent);
+  --color-accent-hover: var(--ui-accent-hover);
+  --color-accent-soft: var(--ui-accent-soft);
+  --color-border: var(--ui-border);
+  --color-error: var(--ui-danger);
+  --color-success: var(--ui-success);
+  --color-green: var(--ui-accent);
+  --color-green-light: var(--ui-brand-400);
+  --color-green-dark: var(--ui-brand-600);
+  --color-magenta: var(--ui-info);
+  --text-primary: var(--ui-fg-primary);
+  --text-secondary: var(--ui-fg-secondary);
+  --text-muted: var(--ui-fg-muted);
+  --bg-primary: var(--ui-bg-surface);
+  --bg-secondary: var(--ui-bg-canvas);
+  --bg-tertiary: var(--ui-bg-sunken);
+  --bg-card: var(--ui-bg-surface);
+  --font-body: var(--ui-font-sans);
+  --font-heading: var(--ui-font-sans);
+  --font-display: var(--ui-font-display);
+  --font-sans: var(--ui-font-sans);
+  --font-serif: var(--ui-font-display);
+  --space-xs: var(--ui-space-1);
+  --space-sm: var(--ui-space-2);
+  --space-md: var(--ui-space-4);
+  --space-lg: var(--ui-space-6);
+  --space-xl: var(--ui-space-8);
+  --space-2xl: var(--ui-space-12);
+  --space-3xl: var(--ui-space-16);
+  --transition-fast: var(--ui-duration-fast) var(--ui-ease-in-out);
+  --transition-base: var(--ui-duration-normal) var(--ui-ease-in-out);
+  --transition-slow: var(--ui-duration-slow) var(--ui-ease-in-out);
+  --duration-fast: var(--ui-duration-fast);
+  --duration-normal: var(--ui-duration-normal);
+  --duration-slow: var(--ui-duration-slow);
+  --ease-out-expo: var(--ui-ease-out);
+  --ease-in-out: var(--ui-ease-in-out);
+  --ease-out-back: var(--ui-ease-out-back);
+  --radius-sm: var(--ui-radius-sm);
+  --radius-md: var(--ui-radius-md);
+  --radius-lg: var(--ui-radius-lg);
+  --radius-xl: var(--ui-radius-xl);
+  --glow-green: 0 0 12px rgba(34, 197, 94, 0.35);
+  --glow-accent: 0 0 12px rgba(2, 132, 199, 0.3);
+  --glow-magenta: 0 0 12px rgba(236, 72, 153, 0.3);
 }
+
+/* ============================================================
+   暗色模式：跟随系统，也可由 <html data-theme="dark"> 强制
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ui-bg-app: var(--ui-neutral-950);
+    --ui-bg-canvas: var(--ui-neutral-900);
+    --ui-bg-surface: var(--ui-neutral-800);
+    --ui-bg-raised: var(--ui-neutral-700);
+    --ui-bg-sunken: var(--ui-neutral-950);
+    --ui-bg-inverse: var(--ui-neutral-0);
+    --ui-bg-hover: rgba(255, 255, 255, 0.06);
+    --ui-bg-active: rgba(255, 255, 255, 0.11);
+    --ui-bg-selected: rgba(34, 197, 94, 0.14);
+    --ui-overlay: rgba(0, 0, 0, 0.6);
+    --ui-fg-primary: var(--ui-neutral-50);
+    --ui-fg-secondary: var(--ui-neutral-300);
+    --ui-fg-muted: var(--ui-neutral-500);
+    --ui-fg-subtle: var(--ui-neutral-400);
+    --ui-fg-inverse: var(--ui-neutral-900);
+    --ui-fg-accent: var(--ui-brand-300);
+    --ui-accent: var(--ui-brand-400);
+    --ui-accent-hover: var(--ui-brand-300);
+    --ui-accent-active: var(--ui-brand-200);
+    --ui-accent-soft: rgba(34, 197, 94, 0.16);
+    --ui-accent-soft-hover: rgba(34, 197, 94, 0.24);
+    --ui-accent-border: rgba(34, 197, 94, 0.35);
+    --ui-border: var(--ui-neutral-700);
+    --ui-border-strong: var(--ui-neutral-600);
+    --ui-border-subtle: var(--ui-neutral-800);
+    --ui-success: var(--ui-brand-400);
+    --ui-success-soft: rgba(34, 197, 94, 0.16);
+    --ui-warning: #fbbf24;
+    --ui-warning-soft: rgba(251, 191, 36, 0.14);
+    --ui-danger: #f87171;
+    --ui-danger-hover: #fca5a5;
+    --ui-danger-soft: rgba(248, 113, 113, 0.16);
+    --ui-info: #38bdf8;
+    --ui-info-soft: rgba(56, 189, 248, 0.14);
+    --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --ui-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --ui-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+    --ui-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ============================================================
+   通用组件类（新页面优先复用，别再各写各的）
+   ============================================================ */
+
+.ui-card {
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-xs);
+}
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-base);
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
+    border-color var(--ui-duration-fast) var(--ui-ease-in-out),
+    color var(--ui-duration-fast) var(--ui-ease-in-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.ui-btn:hover { background: var(--ui-bg-hover); }
+.ui-btn:focus-visible { outline: none; box-shadow: var(--ui-ring); }
+.ui-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ui-btn--primary {
+  background: var(--ui-accent);
+  color: var(--ui-accent-fg);
+  box-shadow: var(--ui-shadow-sm);
+}
+.ui-btn--primary:hover { background: var(--ui-accent-hover); }
+.ui-btn--primary:active { background: var(--ui-accent-active); }
+
+.ui-btn--ghost { background: transparent; color: var(--ui-fg-secondary); }
+.ui-btn--ghost:hover { background: var(--ui-bg-hover); color: var(--ui-fg-primary); }
+
+.ui-btn--outline { border-color: var(--ui-border); background: var(--ui-bg-surface); }
+.ui-btn--outline:hover { border-color: var(--ui-border-strong); background: var(--ui-bg-hover); }
+
+.ui-btn--danger { background: var(--ui-danger); color: #fff; }
+.ui-btn--danger:hover { background: var(--ui-danger-hover); }
+
+.ui-btn--sm { padding: 0.25rem 0.625rem; font-size: var(--ui-text-sm); line-height: 1.125rem; }
+.ui-btn--lg { padding: 0.75rem 1.5rem; font-size: var(--ui-text-md); }
+.ui-btn--block { width: 100%; }
+
+.ui-label {
+  display: block;
+  margin-bottom: var(--ui-space-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  color: var(--ui-fg-secondary);
+}
+
+.ui-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-base);
+  line-height: var(--ui-line-normal);
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-in-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.ui-input::placeholder { color: var(--ui-fg-muted); }
+.ui-input:focus { outline: none; border-color: var(--ui-border-focus); box-shadow: var(--ui-ring); }
+.ui-input:disabled { background: var(--ui-bg-sunken); color: var(--ui-fg-muted); cursor: not-allowed; }
+
+.ui-select {
+  appearance: none;
+  padding-right: var(--ui-space-8);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 1rem center, right 0.65rem center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.ui-select:hover { border-color: var(--ui-border-strong); }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--ui-radius-full);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg-sunken);
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-xs);
+  font-weight: 500;
+  line-height: 1.125rem;
+}
+
+.ui-badge--accent { background: var(--ui-accent-soft); border-color: var(--ui-accent-border); color: var(--ui-fg-accent); }
+.ui-badge--success { background: var(--ui-success-soft); border-color: var(--ui-success-border); color: var(--ui-success); }
+.ui-badge--warning { background: var(--ui-warning-soft); border-color: var(--ui-warning-border); color: var(--ui-warning); }
+.ui-badge--danger { background: var(--ui-danger-soft); border-color: var(--ui-danger-border); color: var(--ui-danger); }
+
+.ui-divider { height: 1px; background: var(--ui-border); border: 0; }
+
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-12) var(--ui-space-6);
+  text-align: center;
+  color: var(--ui-fg-muted);
+}
+
+.ui-empty__title { font-size: var(--ui-text-lg); font-weight: 600; color: var(--ui-fg-primary); }
+.ui-empty__hint { font-size: var(--ui-text-base); max-width: 32rem; }
+
+.ui-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--ui-border-strong) transparent; }
+.ui-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.ui-scroll::-webkit-scrollbar-thumb { background: var(--ui-border-strong); border-radius: var(--ui-radius-full); border: 3px solid transparent; background-clip: content-box; }
+.ui-scroll::-webkit-scrollbar-track { background: transparent; }

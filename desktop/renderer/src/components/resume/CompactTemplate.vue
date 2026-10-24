@@ -140,42 +140,51 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   紧凑型：窄左栏 + 更小字号 + 更紧间距，一页塞下更多信息
+   左栏配色跟随编辑器的「左栏配色」设置。
+   ======================================== */
 .resume-template--compact {
-  --resume-color-accent: #6d28d9;
-  --resume-color-accent-soft: rgba(109, 40, 217, 0.12);
-  --resume-color-border: #ddd6fe;
-  --resume-color-surface: #faf5ff;
-  --resume-color-surface-strong: #f3e8ff;
-  --resume-color-heading: #3b0764;
-  --resume-color-text: #1e1b4b;
-  --resume-color-text-soft: #5b21b6;
-  --resume-color-text-faint: #7c3aed;
-  display: grid;
-  --resume-font-name: 20px;
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-text: var(--ui-neutral-700);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-brand-50);
+
+  --resume-font-name: 19px;
   --resume-font-title: 10px;
   --resume-font-contact: 8.5px;
   --resume-font-pill: 8.5px;
-  grid-template-columns: 190px minmax(0, 1fr);
+  --resume-section-title-size: 10.5px;
+
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
   min-height: 1123px;
 }
 
 .resume-template--compact-single {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
+/* ---------- 左栏 ---------- */
 .compact-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 22px 14px 24px;
-  background: var(--resume-sidebar-bg);
-  border-right: 1px solid var(--resume-sidebar-border);
+  gap: 12px;
+  padding: 24px 14px 26px;
+  background: var(--resume-sidebar-bg, var(--resume-color-surface));
+  border-right: 1px solid var(--resume-sidebar-border, var(--resume-color-border));
 }
 
 .compact-profile {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .compact-profile__avatar-wrap {
@@ -184,9 +193,10 @@ const orderedSections = computed(() => {
 }
 
 .compact-profile__avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
 }
 
 .compact-profile__identity {
@@ -197,16 +207,26 @@ const orderedSections = computed(() => {
 
 .compact-profile__name {
   margin: 0;
-  color: var(--resume-sidebar-heading);
-  font-size: 19px;
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.1;
   letter-spacing: 0.01em;
+}
+
+/* 姓名下方一条短强调线 */
+.compact-profile__name::after {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 2px;
+  margin-top: 6px;
+  background: var(--resume-sidebar-accent, var(--resume-color-accent));
 }
 
 .compact-profile__title {
   margin: 0;
-  color: var(--resume-sidebar-text-soft);
+  color: var(--resume-sidebar-text-soft, var(--resume-color-text-soft));
   font-size: 10px;
   font-weight: 600;
   line-height: 1.4;
@@ -216,19 +236,18 @@ const orderedSections = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 9px;
-  border-radius: 10px;
-  background: var(--resume-sidebar-panel-bg);
-  border: 1px solid var(--resume-sidebar-panel-border);
+  padding: 9px 10px;
+  border-radius: var(--ui-radius-md);
+  background: var(--resume-sidebar-panel-bg, var(--resume-color-page));
+  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
 }
 
 .compact-sidebar__panel-title {
   margin: 0;
-  color: var(--resume-sidebar-heading);
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
   font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .compact-intent-list {
@@ -240,19 +259,18 @@ const orderedSections = computed(() => {
 .compact-intent-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .compact-intent-item__label {
-  color: var(--resume-sidebar-text-faint);
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
   font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .compact-intent-item__value {
-  color: var(--resume-sidebar-accent);
+  color: var(--resume-sidebar-text, var(--resume-color-text));
   font-size: 9px;
   font-weight: 700;
   line-height: 1.4;
@@ -261,7 +279,7 @@ const orderedSections = computed(() => {
 .compact-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .compact-contact-item {
@@ -271,25 +289,26 @@ const orderedSections = computed(() => {
 }
 
 .compact-contact-item__label {
-  color: var(--resume-sidebar-text-faint);
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
   font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .compact-contact-item__value {
-  color: var(--resume-sidebar-text);
+  color: var(--resume-sidebar-text, var(--resume-color-text));
   font-size: 9px;
-  line-height: 1.5;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .compact-sidebar__sections {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
+/* ---------- 右栏 ---------- */
 .compact-main {
   padding: 24px 22px 28px;
 }
@@ -305,10 +324,9 @@ const orderedSections = computed(() => {
 .compact-hero__name {
   margin: 0;
   color: var(--resume-color-heading);
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
 
 .compact-hero__title {
@@ -325,31 +343,57 @@ const orderedSections = computed(() => {
 .compact-main__sections {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .compact-main__sections--with-header {
   margin-top: 12px;
 }
 
+/* 模块标题：标题文字下方一条短强调线 */
 .resume-template--compact :deep(.resume-section-block__head) {
-  padding-bottom: 6px;
+  padding-bottom: 5px;
+}
+
+.resume-template--compact :deep(.resume-section-block__title) {
+  padding-bottom: 3px;
+  border-bottom: 2px solid var(--resume-color-accent);
+  letter-spacing: 0.06em;
+}
+
+/* 条目只用细线分隔，不加卡片，保证密度 */
+.resume-template--compact :deep(.resume-entry) {
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
+.resume-template--compact :deep(.resume-entry:last-child) {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.resume-template--compact :deep(.resume-entry__title) {
+  letter-spacing: 0;
+}
+
+.resume-template--compact :deep(.resume-chip) {
+  padding: 2px 6px;
+}
+
+/* 左栏内的文字改用左栏配色变量 */
 .compact-sidebar :deep(.resume-section-block__head) {
-  border-bottom-color: var(--resume-sidebar-divider);
+  border-bottom-color: var(--resume-sidebar-divider, var(--resume-color-border));
 }
 
 .compact-sidebar :deep(.resume-entry),
 .compact-sidebar :deep(.resume-kv) {
-  background: var(--resume-sidebar-panel-bg);
-  border-color: var(--resume-sidebar-panel-border);
+  background: var(--resume-sidebar-panel-bg, transparent);
+  border-color: var(--resume-sidebar-panel-border, transparent);
 }
 
 .compact-sidebar :deep(.resume-section-block__title),
 .compact-sidebar :deep(.resume-entry__title) {
-  color: var(--resume-sidebar-heading);
+  color: var(--resume-sidebar-heading, var(--resume-color-heading));
 }
 
 .compact-sidebar :deep(.resume-entry__subtitle),
@@ -357,7 +401,7 @@ const orderedSections = computed(() => {
 .compact-sidebar :deep(.resume-entry__date),
 .compact-sidebar :deep(.resume-kv__label),
 .compact-sidebar :deep(.resume-chip__meta) {
-  color: var(--resume-sidebar-text-faint);
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
 }
 
 .compact-sidebar :deep(.resume-rich-text),
@@ -365,31 +409,19 @@ const orderedSections = computed(() => {
 .compact-sidebar :deep(.resume-entry__bullets),
 .compact-sidebar :deep(.resume-kv__value),
 .compact-sidebar :deep(.resume-bullet-list) {
-  color: var(--resume-sidebar-text);
+  color: var(--resume-sidebar-text, var(--resume-color-text));
 }
 
 .compact-sidebar :deep(.resume-chip) {
-  background: var(--resume-sidebar-chip-bg);
-  color: var(--resume-sidebar-accent);
+  background: var(--resume-sidebar-chip-bg, var(--resume-color-surface-strong));
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
 }
 
-.resume-template--compact :deep(.resume-entry) {
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: var(--resume-color-surface);
-  border: 1px solid rgba(109, 40, 217, 0.06);
-}
-
-.resume-template--compact :deep(.resume-entry__title) {
-  letter-spacing: 0;
-}
-
-.resume-template--compact :deep(.resume-section-block--compact .resume-entry) {
-  padding: 5px 7px;
-  border-radius: 6px;
-}
-
-.resume-template--compact :deep(.resume-section-block--compact .resume-section-block__head) {
-  padding-bottom: 5px;
+/* 打印时保留左栏底色 */
+@media print {
+  .resume-template--compact {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>

@@ -106,28 +106,42 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
+/* ========================================
+   创意风：强调色块抬头 + 竖向分割线 + 模块卡片
+   强调色只做「色块」，正文仍是深色文字，
+   打印时即使底色丢失也不会影响可读性。
+   ======================================== */
 .resume-template--creative {
-  --resume-color-accent: #b45309;
-  --resume-color-accent-soft: rgba(180, 83, 9, 0.12);
-  --resume-color-border: #eadfcd;
-  --resume-color-surface: #fffaf3;
-  --resume-color-surface-strong: #f9edd9;
-  --resume-color-heading: #35210f;
-  --resume-color-text: #453427;
-  --resume-color-text-soft: #6b4e35;
-  --resume-color-text-faint: #8a715b;
+  --resume-color-page: var(--ui-neutral-0);
+  --resume-color-heading: var(--ui-neutral-900);
+  --resume-color-text: var(--ui-neutral-700);
+  --resume-color-text-soft: var(--ui-neutral-600);
+  --resume-color-text-faint: var(--ui-neutral-500);
+  --resume-color-accent: var(--ui-brand-700);
+  --resume-color-accent-soft: var(--ui-brand-50);
+  --resume-color-border: var(--ui-neutral-200);
+  --resume-color-surface: var(--ui-neutral-50);
+  --resume-color-surface-strong: var(--ui-brand-50);
+
+  --resume-font-name: 28px;
+  --resume-font-title: 13px;
+  --resume-font-contact: 10.5px;
+  --resume-font-pill: 10px;
+  --resume-section-title-size: 11px;
+
   min-height: 1123px;
-  background: linear-gradient(180deg, #fffdf8 0%, #fffaf3 100%);
 }
 
+/* ---------- 抬头：整块强调色带 ---------- */
 .creative-hero {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 42px 48px 34px;
-  background: linear-gradient(135deg, #1f2937 0%, #24364a 100%);
-  color: #f8fafc;
+  align-items: center;
+  gap: var(--ui-space-6);
+  padding: 32px 38px 28px;
+  background: var(--resume-color-accent-soft);
+  border-left: 8px solid var(--resume-color-accent);
+  border-bottom: 1px solid var(--resume-color-border);
 }
 
 .creative-hero__copy {
@@ -137,107 +151,172 @@ const orderedSections = computed(() => {
 
 .creative-hero__eyebrow {
   margin: 0 0 10px;
-  color: rgba(248, 250, 252, 0.72);
-  font-size: 11px;
+  color: var(--resume-color-accent);
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: 0.2em;
 }
 
 .creative-hero__name {
   margin: 0;
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 1.06;
-  letter-spacing: 0.02em;
+  color: var(--resume-color-heading);
+  font-family: var(--resume-font-display);
+  font-size: var(--resume-font-name);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
 }
 
 .creative-hero__title {
-  margin: 10px 0 0;
-  color: rgba(248, 250, 252, 0.82);
-  font-size: 15px;
+  margin: 8px 0 0;
+  color: var(--resume-color-text-soft);
+  font-size: var(--resume-font-title);
   font-weight: 600;
 }
 
 .creative-hero__contacts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: 16px;
+  gap: 4px var(--ui-space-4);
+  margin-top: 14px;
 }
 
 .creative-hero__contact {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: rgba(248, 250, 252, 0.86);
+  align-items: baseline;
+  gap: 5px;
+  font-size: var(--resume-font-contact);
+  color: var(--resume-color-text);
 }
 
 .creative-hero__contact-label {
-  color: rgba(248, 250, 252, 0.6);
-  font-weight: 700;
+  color: var(--resume-color-text-faint);
+  font-weight: 600;
+}
+
+.creative-hero__pills {
+  margin-top: 14px;
 }
 
 .creative-hero__pills :deep(.resume-meta-pill) {
-  background: rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
+  background: var(--resume-color-page);
+  color: var(--resume-color-accent);
+  border: 1px solid var(--resume-color-border);
 }
 
 .creative-hero__avatar {
-  width: 104px;
-  height: 104px;
-  border-radius: 22px;
-  border-color: rgba(255, 255, 255, 0.18);
+  width: 84px;
+  height: 84px;
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid var(--resume-color-border);
+  background: var(--resume-color-page);
 }
 
+/* ---------- 正文：左栏 + 强调色分割线 + 右栏 ---------- */
 .creative-body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 26px;
-  padding: 30px 32px 36px;
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: var(--ui-space-6);
+  padding: 26px 32px 32px;
 }
 
 .resume-template--creative-single .creative-body {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .creative-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  padding-right: var(--ui-space-5);
+  border-right: 3px solid var(--resume-color-accent);
+  background: var(--resume-sidebar-bg, transparent);
 }
 
 .creative-main {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
 }
 
+/* 模块做成独立卡片，标题是强调色块 */
 .resume-template--creative :deep(.resume-section-block) {
-  padding: 16px 18px;
+  padding: 13px 15px;
   border: 1px solid var(--resume-color-border);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: var(--resume-shadow-card);
+  border-radius: var(--ui-radius-lg);
+  background: var(--resume-color-page);
 }
 
 .resume-template--creative :deep(.resume-section-block__head) {
   padding-bottom: 7px;
-  border-bottom: 1px solid rgba(180, 83, 9, 0.16);
+  border-bottom: 1px solid var(--resume-color-border);
 }
 
-.resume-template--creative :deep(.resume-section-block--compact) {
-  background: rgba(255, 253, 248, 0.92);
+.resume-template--creative :deep(.resume-section-block__title) {
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-xs);
+  background: var(--resume-color-accent-soft);
+  color: var(--resume-color-accent);
+  letter-spacing: 0.08em;
 }
 
 .resume-template--creative :deep(.resume-entry) {
-  padding-bottom: 12px;
-  border-bottom: 1px dashed rgba(138, 113, 91, 0.24);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--resume-color-border);
 }
 
 .resume-template--creative :deep(.resume-entry:last-child) {
   padding-bottom: 0;
   border-bottom: none;
+}
+
+/* 左栏内的文字跟随「左栏配色」设置 */
+.creative-sidebar :deep(.resume-section-block__head) {
+  border-bottom-color: var(--resume-sidebar-divider, var(--resume-color-border));
+}
+
+.creative-sidebar :deep(.resume-section-block__title) {
+  background: var(--resume-sidebar-chip-bg, var(--resume-color-accent-soft));
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
+}
+
+.creative-sidebar :deep(.resume-entry),
+.creative-sidebar :deep(.resume-kv) {
+  background: var(--resume-sidebar-panel-bg, transparent);
+  border-color: var(--resume-sidebar-panel-border, transparent);
+}
+
+.creative-sidebar :deep(.resume-section-block__title),
+.creative-sidebar :deep(.resume-entry__title) {
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
+}
+
+.creative-sidebar :deep(.resume-entry__subtitle),
+.creative-sidebar :deep(.resume-entry__meta),
+.creative-sidebar :deep(.resume-entry__date),
+.creative-sidebar :deep(.resume-kv__label),
+.creative-sidebar :deep(.resume-chip__meta) {
+  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
+}
+
+.creative-sidebar :deep(.resume-rich-text),
+.creative-sidebar :deep(.resume-entry__description),
+.creative-sidebar :deep(.resume-entry__bullets),
+.creative-sidebar :deep(.resume-kv__value),
+.creative-sidebar :deep(.resume-bullet-list) {
+  color: var(--resume-sidebar-text, var(--resume-color-text));
+}
+
+.creative-sidebar :deep(.resume-chip) {
+  background: var(--resume-sidebar-chip-bg, var(--resume-color-surface-strong));
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
+}
+
+/* 打印时保留强调色块 */
+@media print {
+  .resume-template--creative {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>

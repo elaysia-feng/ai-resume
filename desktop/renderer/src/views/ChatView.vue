@@ -14,14 +14,14 @@
     />
 
     <section class="chat-main">
-      <header class="chat-header">
-        <div class="chat-header-info">
-          <h1 class="chat-title">AI 对话</h1>
-          <p class="chat-header-subtitle">{{ currentSessionTitle }}</p>
+      <header class="chat-topbar">
+        <div class="chat-topbar-info">
+          <h2 class="chat-topbar-title" :title="currentSessionTitle">{{ currentSessionTitle }}</h2>
+          <p class="chat-topbar-subtitle">{{ messageCountLabel }}</p>
         </div>
-        <div class="chat-header-actions">
-          <button class="chat-btn" :disabled="streaming" @click="createSession">新建会话</button>
-          <button class="chat-btn chat-btn-ghost" @click="goBack">返回简历</button>
+        <div class="chat-topbar-actions">
+          <span v-if="streaming" class="ui-badge ui-badge--accent">生成中</span>
+          <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goBack">返回简历</button>
         </div>
       </header>
 
@@ -89,6 +89,11 @@ const currentSessionTitle = computed(() => {
   }
   return currentSessionId.value ? `会话 #${currentSessionId.value}` : '新对话';
 });
+
+// 顶栏副信息：当前会话的消息条数
+const messageCountLabel = computed(() =>
+  messages.value.length ? `${messages.value.length} 条消息` : '还没有消息'
+);
 
 onMounted(async () => {
   await loadSessions();
@@ -360,7 +365,11 @@ function describeError(error) {
 <style scoped>
 .chat-page {
   display: flex;
-  height: calc(100vh - 64px);
+  /* 铺满应用壳的内容区（高度由壳给出），消息流自己滚动、输入区固定在底部 */
+  height: 100%;
+  min-height: calc(100vh - var(--ui-header-height) - var(--ui-space-8) * 2);
+  min-width: 0;
+  overflow: hidden;
   background: var(--chat-bg);
 }
 
@@ -372,41 +381,58 @@ function describeError(error) {
   height: 100%;
 }
 
-.chat-header {
+/* 上下文栏：只显示当前会话与状态，不重复全局导航 */
+.chat-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 24px;
+  gap: var(--ui-space-4);
+  flex: none;
+  height: 52px;
+  padding: 0 var(--ui-space-6);
   background: var(--chat-surface);
   border-bottom: 1px solid var(--chat-border);
 }
 
-.chat-title {
+.chat-topbar-info {
+  min-width: 0;
+}
+
+.chat-topbar-title {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: var(--ui-text-md);
+  font-weight: 600;
+  line-height: var(--ui-line-tight);
   color: var(--chat-text);
 }
 
-.chat-header-subtitle {
+.chat-topbar-subtitle {
   margin: 2px 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--ui-text-xs);
   color: var(--chat-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.chat-header-actions {
+.chat-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ui-space-2);
+  flex: none;
 }
 
 @media (max-width: 768px) {
-  .chat-page {
-    height: calc(100vh - 64px);
+  .chat-topbar {
+    height: 48px;
+    padding: 0 var(--ui-space-4);
   }
+}
 
-  .chat-header {
-    padding: 10px 14px;
+/* 窄窗口下壳层内容区外边距变小，这里同步 */
+@media (max-width: 1100px) {
+  .chat-page {
+    min-height: calc(100vh - var(--ui-header-height) - var(--ui-space-6) * 2);
   }
 }
 </style>

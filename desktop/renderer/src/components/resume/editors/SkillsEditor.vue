@@ -1,58 +1,84 @@
 <template>
-  <div class="skills-editor">
+  <div class="re-editor">
     <div v-if="isActive">
-      <div
-        v-for="(entry, index) in localEntries()"
-        :key="index"
-        class="entry-card"
-      >
-        <div class="entry-row">
-          <div class="field field-name">
-            <input
-              class="field-input"
-              type="text"
-              :value="entry.name"
-              placeholder="请输入技能名称"
-              @input="updateEntry(index, 'name', $event.target.value)"
-            />
-          </div>
-          <div class="field field-proficiency">
-            <select
-              class="field-input"
-              :value="entry.proficiency"
-              @change="updateEntry(index, 'proficiency', $event.target.value)"
-            >
-              <option value="">熟练度</option>
-              <option value="精通">精通</option>
-              <option value="掌握">掌握</option>
-              <option value="熟悉">熟悉</option>
-              <option value="了解">了解</option>
-            </select>
-          </div>
-          <button class="delete-btn" @click="removeEntry(index)">删除</button>
-        </div>
+      <p v-if="missingCount > 0" class="re-notice">
+        还有 {{ missingCount }} 个必填项未填写，标记 <span class="re-required">*</span> 的字段需要补充。
+      </p>
+
+      <div v-if="!localEntries().length" class="ui-empty">
+        <div class="ui-empty__title">还没有技能特长</div>
+        <div class="ui-empty__hint">按「技能 + 熟练度」逐条填写，岗位要求的关键技术尽量靠前。</div>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" @click="addEntry">+ 添加一条</button>
       </div>
 
-      <button class="add-btn" @click="addEntry">+ 添加一项</button>
+      <div v-else class="re-list">
+        <article v-for="(entry, index) in localEntries()" :key="index" class="ui-card re-entry">
+          <header class="re-entry__head">
+            <span class="re-entry__title">
+              <span class="re-entry__index">{{ index + 1 }}</span>
+              技能 {{ index + 1 }}
+            </span>
+            <button
+              type="button"
+              class="ui-btn ui-btn--sm ui-btn--ghost re-entry__remove"
+              @click="removeEntry(index)"
+            >
+              删除
+            </button>
+          </header>
+
+          <div class="re-form">
+            <div class="re-field">
+              <label class="ui-label" :for="`skill-name-${index}`">技能名称 <span class="re-required">*</span></label>
+              <input
+                :id="`skill-name-${index}`"
+                class="ui-input"
+                :class="{ 're-input--invalid': entryErrors[`${index}.name`] }"
+                type="text"
+                :value="entry.name"
+                placeholder="如：Spring Boot"
+                @input="updateEntry(index, 'name', $event.target.value)"
+                @blur="touch(`${index}.name`)"
+              />
+              <p v-if="entryErrors[`${index}.name`]" class="re-error">{{ entryErrors[`${index}.name`] }}</p>
+            </div>
+
+            <div class="re-field">
+              <label class="ui-label" :for="`skill-level-${index}`">熟练度</label>
+              <select
+                :id="`skill-level-${index}`"
+                class="ui-input ui-select"
+                :value="entry.proficiency"
+                @change="updateEntry(index, 'proficiency', $event.target.value)"
+              >
+                <option value="">请选择</option>
+                <option value="精通">精通</option>
+                <option value="掌握">掌握</option>
+                <option value="熟悉">熟悉</option>
+                <option value="了解">了解</option>
+              </select>
+            </div>
+          </div>
+        </article>
+
+        <button type="button" class="re-add" @click="addEntry">+ 添加一条</button>
+      </div>
     </div>
 
-    <div v-else class="summary">
-      <div v-if="modelValue && modelValue.length > 0" class="chips">
-        <span
-          v-for="(skill, index) in modelValue"
-          :key="index"
-          class="chip"
-        >
+    <div v-else class="re-summary">
+      <div v-if="modelValue && modelValue.length > 0" class="re-summary__tags">
+        <span v-for="(skill, index) in modelValue" :key="index" class="ui-badge ui-badge--accent">
           {{ skill.name || '技能' }}
-          <span v-if="skill.proficiency" class="chip-level">{{ skill.proficiency }}</span>
+          <template v-if="skill.proficiency">· {{ skill.proficiency }}</template>
         </span>
       </div>
-      <div v-else class="summary-empty">暂无技能特长</div>
+      <div v-else class="re-summary__muted">暂无技能特长</div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, reactive } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -89,116 +115,34 @@ function removeEntry(index) {
   updated.splice(index, 1)
   emit('update:modelValue', updated)
 }
+
+// ── 必填校验（失焦后提示）───────────────────────────────────────────────
+const REQUIRED_TEXT = {
+  name: '请填写技能名称',
+}
+
+const touched = reactive({})
+
+function touch(key) {
+  touched[key] = true
+}
+
+const entryErrors = computed(() => {
+  const errors = {}
+  localEntries().forEach((entry, index) => {
+    const key = `${index}.name`
+    if (!touched[key]) return
+    if (!String(entry?.name || '').trim()) {
+      errors[key] = REQUIRED_TEXT.name
+    }
+  })
+  return errors
+})
+
+const missingCount = computed(() =>
+  localEntries().reduce(
+    (count, entry) => count + (String(entry?.name || '').trim() ? 0 : 1),
+    0
+  )
+)
 </script>
-
-<style scoped>
-.skills-editor {
-  padding: 16px 0;
-}
-
-.entry-card {
-  margin-bottom: 8px;
-}
-
-.entry-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-}
-
-.field-name {
-  flex: 2;
-}
-
-.field-proficiency {
-  flex: 1;
-}
-
-.field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 4px;
-}
-
-.field-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s;
-  background-color: #fff;
-}
-
-.field-input:focus {
-  border: 1.5px dashed #22c55e;
-  border-radius: 6px;
-  background: none;
-  color: #22c55e;
-}
-
-.delete-btn {
-  font-size: 12px;
-  color: #ef4444;
-  background: none;
-  border: none;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0 4px;
-}
-
-.delete-btn:hover {
-  text-decoration: underline;
-}
-
-.add-btn {
-  width: 100%;
-  padding: 8px;
-  border: 1.5px dashed #22c55e;
-  border-radius: 6px;
-  background: none;
-  color: #22c55e;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.add-btn:hover {
-  background: #dcfce7;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  background: #dcfce7;
-  color: #22c55e;
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-.chip-level {
-  font-size: 11px;
-  opacity: 0.75;
-}
-
-.summary-empty {
-  font-size: 13px;
-  color: #9ca3af;
-}
-</style>

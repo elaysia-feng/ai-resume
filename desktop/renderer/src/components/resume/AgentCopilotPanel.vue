@@ -1,26 +1,55 @@
 <template>
   <section class="agent-copilot">
-    <div class="agent-copilot__header">
-      <div>
-        <h3>模块 Copilot</h3>
-        <p>{{ sectionTitle }}</p>
+    <header class="agent-copilot__header">
+      <div class="agent-copilot__heading">
+        <h3 class="agent-copilot__title">模块 Copilot</h3>
+        <p class="agent-copilot__subtitle">{{ sectionTitle }}</p>
       </div>
-      <label class="agent-copilot__mock">
-        <input type="checkbox" :checked="useMock" @change="toggleMock" />
-        Mock
+      <label class="switch">
+        <input type="checkbox" class="switch__input" :checked="useMock" @change="toggleMock" />
+        <span class="switch__track" aria-hidden="true"></span>
+        <span class="switch__text">Mock</span>
       </label>
-    </div>
+    </header>
 
     <div class="agent-copilot__fields">
-      <textarea v-model="jobDescription" rows="4" placeholder="粘贴目标岗位 JD 或招聘要求"></textarea>
-      <textarea v-model="userInput" rows="3" placeholder="描述希望 AI 如何优化当前模块"></textarea>
+      <div class="agent-copilot__field">
+        <label class="ui-label" for="copilot-jd">目标岗位 JD</label>
+        <textarea
+          id="copilot-jd"
+          v-model="jobDescription"
+          class="ui-input"
+          rows="4"
+          placeholder="粘贴目标岗位 JD 或招聘要求"
+        ></textarea>
+      </div>
+      <div class="agent-copilot__field">
+        <label class="ui-label" for="copilot-input">优化要求</label>
+        <textarea
+          id="copilot-input"
+          v-model="userInput"
+          class="ui-input"
+          rows="3"
+          placeholder="描述希望 AI 如何优化当前模块"
+        ></textarea>
+      </div>
     </div>
 
     <div class="agent-copilot__actions">
-      <button type="button" :disabled="running || !canStart" @click="startRun">
-        {{ running ? '运行中...' : '优化当前模块' }}
+      <button
+        type="button"
+        class="ui-btn ui-btn--sm ui-btn--primary"
+        :disabled="running || !canStart"
+        @click="startRun"
+      >
+        {{ running ? '运行中…' : '优化当前模块' }}
       </button>
-      <button type="button" class="agent-copilot__ghost" :disabled="running || !events.length" @click="resetPanel">
+      <button
+        type="button"
+        class="ui-btn ui-btn--sm ui-btn--ghost"
+        :disabled="running || !events.length"
+        @click="resetPanel"
+      >
         清空
       </button>
     </div>
@@ -29,34 +58,47 @@
     <p v-if="statusText" class="agent-copilot__status">{{ statusText }}</p>
 
     <div v-if="events.length" class="agent-copilot__events">
-      <div v-for="event in events" :key="`${event.runId}-${event.eventSeq}-${event.eventType}`" class="agent-copilot__event">
-        <span>{{ event.stageCode || event.eventType }}</span>
-        <strong>{{ event.message }}</strong>
+      <div
+        v-for="event in events"
+        :key="`${event.runId}-${event.eventSeq}-${event.eventType}`"
+        class="agent-copilot__event"
+      >
+        <span class="agent-copilot__event-stage">{{ event.stageCode || event.eventType }}</span>
+        <span class="agent-copilot__event-message">{{ event.message }}</span>
       </div>
     </div>
 
-    <div v-if="clarificationPayload?.questions?.length" class="agent-copilot__approval">
-      <h4>需要补充信息</h4>
+    <div v-if="clarificationPayload?.questions?.length" class="agent-copilot__box">
+      <h4 class="agent-copilot__box-title">需要补充信息</h4>
       <div v-for="question in clarificationPayload.questions" :key="question.fieldKey" class="agent-copilot__question">
-        <label>{{ question.question }}</label>
-        <textarea v-model="clarificationAnswers[question.fieldKey]" rows="2"></textarea>
+        <label class="ui-label" :for="`copilot-question-${question.fieldKey}`">
+          {{ question.question }}
+        </label>
+        <textarea
+          :id="`copilot-question-${question.fieldKey}`"
+          v-model="clarificationAnswers[question.fieldKey]"
+          class="ui-input"
+          rows="2"
+        ></textarea>
       </div>
-      <button type="button" :disabled="running" @click="continueRun">提交补充</button>
+      <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="running" @click="continueRun">
+        提交补充
+      </button>
     </div>
 
-    <div v-if="approvalPayload" class="agent-copilot__approval">
-      <h4>{{ approvalPayload.summary || '待确认修改' }}</h4>
+    <div v-if="approvalPayload" class="agent-copilot__box">
+      <h4 class="agent-copilot__box-title">{{ approvalPayload.summary || '待确认修改' }}</h4>
       <p v-for="note in approvalPayload.riskNotes || []" :key="note" class="agent-copilot__note">{{ note }}</p>
       <div v-for="patch in approvalPayload.patches || []" :key="patch.patchId" class="agent-copilot__patch">
         <div class="agent-copilot__patch-top">
           <span>{{ patch.sectionTitle || sectionTitle }}</span>
-          <strong>{{ patch.riskLevel || 'LOW' }}</strong>
+          <span class="ui-badge" :class="riskBadgeClass(patch.riskLevel)">{{ patch.riskLevel || 'LOW' }}</span>
         </div>
-        <p>{{ patch.changeSummary || patch.reason }}</p>
-        <pre>{{ formatJson(patch.afterJson) }}</pre>
+        <p class="agent-copilot__patch-summary">{{ patch.changeSummary || patch.reason }}</p>
+        <pre class="agent-copilot__code">{{ formatJson(patch.afterJson) }}</pre>
       </div>
-      <button type="button" :disabled="approving" @click="approveRun">
-        {{ approving ? '应用中...' : '确认应用' }}
+      <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="approving" @click="approveRun">
+        {{ approving ? '应用中…' : '确认应用' }}
       </button>
     </div>
   </section>
@@ -245,6 +287,13 @@ function toggleMock(event) {
   setAgentMockEnabled(useMock.value);
 }
 
+function riskBadgeClass(riskLevel) {
+  const level = String(riskLevel || '').toUpperCase();
+  if (level === 'HIGH') return 'ui-badge--danger';
+  if (level === 'MEDIUM') return 'ui-badge--warning';
+  return 'ui-badge--success';
+}
+
 function formatJson(value) {
   return JSON.stringify(value || {}, null, 2);
 }
@@ -252,120 +301,248 @@ function formatJson(value) {
 
 <style scoped>
 .agent-copilot {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 14px;
-  background: #f8fafc;
-}
-
-.agent-copilot__header,
-.agent-copilot__actions,
-.agent-copilot__patch-top {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+}
+
+.agent-copilot__header {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ui-space-3);
 }
 
-.agent-copilot h3,
-.agent-copilot h4,
-.agent-copilot p {
+.agent-copilot__heading {
+  min-width: 0;
+}
+
+.agent-copilot__title {
   margin: 0;
+  font-size: var(--ui-text-md);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
 }
 
-.agent-copilot__header p,
-.agent-copilot__note,
-.agent-copilot__status {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.agent-copilot__mock {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #475569;
+.agent-copilot__subtitle {
+  margin: 2px 0 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .agent-copilot__fields {
-  display: grid;
-  gap: 8px;
-  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
 }
 
-.agent-copilot textarea {
-  width: 100%;
+.agent-copilot__field {
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-copilot__field :deep(.ui-label) {
+  margin-bottom: var(--ui-space-1);
+}
+
+.agent-copilot__field :deep(textarea) {
   resize: vertical;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 9px;
-  font: inherit;
-  box-sizing: border-box;
+  font-family: inherit;
 }
 
-.agent-copilot button {
-  border: 0;
-  border-radius: 6px;
-  padding: 8px 12px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.agent-copilot button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.agent-copilot__ghost {
-  background: #e2e8f0 !important;
-  color: #334155 !important;
+.agent-copilot__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
 }
 
 .agent-copilot__error {
-  margin-top: 10px !important;
-  color: #b91c1c;
-  font-size: 13px;
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-danger-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+  font-size: var(--ui-text-sm);
 }
 
-.agent-copilot__events,
-.agent-copilot__approval {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
+.agent-copilot__status {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
 }
 
-.agent-copilot__event,
-.agent-copilot__patch,
-.agent-copilot__question {
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 10px;
-  background: #fff;
+.agent-copilot__events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
 }
 
 .agent-copilot__event {
   display: grid;
-  grid-template-columns: minmax(82px, 120px) 1fr;
-  gap: 8px;
-  font-size: 12px;
+  grid-template-columns: minmax(76px, 116px) 1fr;
+  gap: var(--ui-space-2);
+  align-items: baseline;
+  font-size: var(--ui-text-xs);
 }
 
-.agent-copilot__event span {
-  color: #64748b;
+.agent-copilot__event-stage {
+  color: var(--ui-fg-accent);
+  font-weight: 600;
+  font-family: var(--ui-font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.agent-copilot__patch pre {
+.agent-copilot__event-message {
+  color: var(--ui-fg-secondary);
+  word-break: break-word;
+}
+
+.agent-copilot__box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.agent-copilot__box-title {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.agent-copilot__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.agent-copilot__question :deep(.ui-label) {
+  margin-bottom: 0;
+}
+
+.agent-copilot__question :deep(textarea) {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.agent-copilot__note {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
+}
+
+.agent-copilot__patch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+}
+
+.agent-copilot__patch-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  color: var(--ui-fg-secondary);
+}
+
+.agent-copilot__patch-summary {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-primary);
+}
+
+.agent-copilot__code {
   max-height: 220px;
   overflow: auto;
-  margin: 8px 0 0;
-  padding: 10px;
-  border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
-  font-size: 12px;
+  margin: 0;
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-inverse);
+  color: var(--ui-fg-inverse);
+  font-family: var(--ui-font-mono);
+  font-size: var(--ui-text-xs);
+  line-height: 1.6;
+}
+
+/* ---------- 开关 ---------- */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch__track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-bg-active);
+  transition: background var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-xs);
+  transition: transform var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--ui-accent);
+}
+
+.switch__input:checked + .switch__track::after {
+  transform: translateX(16px);
+}
+
+.switch__input:focus-visible + .switch__track {
+  box-shadow: var(--ui-ring);
+}
+
+.switch__text {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
 }
 </style>

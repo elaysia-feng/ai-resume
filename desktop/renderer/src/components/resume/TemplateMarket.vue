@@ -1,30 +1,50 @@
 <template>
   <section class="template-market">
-    <h2 class="section-title">选择模板</h2>
-    <div class="templates-grid">
+    <header class="template-market__head">
+      <div>
+        <h2 class="section-title">选择模板</h2>
+        <p class="template-market__hint">点击卡片即可切换简历模板，预览会实时更新。</p>
+      </div>
+    </header>
+
+    <div v-if="loading" class="templates-grid" aria-busy="true">
+      <div v-for="index in 6" :key="index" class="template-card template-card--skeleton">
+        <div class="template-skeleton__preview"></div>
+        <div class="template-skeleton__line"></div>
+        <div class="template-skeleton__line template-skeleton__line--short"></div>
+      </div>
+    </div>
+
+    <div v-else class="templates-grid">
       <button
         v-for="tpl in templates"
         :key="tpl.id"
+        type="button"
         class="template-card"
-        :class="{ selected: modelValue === tpl.id }"
+        :class="{ 'is-selected': modelValue === tpl.id }"
+        :aria-pressed="modelValue === tpl.id"
         @click="emit('update:modelValue', tpl.id)"
       >
-        <div class="template-preview" :style="{ background: tpl.bg }">
-          <div class="preview-shell">
-            <div class="preview-header" :style="{ background: tpl.header }"></div>
-            <div class="preview-body" :class="tpl.layout">
-              <div v-if="tpl.sidebar" class="preview-sidebar"></div>
-              <div class="preview-main">
-                <div class="preview-line title" :style="{ width: tpl.line1 }"></div>
-                <div class="preview-line subtitle" :style="{ width: tpl.line2 }"></div>
-                <div class="preview-line" :style="{ width: tpl.line3 }"></div>
-                <div class="preview-line short" :style="{ width: tpl.line4 }"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <span class="template-name">{{ tpl.name }}</span>
-        <span v-if="modelValue === tpl.id" class="selected-badge">已选择</span>
+        <span class="template-card__preview" :style="{ background: tpl.bg }">
+          <span class="template-card__sheet">
+            <span class="template-card__header" :style="{ background: tpl.header }"></span>
+            <span class="template-card__body" :class="tpl.layout">
+              <span v-if="tpl.sidebar" class="template-card__sidebar"></span>
+              <span class="template-card__lines">
+                <span class="template-card__line is-title" :style="{ width: tpl.line1 }"></span>
+                <span class="template-card__line is-subtitle" :style="{ width: tpl.line2 }"></span>
+                <span class="template-card__line" :style="{ width: tpl.line3 }"></span>
+                <span class="template-card__line" :style="{ width: tpl.line4 }"></span>
+              </span>
+            </span>
+          </span>
+          <span v-if="modelValue === tpl.id" class="template-card__badge">使用中</span>
+        </span>
+
+        <span class="template-card__info">
+          <span class="template-card__name">{{ tpl.name }}</span>
+          <span class="template-card__desc">{{ tpl.desc }}</span>
+        </span>
       </button>
     </div>
   </section>
@@ -36,6 +56,11 @@ defineProps({
     type: String,
     default: null,
   },
+  // 可选：加载中显示骨架卡片，而不是整页遮罩
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -45,8 +70,8 @@ const templates = [
     id: 'classic',
     name: '标准版',
     desc: '结构清晰，适合程序员、产品经理、设计师等职位',
-    bg: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
-    header: '#1d4f91',
+    bg: 'linear-gradient(180deg, var(--ui-neutral-0) 0%, var(--ui-neutral-50) 100%)',
+    header: 'var(--ui-info)',
     layout: 'layout-classic',
     sidebar: false,
     line1: '80%',
@@ -58,8 +83,8 @@ const templates = [
     id: 'modern',
     name: '简约求职版',
     desc: '信息清晰紧凑，适合通用岗位、校招及社招',
-    bg: 'linear-gradient(180deg, #f6fbfa 0%, #eef7f5 100%)',
-    header: '#0f766e',
+    bg: 'linear-gradient(180deg, var(--ui-brand-50) 0%, var(--ui-accent-soft) 100%)',
+    header: 'var(--ui-brand-700)',
     layout: 'layout-modern',
     sidebar: true,
     line1: '65%',
@@ -71,8 +96,8 @@ const templates = [
     id: 'compact',
     name: '双列紧凑版',
     desc: '信息密度高，适合应届毕业生、实习生、校招类岗位',
-    bg: 'linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%)',
-    header: '#6d28d9',
+    bg: 'linear-gradient(180deg, var(--ui-neutral-100) 0%, var(--ui-neutral-200) 100%)',
+    header: 'var(--ui-neutral-800)',
     layout: 'layout-modern',
     sidebar: true,
     line1: '60%',
@@ -84,8 +109,8 @@ const templates = [
     id: 'academic',
     name: '学术科研版',
     desc: '极简风格、信息容量大，适合科研、教育、技术研发岗位',
-    bg: 'linear-gradient(180deg, #f7f9fc 0%, #edf2f7 100%)',
-    header: '#1e3a5f',
+    bg: 'linear-gradient(180deg, var(--ui-neutral-50) 0%, var(--ui-neutral-100) 100%)',
+    header: 'var(--ui-neutral-700)',
     layout: 'layout-classic',
     sidebar: false,
     line1: '75%',
@@ -96,9 +121,9 @@ const templates = [
   {
     id: 'creative',
     name: '创意进阶版',
-    desc: '不规则设计、视觉分区强烈，适合UI设计师、平面设计、品牌营销',
-    bg: 'linear-gradient(180deg, #fffdf8 0%, #fff6e7 100%)',
-    header: '#24364a',
+    desc: '不规则设计、视觉分区强烈，适合 UI 设计师、平面设计、品牌营销',
+    bg: 'linear-gradient(180deg, var(--ui-warning-soft) 0%, var(--ui-bg-surface) 100%)',
+    header: 'var(--ui-warning)',
     layout: 'layout-creative',
     sidebar: true,
     line1: '70%',
@@ -110,8 +135,8 @@ const templates = [
     id: 'dual-creative',
     name: '双列创意版',
     desc: '兼顾信息密度与视觉美感，适合前端开发、交互设计、产品经理',
-    bg: 'linear-gradient(180deg, #fefce8 0%, #fef3c7 100%)',
-    header: '#92400e',
+    bg: 'linear-gradient(180deg, var(--ui-danger-soft) 0%, var(--ui-bg-surface) 100%)',
+    header: 'var(--ui-danger)',
     layout: 'layout-creative',
     sidebar: true,
     line1: '68%',
@@ -124,129 +149,194 @@ const templates = [
 
 <style scoped>
 .template-market {
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-5);
+}
+
+.template-market__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 20px;
+  margin: 0;
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.template-market__hint {
+  margin: var(--ui-space-1) 0 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
 }
 
 .templates-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--ui-space-4);
 }
 
 .template-card {
-  position: relative;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
-  padding: 12px;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-out),
+    transform var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .template-card:hover {
-  border-color: #22c55e;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
+  border-color: var(--ui-border-strong);
+  box-shadow: var(--ui-shadow-md);
+  transform: translateY(-2px);
 }
 
-.template-card.selected {
-  border-color: #22c55e;
-  background: #dcfce7;
+.template-card:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
 }
 
-.template-preview {
+.template-card.is-selected {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.template-card__preview {
+  position: relative;
+  display: block;
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 8px;
-  padding: 10px;
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
 }
 
-.preview-shell {
+.template-card__sheet {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  display: flex;
-  flex-direction: column;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg-surface);
 }
 
-.preview-header {
+.template-card__header {
+  display: block;
   height: 18%;
   width: 100%;
 }
 
-.preview-body {
+.template-card__body {
   flex: 1;
-  padding: 8px;
   display: grid;
-  gap: 7px;
+  gap: 6px;
+  padding: 7px;
 }
 
 .layout-classic {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .layout-modern,
 .layout-creative {
-  grid-template-columns: 28% 1fr;
+  grid-template-columns: 26% minmax(0, 1fr);
 }
 
-.preview-sidebar {
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.08);
+.template-card__sidebar {
+  display: block;
+  border-radius: 3px;
+  background: var(--ui-bg-active);
 }
 
-.preview-main {
+.template-card__lines {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
-.preview-line {
-  height: 6px;
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 3px;
-}
-
-.preview-line.title {
-  height: 8px;
-}
-
-.preview-line.subtitle {
+.template-card__line {
+  display: block;
   height: 5px;
+  border-radius: 3px;
+  background: var(--ui-bg-active);
 }
 
-.preview-line.short {
-  width: 55%;
+.template-card__line.is-title {
+  height: 7px;
+  background: var(--ui-border-strong);
 }
 
-.template-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+.template-card__line.is-subtitle {
+  height: 4px;
 }
 
-.selected-badge {
+.template-card__badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #22c55e;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 20px;
+  top: var(--ui-space-3);
+  right: var(--ui-space-3);
+  padding: 2px var(--ui-space-2);
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent);
+  color: var(--ui-accent-fg);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+}
+
+.template-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.template-card__name {
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.template-card.is-selected .template-card__name {
+  color: var(--ui-fg-accent);
+}
+
+.template-card__desc {
+  font-size: var(--ui-text-xs);
+  line-height: 1.5;
+  color: var(--ui-fg-secondary);
+}
+
+/* ---------- 骨架卡片 ---------- */
+.template-card--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.template-skeleton__preview {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.template-skeleton__line {
+  height: 12px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-sunken);
+}
+
+.template-skeleton__line--short {
+  width: 60%;
 }
 </style>

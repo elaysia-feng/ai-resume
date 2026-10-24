@@ -1,119 +1,167 @@
 <template>
   <section class="session-page">
     <header class="page-header">
-      <div>
-        <h1 class="page-title">Agent 会话管理</h1>
-        <p class="page-subtitle">查看、筛选、编辑和补录会话消息</p>
+      <div class="page-header__text">
+        <h2 class="page-title">Agent 会话管理</h2>
+        <p class="page-subtitle">新建、筛选、编辑和删除 Agent 会话，也可以补录历史消息。</p>
       </div>
-      <button class="refresh-btn" :disabled="loading" @click="loadSessions">刷新列表</button>
+      <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadSessions">
+        {{ loading ? '刷新中…' : '刷新列表' }}
+      </button>
     </header>
 
-    <div class="toolbar-card">
-      <div class="toolbar-grid">
-        <div class="field">
-          <label>筛选简历</label>
-          <select v-model="filters.resumeId" class="field-input" @change="loadSessions">
-            <option value="">全部</option>
+    <!-- 筛选 + 新建 -->
+    <div class="ui-card toolbar">
+      <div class="toolbar__row">
+        <div class="field field--grow">
+          <label class="ui-label" for="filter-resume">筛选简历</label>
+          <select id="filter-resume" v-model="filters.resumeId" class="ui-input ui-select" @change="loadSessions">
+            <option value="">全部简历</option>
             <option v-for="resume in resumes" :key="resume.id" :value="resume.id">{{ resume.title }}</option>
           </select>
         </div>
-        <div class="field">
-          <label>筛选场景</label>
-          <select v-model="filters.sceneCode" class="field-input" @change="loadSessions">
-            <option value="">全部</option>
-            <option v-for="scene in sceneOptions" :key="scene" :value="scene">{{ scene }}</option>
+        <div class="field field--grow">
+          <label class="ui-label" for="filter-scene">筛选场景</label>
+          <select id="filter-scene" v-model="filters.sceneCode" class="ui-input ui-select" @change="loadSessions">
+            <option value="">全部场景</option>
+            <option v-for="scene in sceneOptions" :key="scene" :value="scene">{{ sceneLabel(scene) }}</option>
           </select>
         </div>
       </div>
 
-      <div class="create-grid">
-        <div class="field">
-          <label>新建会话简历</label>
-          <select v-model="createForm.resumeId" class="field-input">
+      <div class="toolbar__row toolbar__row--create">
+        <div class="field field--grow">
+          <label class="ui-label" for="create-resume">关联简历</label>
+          <select id="create-resume" v-model="createForm.resumeId" class="ui-input ui-select">
             <option value="">不关联简历</option>
             <option v-for="resume in resumes" :key="resume.id" :value="resume.id">{{ resume.title }}</option>
           </select>
         </div>
         <div class="field">
-          <label>场景</label>
-          <select v-model="createForm.sceneCode" class="field-input">
-            <option v-for="scene in sceneOptions" :key="scene" :value="scene">{{ scene }}</option>
+          <label class="ui-label" for="create-scene">场景</label>
+          <select id="create-scene" v-model="createForm.sceneCode" class="ui-input ui-select">
+            <option v-for="scene in sceneOptions" :key="scene" :value="scene">{{ sceneLabel(scene) }}</option>
           </select>
         </div>
-        <div class="field">
-          <label>会话标题</label>
-          <input v-model="createForm.sessionTitle" class="field-input" type="text" placeholder="可选" />
+        <div class="field field--grow">
+          <label class="ui-label" for="create-title">会话标题</label>
+          <input id="create-title" v-model="createForm.sessionTitle" class="ui-input" type="text" placeholder="可选" />
         </div>
-        <button class="primary-btn create-btn" :disabled="creating" @click="handleCreateSession">
-          {{ creating ? '创建中...' : '新建会话' }}
+        <button class="ui-btn ui-btn--primary create-btn" :disabled="creating" @click="handleCreateSession">
+          {{ creating ? '创建中…' : '新建会话' }}
         </button>
       </div>
     </div>
 
-    <p v-if="message" class="message success">{{ message }}</p>
-    <p v-if="error" class="message error">{{ error }}</p>
+    <p v-if="message" class="message success" role="status">{{ message }}</p>
+    <p v-if="error" class="message error" role="alert">{{ error }}</p>
 
     <div class="session-layout">
-      <aside class="session-list-card">
-        <div v-if="loading" class="empty-block">加载中...</div>
-        <div v-else-if="sessions.length === 0" class="empty-block">暂无会话记录</div>
-        <button
-          v-for="session in sessions"
-          :key="session.id"
-          class="session-item"
-          :class="{ active: selectedSessionId === session.id }"
-          @click="loadSessionDetail(session.id)"
-        >
-          <div class="session-item-top">
-            <span class="session-title">{{ session.sessionTitle }}</span>
-            <span class="session-scene">{{ session.sceneCode }}</span>
+      <!-- 会话列表 -->
+      <aside class="ui-card session-list-card">
+        <header class="card-head">
+          <h3 class="card-head__title">会话列表</h3>
+          <span class="ui-badge">{{ sessions.length }}</span>
+        </header>
+
+        <!-- 加载中 -->
+        <div v-if="loading" class="state-block">
+          <ul class="skeleton-list" aria-hidden="true">
+            <li v-for="index in 4" :key="index" class="skeleton-row"></li>
+          </ul>
+          <p class="state-text">正在加载会话列表…</p>
+        </div>
+
+        <!-- 加载失败 -->
+        <div v-else-if="listError" class="state-block">
+          <div class="ui-empty">
+            <p class="ui-empty__title">会话列表加载失败</p>
+            <p class="ui-empty__hint">{{ listError }}</p>
+            <button class="ui-btn ui-btn--primary" @click="loadSessions">重新加载</button>
           </div>
-          <div class="session-item-bottom">
-            <span>{{ session.status }}</span>
-            <span>{{ formatDateTime(session.updatedAt || session.lastMessageAt) }}</span>
+        </div>
+
+        <!-- 空列表 -->
+        <div v-else-if="sessions.length === 0" class="state-block">
+          <div class="ui-empty">
+            <p class="ui-empty__title">还没有会话记录</p>
+            <p class="ui-empty__hint">用上面的「新建会话」创建一个，或先去 AI 对话一次。</p>
           </div>
-        </button>
+        </div>
+
+        <!-- 列表 -->
+        <div v-else class="session-items">
+          <button
+            v-for="session in sessions"
+            :key="session.id"
+            type="button"
+            class="session-item"
+            :class="{ 'is-active': selectedSessionId === session.id }"
+            @click="loadSessionDetail(session.id)"
+          >
+            <span class="session-item__head">
+              <span class="session-item__title">{{ session.sessionTitle || '未命名会话' }}</span>
+              <span class="ui-badge">{{ sceneLabel(session.sceneCode) }}</span>
+            </span>
+            <span class="session-item__foot">
+              <span class="ui-badge" :class="statusBadge(session).tone">{{ statusBadge(session).label }}</span>
+              <span class="session-item__time">{{ formatDateTime(session.updatedAt || session.lastMessageAt) }}</span>
+            </span>
+          </button>
+        </div>
       </aside>
 
-      <section class="session-detail-card">
-        <div v-if="detailLoading" class="empty-block">加载详情中...</div>
-        <div v-else-if="!sessionDetail" class="empty-block">选择一个会话查看详情</div>
+      <!-- 会话详情 -->
+      <section class="ui-card session-detail-card">
+        <div v-if="detailLoading" class="state-block">
+          <p class="state-text">正在加载会话详情…</p>
+        </div>
+
+        <div v-else-if="!sessionDetail" class="state-block">
+          <div class="ui-empty">
+            <p class="ui-empty__title">选择一条会话</p>
+            <p class="ui-empty__hint">点击左侧任意会话，查看它的消息并编辑标题与状态。</p>
+          </div>
+        </div>
+
         <template v-else>
           <div class="detail-top">
             <div class="detail-meta">
-              <h2>{{ sessionDetail.sessionTitle }}</h2>
-              <p>
-                <span>{{ sessionDetail.sceneCode }}</span>
-                <span>{{ sessionDetail.status }}</span>
-                <span>{{ formatDateTime(sessionDetail.updatedAt) }}</span>
+              <h3 class="detail-meta__title">{{ sessionDetail.sessionTitle || '未命名会话' }}</h3>
+              <p class="detail-meta__badges">
+                <span class="ui-badge">{{ sceneLabel(sessionDetail.sceneCode) }}</span>
+                <span class="ui-badge" :class="statusBadge(sessionDetail).tone">{{ statusBadge(sessionDetail).label }}</span>
+                <span class="detail-meta__time">{{ formatDateTime(sessionDetail.updatedAt) }}</span>
               </p>
             </div>
-            <button class="danger-btn" @click="handleDeleteSession">删除会话</button>
+            <button class="ui-btn ui-btn--danger ui-btn--sm" @click="handleDeleteSession">删除会话</button>
           </div>
 
+          <!-- 编辑会话 -->
           <div class="update-grid">
-            <div class="field">
-              <label>会话标题</label>
-              <input v-model="updateForm.sessionTitle" class="field-input" type="text" placeholder="修改会话标题" />
+            <div class="field field--grow">
+              <label class="ui-label" for="update-title">会话标题</label>
+              <input id="update-title" v-model="updateForm.sessionTitle" class="ui-input" type="text" placeholder="修改会话标题" />
             </div>
             <div class="field">
-              <label>状态</label>
-              <select v-model="updateForm.status" class="field-input">
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="ARCHIVED">ARCHIVED</option>
-                <option value="DELETED">DELETED</option>
+              <label class="ui-label" for="update-status">状态</label>
+              <select id="update-status" v-model="updateForm.status" class="ui-input ui-select">
+                <option value="ACTIVE">活跃</option>
+                <option value="ARCHIVED">已归档</option>
+                <option value="DELETED">已删除</option>
               </select>
             </div>
-            <button class="ghost-btn action-btn" @click="handleUpdateSession">更新会话</button>
+            <button class="ui-btn ui-btn--outline action-btn" @click="handleUpdateSession">更新会话</button>
           </div>
 
+          <!-- 消息列表 -->
           <div class="message-header">
-            <strong>消息列表</strong>
-            <button class="ghost-btn small" @click="refreshMessages">刷新消息</button>
+            <strong class="message-header__title">消息列表</strong>
+            <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="refreshMessages">刷新消息</button>
           </div>
 
-          <div class="message-list">
-            <div v-if="messages.length === 0" class="empty-block small">暂无消息</div>
+          <div class="message-list ui-scroll">
+            <p v-if="messages.length === 0" class="state-text state-text--left">这条会话还没有消息。</p>
             <div
               v-for="messageItem in messages"
               :key="messageItem.id"
@@ -128,11 +176,13 @@
             </div>
           </div>
 
+          <!-- 补录消息 -->
           <div class="composer-card">
+            <p class="composer-card__title">补录消息</p>
             <div class="update-grid">
               <div class="field">
-                <label>消息角色</label>
-                <select v-model="messageForm.role" class="field-input">
+                <label class="ui-label" for="message-role">消息角色</label>
+                <select id="message-role" v-model="messageForm.role" class="ui-input ui-select">
                   <option value="USER">USER</option>
                   <option value="ASSISTANT">ASSISTANT</option>
                   <option value="SYSTEM">SYSTEM</option>
@@ -140,19 +190,19 @@
                 </select>
               </div>
               <div class="field">
-                <label>内容类型</label>
-                <select v-model="messageForm.contentType" class="field-input">
+                <label class="ui-label" for="message-type">内容类型</label>
+                <select id="message-type" v-model="messageForm.contentType" class="ui-input ui-select">
                   <option value="TEXT">TEXT</option>
                   <option value="JSON">JSON</option>
                 </select>
               </div>
             </div>
             <div class="field">
-              <label>消息内容</label>
-              <textarea v-model="messageForm.content" class="field-textarea" rows="5" placeholder="补录一条消息"></textarea>
+              <label class="ui-label" for="message-content">消息内容</label>
+              <textarea id="message-content" v-model="messageForm.content" class="ui-input field-textarea" rows="5" placeholder="补录一条消息"></textarea>
             </div>
-            <button class="primary-btn" :disabled="sendingMessage" @click="handleCreateMessage">
-              {{ sendingMessage ? '发送中...' : '新增消息' }}
+            <button class="ui-btn ui-btn--primary" :disabled="sendingMessage" @click="handleCreateMessage">
+              {{ sendingMessage ? '发送中…' : '新增消息' }}
             </button>
           </div>
         </template>
@@ -178,12 +228,21 @@ import { formatDateTime } from '../utils/resume.js';
 
 const sceneOptions = ['CHAT', 'OPTIMIZE', 'MATCH', 'SUMMARY'];
 
+// 场景码 → 中文名（与「历史记录」页保持同一套口径）
+const SCENE_LABELS = {
+  CHAT: 'AI 对话',
+  OPTIMIZE: '简历优化',
+  MATCH: '岗位匹配',
+  SUMMARY: '简历摘要',
+};
+
 const loading = ref(false);
 const detailLoading = ref(false);
 const creating = ref(false);
 const sendingMessage = ref(false);
 const message = ref('');
 const error = ref('');
+const listError = ref('');
 const resumes = ref([]);
 const sessions = ref([]);
 const sessionDetail = ref(null);
@@ -216,6 +275,34 @@ onMounted(async () => {
   await Promise.all([loadResumes(), loadSessions()]);
 });
 
+function sceneLabel(sceneCode) {
+  return SCENE_LABELS[sceneCode] || sceneCode || '未知场景';
+}
+
+// 状态展示：优先看单次运行状态，其次看会话自身的归档 / 删除状态
+function statusBadge(session) {
+  const runStatus = session?.activeRunStatus;
+  if (runStatus) {
+    if (runStatus === 'SUCCESS') {
+      return { label: '已完成', tone: 'ui-badge--success' };
+    }
+    if (runStatus === 'FAILED') {
+      return { label: '执行失败', tone: 'ui-badge--danger' };
+    }
+    if (runStatus === 'WAITING_USER') {
+      return { label: '等待输入', tone: 'ui-badge--warning' };
+    }
+    return { label: runStatus, tone: 'ui-badge--accent' };
+  }
+  if (session?.status === 'ARCHIVED') {
+    return { label: '已归档', tone: '' };
+  }
+  if (session?.status === 'DELETED') {
+    return { label: '已删除', tone: 'ui-badge--danger' };
+  }
+  return { label: '活跃', tone: 'ui-badge--accent' };
+}
+
 function setStatus(successMessage = '', errorMessage = '') {
   message.value = successMessage;
   error.value = errorMessage;
@@ -231,6 +318,7 @@ async function loadResumes() {
 
 async function loadSessions() {
   loading.value = true;
+  listError.value = '';
   setStatus();
   try {
     sessions.value = await listAgentSessions({
@@ -238,7 +326,8 @@ async function loadSessions() {
       sceneCode: filters.sceneCode || undefined,
     });
   } catch (err) {
-    setStatus('', extractApiMessage(err, '加载会话列表失败'));
+    sessions.value = [];
+    listError.value = extractApiMessage(err, '加载会话列表失败');
   } finally {
     loading.value = false;
   }
@@ -314,7 +403,8 @@ async function handleDeleteSession() {
   if (!selectedSessionId.value) {
     return;
   }
-  if (!window.confirm('确定删除这个会话吗？')) {
+  const title = sessionDetail.value?.sessionTitle || '未命名会话';
+  if (!window.confirm(`确定删除会话「${title}」吗？该操作不可恢复。`)) {
     return;
   }
   try {
@@ -354,273 +444,366 @@ async function handleCreateMessage() {
 </script>
 
 <style scoped>
+/* ========================================
+   Agent 会话管理台
+   ======================================== */
 .session-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--ui-space-5);
 }
 
-.page-header,
-.toolbar-grid,
-.create-grid,
-.detail-top,
-.update-grid,
-.message-header,
-.session-item-top,
-.session-item-bottom,
-.message-item-top {
+/* ---------- 页头 ---------- */
+.page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ui-space-4);
 }
 
 .page-title {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--ui-text-xl);
   font-weight: 700;
-  color: #1a1a2e;
+  line-height: var(--ui-line-tight);
+  color: var(--ui-fg-primary);
 }
 
 .page-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #6b7280;
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-secondary);
 }
 
-.toolbar-card,
-.session-list-card,
-.session-detail-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.toolbar-card,
-.session-detail-card {
+/* ---------- 工具条 ---------- */
+.toolbar {
+  padding: var(--ui-space-5);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--ui-space-4);
 }
 
-.toolbar-grid,
-.create-grid,
-.update-grid {
-  align-items: end;
+.toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ui-space-4);
+}
+
+.toolbar__row--create {
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--ui-border-subtle);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 1;
+  gap: var(--ui-space-2);
+  min-width: 0;
 }
 
-.field label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.field-input,
-.field-textarea {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 14px;
-  box-sizing: border-box;
+.field--grow {
+  flex: 1 1 200px;
 }
 
 .field-textarea {
-  resize: vertical;
   min-height: 120px;
+  resize: vertical;
   font-family: inherit;
-}
-
-.refresh-btn,
-.ghost-btn,
-.primary-btn,
-.danger-btn {
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.refresh-btn,
-.ghost-btn {
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-}
-
-.ghost-btn.small {
-  padding: 6px 10px;
-}
-
-.primary-btn {
-  border: none;
-  background: #22c55e;
-  color: #fff;
-}
-
-.danger-btn {
-  border: none;
-  background: #ef4444;
-  color: #fff;
 }
 
 .create-btn,
 .action-btn {
-  min-width: 120px;
+  flex-shrink: 0;
 }
 
+/* ---------- 提示条 ---------- */
 .message {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid transparent;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-primary);
 }
 
 .message.success {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--ui-success-soft);
+  border-color: var(--ui-success-border);
 }
 
 .message.error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--ui-danger-soft);
+  border-color: var(--ui-danger-border);
 }
 
+/* ---------- 列表 + 详情 ---------- */
 .session-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 16px;
-  min-height: 560px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--ui-space-4);
+  align-items: start;
 }
 
-.session-list-card {
+.session-list-card,
+.session-detail-card {
+  padding: var(--ui-space-5);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding-bottom: var(--ui-space-3);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.card-head__title {
+  margin: 0;
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+/* ---------- 会话列表项 ---------- */
+.session-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
 }
 
 .session-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
   width: 100%;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px;
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
   text-align: left;
   cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
+    border-color var(--ui-duration-fast) var(--ui-ease-in-out);
 }
 
-.session-item.active {
-  border-color: #22c55e;
-  background: #f0fdf4;
+.session-item:hover {
+  background: var(--ui-bg-hover);
 }
 
-.session-title {
-  font-size: 14px;
+.session-item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.session-item.is-active {
+  border-color: var(--ui-border-focus);
+  background: var(--ui-bg-selected);
+}
+
+.session-item__head,
+.session-item__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.session-item__title {
+  font-size: var(--ui-text-sm);
   font-weight: 600;
-  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.session-scene,
-.session-item-bottom,
-.detail-meta p,
-.message-item-top {
-  font-size: 12px;
-  color: #6b7280;
+.session-item__time {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* ---------- 详情 ---------- */
 .detail-top {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
 }
 
-.detail-meta h2 {
+.detail-meta {
+  min-width: 0;
+}
+
+.detail-meta__title {
   margin: 0;
-  font-size: 20px;
-  color: #111827;
+  font-size: var(--ui-text-lg);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+  word-break: break-word;
 }
 
-.detail-meta p {
+.detail-meta__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 8px 0 0;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: var(--ui-space-2) 0 0;
+}
+
+.detail-meta__time {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.update-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ui-space-4);
+}
+
+/* ---------- 消息 ---------- */
+.message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding-top: var(--ui-space-3);
+  border-top: 1px solid var(--ui-border);
+}
+
+.message-header__title {
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-primary);
 }
 
 .message-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ui-space-3);
   max-height: 360px;
   overflow-y: auto;
 }
 
 .message-item {
-  border-radius: 12px;
-  padding: 12px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  padding: var(--ui-space-3);
 }
 
 .message-item.user {
-  background: #eff6ff;
+  background: var(--ui-info-soft);
+  border-color: var(--ui-info-border);
 }
 
 .message-item.assistant {
-  background: #f0fdf4;
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent-border);
 }
 
 .message-item.system,
 .message-item.tool {
-  background: #f9fafb;
+  background: var(--ui-bg-sunken);
+}
+
+.message-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-secondary);
 }
 
 .message-content {
-  margin: 8px 0 0;
+  margin: var(--ui-space-2) 0 0;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #111827;
   font-family: inherit;
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-relaxed);
+  color: var(--ui-fg-primary);
 }
 
+/* ---------- 补录消息 ---------- */
 .composer-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
 }
 
-.empty-block {
+.composer-card__title {
+  margin: 0;
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+/* ---------- 状态块 ---------- */
+.state-block {
+  padding: var(--ui-space-4) 0;
+}
+
+.state-text {
+  margin: var(--ui-space-3) 0 0;
+  text-align: center;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-muted);
+}
+
+.state-text--left {
+  margin: 0;
+  text-align: left;
+}
+
+.skeleton-list {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
-  color: #9ca3af;
-  font-size: 13px;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.empty-block.small {
-  min-height: 120px;
+.skeleton-row {
+  height: 56px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+  animation: skeleton-pulse 1.4s var(--ui-ease-in-out) infinite;
 }
 
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---------- 窄窗口 ---------- */
 @media (max-width: 1100px) {
-  .session-layout,
-  .toolbar-grid,
-  .create-grid,
-  .update-grid,
-  .detail-top,
-  .page-header {
+  .session-layout {
     grid-template-columns: 1fr;
+  }
+
+  .page-header {
     flex-direction: column;
     align-items: stretch;
   }

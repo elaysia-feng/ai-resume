@@ -242,7 +242,7 @@ function listItemText(item) {
 .resume-section-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ui-space-2);
 }
 
 .resume-section-block__head {
@@ -253,22 +253,23 @@ function listItemText(item) {
 .resume-section-block__title {
   margin: 0;
   color: var(--resume-color-heading);
-  font-size: var(--resume-section-title-size, 10px);
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: var(--resume-section-title-size, 11px);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
 }
 
 .resume-section-block__body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ui-space-2);
 }
 
 .resume-rich-text {
   color: var(--resume-color-text);
   font-size: var(--resume-text-size, 9px);
-  line-height: 1.45;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .resume-rich-text :deep(*) {
@@ -279,7 +280,7 @@ function listItemText(item) {
 .resume-entry-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
 .resume-entry {
@@ -291,7 +292,7 @@ function listItemText(item) {
 .resume-entry__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--ui-space-3);
   align-items: start;
 }
 
@@ -304,7 +305,8 @@ function listItemText(item) {
   color: var(--resume-color-heading);
   font-size: var(--resume-title-size, 11px);
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.35;
+  text-wrap: pretty;
 }
 
 .resume-entry__subtitle,
@@ -312,20 +314,22 @@ function listItemText(item) {
   margin: 3px 0 0;
   color: var(--resume-color-text-soft);
   font-size: var(--resume-meta-size, 9px);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .resume-entry__date {
   color: var(--resume-color-text-faint);
   font-size: var(--resume-date-size, 9px);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .resume-entry__description {
   color: var(--resume-color-text);
   font-size: var(--resume-text-size, 9px);
-  line-height: 1.45;
+  line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .resume-entry__description :deep(*) {
@@ -335,10 +339,18 @@ function listItemText(item) {
 
 .resume-entry__bullets {
   margin: 0;
-  padding-left: 15px;
+  padding-left: 1.1em;
   color: var(--resume-color-text);
   font-size: var(--resume-text-size, 9px);
-  line-height: 1.45;
+  line-height: 1.6;
+}
+
+.resume-entry__bullets li {
+  list-style: disc;
+}
+
+.resume-entry__bullets li::marker {
+  color: var(--resume-color-accent);
 }
 
 .resume-entry__bullets li + li {
@@ -348,65 +360,74 @@ function listItemText(item) {
 .resume-chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ui-space-2);
 }
 
 .resume-chip-list--compact {
-  gap: 6px;
+  gap: 5px;
 }
 
 .resume-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--resume-color-surface-strong);
   color: var(--resume-color-accent);
   font-size: var(--resume-chip-size, 9px);
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .resume-chip__meta {
   color: var(--resume-color-text-faint);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .resume-kv-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: var(--ui-space-2) var(--ui-space-3);
 }
 
 .resume-kv {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 1px solid var(--resume-color-border);
-  border-radius: 12px;
+  border-radius: var(--ui-radius-sm);
   background: var(--resume-color-surface);
 }
 
 .resume-kv__label {
   color: var(--resume-color-text-faint);
   font-size: var(--resume-meta-size, 9px);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .resume-kv__value {
   color: var(--resume-color-text);
   font-size: var(--resume-text-size, 9px);
   font-weight: 600;
+  text-wrap: pretty;
 }
 
 .resume-bullet-list {
   margin: 0;
-  padding-left: 15px;
+  padding-left: 1.1em;
   color: var(--resume-color-text);
   font-size: var(--resume-text-size, 9px);
-  line-height: 1.45;
+  line-height: 1.6;
+}
+
+.resume-bullet-list li {
+  list-style: disc;
+}
+
+.resume-bullet-list li::marker {
+  color: var(--resume-color-accent);
 }
 
 .resume-bullet-list li + li {
@@ -414,16 +435,16 @@ function listItemText(item) {
 }
 
 .resume-section-block--compact .resume-section-block__body {
-  gap: 8px;
+  gap: 6px;
 }
 
 .resume-section-block--compact .resume-section-block__title {
-  font-size: calc(var(--resume-section-title-size, 10px) - 1px);
-  letter-spacing: 0.08em;
+  font-size: calc(var(--resume-section-title-size, 11px) - 1px);
+  letter-spacing: 0.03em;
 }
 
 .resume-section-block--compact .resume-entry-list {
-  gap: 7px;
+  gap: 6px;
 }
 
 .resume-section-block--compact .resume-entry__title {
@@ -439,7 +460,7 @@ function listItemText(item) {
 }
 
 .resume-section-block--compact .resume-chip {
-  padding: 2px 7px;
+  padding: 1px 7px;
   font-size: calc(var(--resume-chip-size, 9px) - 0.5px);
 }
 

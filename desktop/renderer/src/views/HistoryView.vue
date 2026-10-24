@@ -1,7 +1,896 @@
 <template>
-  <AgentSessionManager />
+  <div class="history-page">
+    <header class="page-head">
+      <div class="page-head__text">
+        <h1 class="page-title">历史记录</h1>
+        <p class="page-subtitle">查看与 AI 的全部会话记录，支持按类型筛选、关键词搜索与时间排序。</p>
+      </div>
+      <div class="page-head__actions">
+        <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadSessions">
+          {{ loading ? '刷新中…' : '刷新' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- 视图切换：历史总览 / 会话管理（保留原有的会话增删改与消息补录能力） -->
+    <div class="view-switch" role="tablist" aria-label="历史记录视图">
+      <button
+        type="button"
+        role="tab"
+        class="view-switch__item"
+        :class="{ 'is-active': view === 'overview' }"
+        :aria-selected="view === 'overview' ? 'true' : 'false'"
+        @click="view = 'overview'"
+      >
+        历史总览
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="view-switch__item"
+        :class="{ 'is-active': view === 'manage' }"
+        :aria-selected="view === 'manage' ? 'true' : 'false'"
+        @click="view = 'manage'"
+      >
+        会话管理
+      </button>
+    </div>
+
+    <template v-if="view === 'overview'">
+      <!-- 工具条：搜索 / 筛选 / 排序 / 密度 -->
+      <section class="ui-card toolbar">
+        <div class="toolbar__row">
+          <div class="field field--grow">
+            <label class="ui-label" for="history-search">搜索</label>
+            <input id="history-search" v-model="keyword" class="ui-input" type="search" placeholder="按会话标题或岗位 JD 搜索" />
+          </div>
+          <div class="field">
+            <label class="ui-label" for="history-type">类型</label>
+            <select id="history-type" v-model="typeFilter" class="ui-input ui-select">
+              <option value="">全部类型</option>
+              <option value="CHAT">AI 对话</option>
+              <option value="INTERVIEW">模拟面试</option>
+              <option value="RESUME">简历相关</option>
+              <option value="OTHER">其他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="ui-label" for="history-sort">排序</label>
+            <select id="history-sort" v-model="sortOrder" class="ui-input ui-select">
+              <option value="recent">最近活动</option>
+              <option value="oldest">最早活动</option>
+              <option value="created">最近创建</option>
+              <option value="title">标题排序</option>
+            </select>
+          </div>
+          <div class="field">
+            <span class="ui-label">显示密度</span>
+            <div class="density-switch" role="group" aria-label="显示密度">
+              <button type="button" class="density-switch__item" :class="{ 'is-active': density === 'table' }" @click="density = 'table'">表格</button>
+              <button type="button" class="density-switch__item" :class="{ 'is-active': density === 'list' }" @click="density = 'list'">列表</button>
+            </div>
+          </div>
+        </div>
+        <p class="toolbar__summary">
+          共 {{ filteredSessions.length }} 条记录
+          <span v-if="sessions.length !== filteredSessions.length">（已从 {{ sessions.length }} 条中筛选）</span>
+        </p>
+      </section>
+
+      <!-- 加载中 -->
+      <div v-if="loading" class="ui-card state-card">
+        <ul class="skeleton-list" aria-hidden="true">
+          <li v-for="index in 5" :key="index" class="skeleton-row"></li>
+        </ul>
+        <p class="state-text">正在加载历史记录…</p>
+      </div>
+
+      <!-- 加载失败 -->
+      <div v-else-if="loadError" class="ui-card state-card">
+        <div class="ui-empty">
+          <p class="ui-empty__title">历史记录加载失败</p>
+          <p class="ui-empty__hint">{{ loadError }}</p>
+          <button class="ui-btn ui-btn--primary" @click="loadSessions">重试</button>
+        </div>
+      </div>
+
+      <!-- 没有任何记录 -->
+      <div v-else-if="sessions.length === 0" class="ui-card state-card">
+        <div class="ui-empty">
+          <p class="ui-empty__title">还没有历史记录</p>
+          <p class="ui-empty__hint">和 AI 对话一次，或者做一次模拟面试，记录就会出现在这里。</p>
+          <div class="ui-empty__actions">
+            <button class="ui-btn ui-btn--primary" @click="goChat">去和 AI 对话</button>
+            <button class="ui-btn ui-btn--outline" @click="goInterview">开始模拟面试</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 有记录但筛选后为空 -->
+      <div v-else-if="filteredSessions.length === 0" class="ui-card state-card">
+        <div class="ui-empty">
+          <p class="ui-empty__title">没有匹配的记录</p>
+          <p class="ui-empty__hint">换个关键词或筛选条件再试一次。</p>
+          <button class="ui-btn ui-btn--outline" @click="resetFilters">清空筛选</button>
+        </div>
+      </div>
+
+      <!-- 正常列表 -->
+      <div v-else class="history-body">
+        <section class="ui-card list-panel">
+          <div class="ui-scroll list-scroll">
+            <table v-if="density === 'table'" class="history-table">
+              <thead>
+                <tr>
+                  <th scope="col">会话标题</th>
+                  <th scope="col">类型</th>
+                  <th scope="col">状态</th>
+                  <th scope="col">最近活动</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="session in filteredSessions"
+                  :key="session.id"
+                  class="history-row"
+                  :class="{ 'is-active': selectedId === session.id }"
+                  tabindex="0"
+                  @click="selectSession(session)"
+                  @keydown.enter="selectSession(session)"
+                  @keydown.space.prevent="selectSession(session)"
+                >
+                  <td class="cell-main">
+                    <span class="cell-main__title">{{ sessionTitle(session) }}</span>
+                    <span class="cell-main__sub">{{ sessionContext(session) }}</span>
+                  </td>
+                  <td><span class="ui-badge">{{ typeLabel(session.sceneCode) }}</span></td>
+                  <td>
+                    <span class="ui-badge" :class="statusBadge(session).tone">{{ statusBadge(session).label }}</span>
+                  </td>
+                  <td class="cell-time">{{ formatDateTime(sessionTime(session)) }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div v-else class="history-list">
+              <button
+                v-for="session in filteredSessions"
+                :key="session.id"
+                type="button"
+                class="history-item"
+                :class="{ 'is-active': selectedId === session.id }"
+                @click="selectSession(session)"
+              >
+                <span class="history-item__head">
+                  <span class="history-item__title">{{ sessionTitle(session) }}</span>
+                  <span class="ui-badge">{{ typeLabel(session.sceneCode) }}</span>
+                  <span class="ui-badge" :class="statusBadge(session).tone">{{ statusBadge(session).label }}</span>
+                </span>
+                <span class="history-item__body">
+                  <span class="history-item__context">{{ sessionContext(session) }}</span>
+                  <span class="history-item__time">{{ formatDateTime(sessionTime(session)) }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 选中会话的详情：摘要在这里展示（列表接口不返回摘要） -->
+        <aside class="ui-card detail-panel">
+          <header class="card-head">
+            <h2 class="card-head__title">会话详情</h2>
+            <span v-if="sessionDetail" class="ui-badge">{{ typeLabel(sessionDetail.sceneCode) }}</span>
+          </header>
+
+          <p v-if="detailLoading" class="state-text">加载详情中…</p>
+
+          <div v-else-if="detailError" class="ui-empty">
+            <p class="ui-empty__title">详情加载失败</p>
+            <p class="ui-empty__hint">{{ detailError }}</p>
+            <button class="ui-btn ui-btn--outline" @click="reloadDetail">重试</button>
+          </div>
+
+          <div v-else-if="!sessionDetail" class="ui-empty">
+            <p class="ui-empty__title">选择一条记录</p>
+            <p class="ui-empty__hint">点击左侧任意会话，查看它的摘要、岗位 JD 与消息数量。</p>
+          </div>
+
+          <dl v-else class="detail-list">
+            <div class="detail-item detail-item--wide">
+              <dt class="detail-item__label">标题</dt>
+              <dd class="detail-item__value">{{ sessionDetail.sessionTitle || '未命名会话' }}</dd>
+            </div>
+            <div class="detail-item">
+              <dt class="detail-item__label">状态</dt>
+              <dd class="detail-item__value">{{ statusBadge(sessionDetail).label }}</dd>
+            </div>
+            <div class="detail-item">
+              <dt class="detail-item__label">消息数量</dt>
+              <dd class="detail-item__value">{{ messageCount }} 条</dd>
+            </div>
+            <div class="detail-item">
+              <dt class="detail-item__label">最近活动</dt>
+              <dd class="detail-item__value">{{ formatDateTime(sessionTime(sessionDetail)) }}</dd>
+            </div>
+            <div class="detail-item">
+              <dt class="detail-item__label">创建时间</dt>
+              <dd class="detail-item__value">{{ formatDateTime(sessionDetail.createdAt) }}</dd>
+            </div>
+            <div class="detail-item detail-item--wide">
+              <dt class="detail-item__label">摘要</dt>
+              <dd class="detail-item__value detail-item__value--pre">{{ sessionDetail.summary || '这条会话还没有生成摘要。' }}</dd>
+            </div>
+            <div v-if="sessionDetail.jobDescription" class="detail-item detail-item--wide">
+              <dt class="detail-item__label">岗位 JD</dt>
+              <dd class="detail-item__value detail-item__value--pre">{{ sessionDetail.jobDescription }}</dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
+    </template>
+
+    <!-- 原有会话管理面板：新建 / 编辑 / 删除会话与补录消息 -->
+    <section v-else class="legacy-panel">
+      <AgentSessionManager />
+    </section>
+  </div>
 </template>
 
 <script setup>
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import AgentSessionManager from '../components/AgentSessionManager.vue';
+import { getAgentSessionDetail, listAgentSessions } from '../api/agentSessions.js';
+import { getResumes } from '../api/resumes.js';
+import { extractApiMessage } from '../api/request.js';
+import { formatDateTime } from '../utils/resume.js';
+
+// 简历类场景码统一归到「简历相关」
+const RESUME_SCENE_CODES = new Set(['JD_CUSTOMIZE', 'RESUME_OPTIMIZE', 'RESUME_REWRITE', 'OPTIMIZE', 'MATCH']);
+
+const TYPE_LABELS = {
+  CHAT: 'AI 对话',
+  INTERVIEW: '模拟面试',
+  RESUME: '简历相关',
+  OTHER: '其他',
+};
+
+const router = useRouter();
+
+const view = ref('overview');
+const loading = ref(false);
+const loadError = ref('');
+const sessions = ref([]);
+const resumeTitles = ref({});
+const selectedId = ref(null);
+const sessionDetail = ref(null);
+const detailLoading = ref(false);
+const detailError = ref('');
+
+const keyword = ref('');
+const typeFilter = ref('');
+const sortOrder = ref('recent');
+const density = ref('table');
+
+onMounted(() => {
+  loadSessions();
+});
+
+async function loadSessions() {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const [sessionList, resumeList] = await Promise.all([
+      listAgentSessions(),
+      getResumes().catch(() => []),
+    ]);
+    sessions.value = Array.isArray(sessionList) ? sessionList : [];
+    resumeTitles.value = Array.isArray(resumeList)
+      ? resumeList.reduce((acc, resume) => ({ ...acc, [resume.id]: resume.title || '未命名简历' }), {})
+      : {};
+
+    if (selectedId.value && !sessions.value.some((item) => item.id === selectedId.value)) {
+      selectedId.value = null;
+      sessionDetail.value = null;
+    }
+    if (!selectedId.value && sessions.value.length) {
+      await selectSession(sessions.value[0]);
+    }
+  } catch (err) {
+    sessions.value = [];
+    loadError.value = extractApiMessage(err, '加载历史记录失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function selectSession(session) {
+  selectedId.value = session.id;
+  detailLoading.value = true;
+  detailError.value = '';
+  try {
+    sessionDetail.value = await getAgentSessionDetail(session.id);
+  } catch (err) {
+    sessionDetail.value = null;
+    detailError.value = extractApiMessage(err, '加载会话详情失败');
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function reloadDetail() {
+  const current = sessions.value.find((item) => item.id === selectedId.value);
+  if (current) {
+    await selectSession(current);
+  }
+}
+
+function resetFilters() {
+  keyword.value = '';
+  typeFilter.value = '';
+  sortOrder.value = 'recent';
+}
+
+const filteredSessions = computed(() => {
+  const word = keyword.value.trim().toLowerCase();
+  const list = sessions.value.filter((session) => {
+    if (typeFilter.value && sessionType(session.sceneCode) !== typeFilter.value) {
+      return false;
+    }
+    if (!word) {
+      return true;
+    }
+    return [session.sessionTitle, session.jobDescription]
+      .some((value) => String(value || '').toLowerCase().includes(word));
+  });
+
+  return list.sort((a, b) => {
+    if (sortOrder.value === 'oldest') {
+      return sessionTime(a) - sessionTime(b);
+    }
+    if (sortOrder.value === 'created') {
+      return toTime(b.createdAt) - toTime(a.createdAt);
+    }
+    if (sortOrder.value === 'title') {
+      return sessionTitle(a).localeCompare(sessionTitle(b), 'zh-CN');
+    }
+    return sessionTime(b) - sessionTime(a);
+  });
+});
+
+const messageCount = computed(() => {
+  const messages = sessionDetail.value?.messages;
+  return Array.isArray(messages) ? messages.length : 0;
+});
+
+function sessionType(sceneCode) {
+  const code = String(sceneCode || '').toUpperCase();
+  if (code === 'CHAT') {
+    return 'CHAT';
+  }
+  if (code === 'INTERVIEW') {
+    return 'INTERVIEW';
+  }
+  if (RESUME_SCENE_CODES.has(code)) {
+    return 'RESUME';
+  }
+  return 'OTHER';
+}
+
+function typeLabel(sceneCode) {
+  return TYPE_LABELS[sessionType(sceneCode)];
+}
+
+function sessionTitle(session) {
+  return session?.sessionTitle || `会话 #${session?.id}`;
+}
+
+function sessionTime(session) {
+  return toTime(session?.lastMessageAt || session?.updatedAt || session?.createdAt);
+}
+
+function toTime(value) {
+  if (!value) {
+    return 0;
+  }
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+// 行内副标题：优先展示岗位 JD，其次展示关联简历
+function sessionContext(session) {
+  const jobDescription = String(session?.jobDescription || '').trim();
+  if (jobDescription) {
+    const firstLine = jobDescription.split('\n').find((line) => line.trim());
+    return `岗位 JD：${firstLine ? firstLine.trim() : jobDescription}`;
+  }
+  const resumeTitle = resumeTitles.value[session?.resumeId];
+  if (resumeTitle) {
+    return `关联简历：${resumeTitle}`;
+  }
+  return '未关联岗位 JD 与简历';
+}
+
+function statusBadge(session) {
+  const runStatus = session?.activeRunStatus;
+  if (runStatus) {
+    if (runStatus === 'SUCCESS') {
+      return { label: '已完成', tone: 'ui-badge--success' };
+    }
+    if (runStatus === 'FAILED') {
+      return { label: '执行失败', tone: 'ui-badge--danger' };
+    }
+    if (runStatus === 'WAITING_USER') {
+      return { label: '等待输入', tone: 'ui-badge--warning' };
+    }
+    return { label: runStatus, tone: 'ui-badge--accent' };
+  }
+  if (session?.status === 'ARCHIVED') {
+    return { label: '已归档', tone: '' };
+  }
+  if (session?.status === 'DELETED') {
+    return { label: '已删除', tone: 'ui-badge--danger' };
+  }
+  return { label: '活跃', tone: 'ui-badge--accent' };
+}
+
+function goChat() {
+  router.push('/chat');
+}
+
+function goInterview() {
+  router.push('/dashboard/interview');
+}
 </script>
+
+<style scoped>
+.history-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* ---------- 页头 ---------- */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+
+.page-title {
+  margin: 0;
+  font-size: var(--ui-text-2xl);
+  font-weight: 700;
+  line-height: var(--ui-line-tight);
+  color: var(--ui-fg-primary);
+}
+
+.page-subtitle {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--ui-text-base);
+  color: var(--ui-fg-secondary);
+}
+
+.page-head__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--ui-space-2);
+}
+
+/* ---------- 视图切换 ---------- */
+.view-switch {
+  display: inline-flex;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+  align-self: flex-start;
+}
+
+.view-switch__item {
+  padding: var(--ui-space-1) var(--ui-space-4);
+  border: none;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
+    color var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.view-switch__item:hover {
+  color: var(--ui-fg-primary);
+}
+
+.view-switch__item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.view-switch__item.is-active {
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  font-weight: 600;
+  box-shadow: var(--ui-shadow-xs);
+}
+
+/* ---------- 工具条 ---------- */
+.toolbar {
+  padding: var(--ui-space-4) var(--ui-space-5);
+}
+
+.toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.field--grow {
+  flex: 1 1 260px;
+}
+
+.toolbar__summary {
+  margin: var(--ui-space-3) 0 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.ui-select {
+  appearance: none;
+  padding-right: var(--ui-space-8);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.density-switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.density-switch__item {
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border: none;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-sm);
+  cursor: pointer;
+}
+
+.density-switch__item.is-active {
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  font-weight: 600;
+}
+
+.density-switch__item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+/* ---------- 状态块 ---------- */
+.state-card {
+  padding: var(--ui-space-6);
+}
+
+.state-text {
+  margin: var(--ui-space-4) 0 0;
+  text-align: center;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-muted);
+}
+
+.ui-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  justify-content: center;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeleton-row {
+  height: 44px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+  animation: skeleton-pulse 1.4s var(--ui-ease-in-out) infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---------- 列表 + 详情 ---------- */
+.history-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--ui-space-4);
+  align-items: start;
+}
+
+.list-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.list-scroll {
+  max-height: calc(100vh - 300px);
+  overflow-x: auto;
+}
+
+/* 表格密度 */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ui-text-sm);
+}
+
+.history-table th {
+  position: sticky;
+  top: 0;
+  z-index: var(--ui-z-sticky);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.history-row {
+  border-bottom: 1px solid var(--ui-border-subtle);
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.history-row:hover {
+  background: var(--ui-bg-hover);
+}
+
+.history-row:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.history-row.is-active {
+  background: var(--ui-bg-selected);
+}
+
+.history-row td {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  vertical-align: top;
+  color: var(--ui-fg-primary);
+}
+
+.cell-main {
+  min-width: 200px;
+}
+
+.cell-main__title {
+  display: block;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.cell-main__sub {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 420px;
+}
+
+.cell-time {
+  white-space: nowrap;
+  color: var(--ui-fg-secondary);
+}
+
+/* 列表密度 */
+.history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  width: 100%;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: none;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ui-duration-fast) var(--ui-ease-in-out);
+}
+
+.history-item:hover {
+  background: var(--ui-bg-hover);
+}
+
+.history-item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.history-item.is-active {
+  background: var(--ui-bg-selected);
+}
+
+.history-item__head {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.history-item__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.history-item__context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item__time {
+  flex-shrink: 0;
+}
+
+/* ---------- 详情面板 ---------- */
+.detail-panel {
+  padding: var(--ui-space-5);
+  position: sticky;
+  top: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding-bottom: var(--ui-space-3);
+  margin-bottom: var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.card-head__title {
+  margin: 0;
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--ui-space-3);
+  margin: 0;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-sunken);
+}
+
+.detail-item--wide {
+  grid-column: 1 / -1;
+}
+
+.detail-item__label {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+}
+
+.detail-item__value {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+  word-break: break-word;
+}
+
+.detail-item__value--pre {
+  font-weight: 400;
+  line-height: var(--ui-line-relaxed);
+  color: var(--ui-fg-secondary);
+  white-space: pre-wrap;
+}
+
+/* ---------- 原有会话管理面板 ---------- */
+.legacy-panel {
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-primary);
+}
+
+@media (max-width: 1100px) {
+  .history-body {
+    grid-template-columns: 1fr;
+  }
+
+  .list-scroll {
+    max-height: 460px;
+  }
+
+  .detail-panel {
+    position: static;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .cell-main__sub {
+    max-width: 220px;
+  }
+}
+</style>
