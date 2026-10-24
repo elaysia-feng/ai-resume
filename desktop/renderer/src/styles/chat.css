@@ -1,0 +1,108 @@
+/* ========================================
+   CHAT-FIRST 对话界面 - 公共样式
+   （由 ChatView.vue 引入，组件内使用 scoped 样式做各自布局）
+   ======================================== */
+
+:root {
+  --chat-bg: #f7f8fa;
+  --chat-surface: #ffffff;
+  --chat-sidebar-bg: #f2f4f7;
+  --chat-border: #e6e8eb;
+  --chat-border-strong: #d7dbe0;
+  --chat-text: #1f2329;
+  --chat-text-muted: #8a9199;
+  --chat-accent: #16a34a;
+  --chat-accent-soft: #e8f7ee;
+  --chat-user-bubble: #e9f6ee;
+  --chat-assistant-bubble: #ffffff;
+  --chat-danger: #dc2626;
+  --chat-danger-soft: #fef2f2;
+  --chat-radius-sm: 6px;
+  --chat-radius-md: 10px;
+  --chat-radius-lg: 14px;
+}
+
+/* 通用按钮 */
+.chat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--chat-text);
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border-strong);
+  border-radius: var(--chat-radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.chat-btn:hover:not(:disabled) {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
+}
+
+.chat-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-btn-primary {
+  color: #ffffff;
+  background: var(--chat-accent);
+  border-color: var(--chat-accent);
+}
+
+.chat-btn-primary:hover:not(:disabled) {
+  color: #ffffff;
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.chat-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--chat-text-muted);
+}
+
+.chat-btn-danger {
+  color: #ffffff;
+  background: var(--chat-danger);
+  border-color: var(--chat-danger);
+}
+
+.chat-btn-danger:hover:not(:disabled) {
+  color: #ffffff;
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.chat-btn-block {
+  width: 100%;
+}
+
+/* 错误提示条 */
+.chat-error-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  color: var(--chat-danger);
+  background: var(--chat-danger-soft);
+  border: 1px solid #fecaca;
+  border-radius: var(--chat-radius-sm);
+  word-break: break-word;
+}
+
+/* 滚动条 */
+.chat-message-list::-webkit-scrollbar,
+.chat-session-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-message-list::-webkit-scrollbar-thumb,
+.chat-session-list::-webkit-scrollbar-thumb {
+  background: #d0d5db;
+  border-radius: 3px;
+}

@@ -4,7 +4,11 @@ __pycache__/
 *.pyc
 
 # Local notes / docs
-docs/
+# 注意：这里不能用 docs/，被排除的目录 git 不会再下钻，
+# 下层的否定规则（!docs/xxx）一律无效，必须写成 docs/* 才能再单独放行某个文件。
+docs/*
+# 桌面端改造的接口契约是代码级交付物，必须入库
+!docs/desktop-contract.md
 *.doc
 *.docx
 *.xls
@@ -13,11 +17,40 @@ docs/
 *.pptx
 
 # Project-specific subdirectories
-java-backend/代码问题/
+backend/java/代码问题/
+
+# 验证 agent 的临时工作区（含旧微服务代码快照，禁止入库）
+.verify/
+.smoke/
+# 本地临时 MySQL 数据目录（运行时验收用）
+.tmp-mysql/
+# 本地临时文件存储根目录（运行时验收用）
+.tmp-storage/
+# SQLite 运行时产物（业务库 / LangGraph checkpoint）
+*.db
+*.db-wal
+*.db-shm
+data/
+backend/java/data/
+backend/python/data/
+# 运行时验收的临时日志与临时库
+.tmp-*.log
+.tmp-*.db
+# pytest 建的临时目录（空目录，删不掉，忽略掉）
+pytest-cache-files-*/
 
 # Markdown - allow only README.md
 *.md
 !README.md
+# 架构说明是单体化后的交付物，README 会链接它，必须入库
+!ARCHITECTURE.md
+# 桌面端改造的接口契约是代码级交付物，必须入库
+# 注意：否定规则要写在 *.md 之后，gitignore 是「最后一条匹配生效」
+!docs/desktop-contract.md
+# 取文件方式的流程对照文档是选型依据，必须入库
+!docs/取文件方式-流程对比.md
+# 依赖清单是部署依据，必须入库
+!docs/依赖清单.md
 
 # IDEs
 .idea/
@@ -34,6 +67,8 @@ application.yml
 application.yaml
 !application.example.yml
 !application.example.yaml
+# 单体应用的主配置属于源码，必须入库
+!backend/java/src/main/resources/application.yaml
 
 # Frontend
 dist/

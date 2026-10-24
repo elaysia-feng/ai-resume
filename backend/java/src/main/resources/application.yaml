@@ -1,0 +1,112 @@
+# ============================================================
+# AI Resume Forge - Java 后端单体应用配置
+# 原先 auth / resume / agent / interview / order / payment / notification
+# 七个微服务 + 网关合并为一个 Spring Boot 进程，配置在此集中管理。
+# ============================================================
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-resume-forge
+  config:
+    # 单体应用只需要一份环境变量文件：优先读 backend/java/.env，其次读仓库根目录 .env
+    import: "optional:file:.env[.properties],optional:file:../../.env[.properties]"
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    # 本应用只用 JWT 认证，没有自定义 UserDetailsService；
+    # 不排除的话 Boot 会生成一个随机密码的内存用户并打印警告
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    # 单体应用共用一个 SQLite 文件，桌面端不需要再装 MySQL 服务。
+    # 建表脚本：db_schema/schema.sql
+    # URL 参数说明：
+    #   busy_timeout —— 写锁冲突时最多等 10 秒再报 SQLITE_BUSY
+    #   journal_mode=WAL —— 读写不互相阻塞，桌面端并发更顺
+    #   foreign_keys=on  —— SQLite 默认不开外键，必须显式打开
+    # 时间列声明成 DATETIME，MyBatis 的 LocalDateTimeTypeHandler 走
+    # rs.getObject(col, LocalDateTime.class)，xerial 驱动能正确转换。
+    url: "jdbc:sqlite:${DB_FILE:./data/ai_resume.db}?busy_timeout=10000&journal_mode=WAL&foreign_keys=on"
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite 同一时刻只允许一个写者，连接池不宜过大
+      maximum-pool-size: 4
+      pool-name: sqlite-pool
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  # 签名密钥不写默认值：必须在 .env 或环境变量里配置
+  secret: ${JWT_SECRET:}
+  expiration: 86400000
+
+# 验证码有效期（分钟）
+email:
+  code:
+    expiration: 5
+
+# Python Agent Runtime（AI 编排服务，独立进程，通过 HTTP + MQ 与本应用协作）
+python:
+  agent:
+    base-url: ${PYTHON_AGENT_BASE_URL:http://localhost:8000}
+    read-timeout-seconds: 300
+    # Java 代理 Python SSE 的专用线程池，避免每个 Agent run 都无限 new Thread。
+    stream-core-pool-size: ${PYTHON_AGENT_STREAM_CORE_POOL_SIZE:8}
+    stream-max-pool-size: ${PYTHON_AGENT_STREAM_MAX_POOL_SIZE:32}
+    stream-queue-capacity: ${PYTHON_AGENT_STREAM_QUEUE_CAPACITY:100}
+
+# Python 调 Java 内部接口时携带的令牌
+internal:
+  agent:
+    # Python 调 Java 内部接口的令牌，两端必须配成同一个值；不写默认值
+    service-token: ${INTERNAL_AGENT_SERVICE_TOKEN:}
+
+# Agent 任务队列（SQLite 表，取代原来的 RabbitMQ / Redis Stream）
+# Java 投递、Python worker 消费；两端必须配成同一组 stream / 消费组名。
+agent:
+  stream:
+    resume-run-stream: ${AGENT_RESUME_RUN_STREAM:agent.resume.run}
+    interview-run-stream: ${AGENT_INTERVIEW_RUN_STREAM:agent.interview.run}
+    run-result-stream: ${AGENT_RUN_RESULT_STREAM:agent.run.result}
+    dead-letter-stream: ${AGENT_RUN_DLQ_STREAM:agent.run.dlq}
+    resume-worker-group: ${AGENT_RESUME_WORKER_GROUP:agent-resume-worker}
+    interview-worker-group: ${AGENT_INTERVIEW_WORKER_GROUP:agent-interview-worker}
+    result-consumer-group: ${AGENT_RESULT_CONSUMER_GROUP:java-result-consumer}
+    result-consumer-name: ${AGENT_RESULT_CONSUMER_NAME:java-result-consumer-1}
+    result-batch-size: ${AGENT_RESULT_BATCH_SIZE:20}
+    max-consume-retries: 3
+    retry-initial-interval: 1000
+    retry-multiplier: 2.0
+    retry-max-interval: 30000
+
+# 本地磁盘存储（头像等文件直接存用户本机）
+# 目录结构：{storage.root}/{userId}/{avatar|resume-avatar}/{uuid}.{ext}
+# 留空时用「用户主目录/Documents/AI-Resume-Forge」
+storage:
+  root: ${STORAGE_ROOT:}
+
+# MiniMax（Anthropic 兼容接口，驱动 chat 对话循环与工具调用）
+# 密钥属性名是 anthropic-api-key 而不是 api-key：Spring 的 relaxed binding 会把
+# minimax.api-key 映射到操作系统的环境变量 MINIMAX_API_KEY，而操作系统环境变量优先级
+# 高于 .env，本机那个变量是只对原生 chatcompletion 端点有效的旧 key，会把 .env 里
+# 能用的 key 盖掉（调 Anthropic 兼容端点会 401）。
+minimax:
+  base-url: ${MINIMAX_BASE_URL:https://api.minimaxi.com/anthropic}
+  anthropic-api-key: ${MINIMAX_ANTHROPIC_API_KEY:${MINIMAX_API_KEY:}}
+  model: ${MINIMAX_MODEL:MiniMax-M3.1-Flash}
+  max-tokens: ${MINIMAX_MAX_TOKENS:4096}

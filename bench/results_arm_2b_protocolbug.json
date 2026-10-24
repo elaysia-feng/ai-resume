@@ -1,0 +1,62 @@
+{
+  "workspace": "C:\\Users\\seele\\Desktop\\whp-multiplatform-master\\whp-multiplatform-master",
+  "model": "MiniMax-M3.1-Flash",
+  "results": [
+    {
+      "name": "2b 前端只给文件树(两级: 模块清单 -> 模块子树)",
+      "ok": true,
+      "error": "",
+      "llm_calls": 6,
+      "reads": 2,
+      "read_bytes": 2892,
+      "input_tokens": 29663,
+      "output_tokens": 473,
+      "elapsed": 14.993319034576416,
+      "answers": {
+        "Q1 TEMU店铺授权": "ACTION: answer",
+        "Q2 1688授权": "ACTION: answer"
+      },
+      "scores": {
+        "Q1 TEMU店铺授权": {
+          "命中": 0,
+          "总分": 5,
+          "明细": {
+            "类名": "×",
+            "文件路径": "×",
+            "类级路径": "×",
+            "方法saveOrUpdate": "×",
+            "方法getByShopId": "×"
+          }
+        },
+        "Q2 1688授权": {
+          "命中": 0,
+          "总分": 5,
+          "明细": {
+            "类名": "×",
+            "文件路径": "×",
+            "类级路径": "×",
+            "方法getAuthUrl": "×",
+            "方法callback": "×"
+          }
+        }
+      },
+      "extra": {
+        "第一级模块清单字符数": 378,
+        "第一级模块数": 15,
+        "下发模块": {
+          "Q1 TEMU店铺授权": [
+            "whp-temu"
+          ],
+          "Q2 1688授权": [
+            "whp-purchase"
+          ]
+        },
+        "解析失败次数": {
+          "Q1 TEMU店铺授权": 0,
+          "Q2 1688授权": 0
+        },
+        "墙钟秒数": 17.3
+      }
+    }
+  ]
+}

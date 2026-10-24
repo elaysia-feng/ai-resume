@@ -1,0 +1,48 @@
+{
+  "workspace": "C:\\Users\\seele\\Desktop\\whp-multiplatform-master\\whp-multiplatform-master",
+  "model": "MiniMax-M3.1-Flash",
+  "results": [
+    {
+      "name": "5 后端 tool calling(模型自主读)",
+      "ok": true,
+      "error": "",
+      "llm_calls": 16,
+      "reads": 5,
+      "read_bytes": 12476,
+      "input_tokens": 21600,
+      "output_tokens": 2775,
+      "elapsed": 36.99913716316223,
+      "answers": {
+        "Q1 TEMU店铺授权": "**Controller 文件**\n\n`whp-temu/temu.web/src/main/java/com/erp/whp/temu/web/auth/TemuShopAuthInfoController.java`\n\n- 包路径：`com.erp.whp.temu.web.auth`\n- 类名：`TemuShopAuthInfoController`\n- 类级 `@RequestMapping(path = \"/temu/shop_auth\")`\n\n**对外接口路径**\n\n| 方法 | HTTP | 完整路径 | 说明 |\n|---|---|---|---|\n| `saveOrUpdateShopAuthInfo(TemuShopAuthInfoDto)` | POST | `/temu/shop_auth/saveOrUpdateShopAuthInfo` | 保存或更新店铺授权信息，请求体为 `TemuShopAuthInfoDto` |\n| `getByShopId(String shopId)` | POST | `/temu/shop_auth/getByShopId/{shopId}` | 按店铺 ID 查询授权信息，返回 `TemuShopAuthInfoDto` |\n\n补充：该 Controller 依赖 `com.erp.whp.temu.biz.auth.TemuShopAuthInfoService`（实现在 `temu.biz` 模块），对应业务方法为 `saveOrUpdateShopAuthInfo` 和 `getByShopId`。",
+        "Q2 1688授权": "## 结论\n\n对接 1688 平台授权的 Controller 是：\n\n**`whp-purchase/purchase.web/src/main/java/com/erp/whp/purchase/web/ocean1688/auth/Ocean1688AuthController.java`**\n\n类上 `@RestController` + `@RequestMapping(\"/ocean1688/auth\")`。\n\n## 对外接口路径\n\n| 方法 | 完整路径 | 入参 | 说明 |\n|---|---|---|---|\n| GET | `/ocean1688/auth/getAuthUrl` | `shopId`（query） | 获取 1688 授权链接，返回授权 URL 字符串 |\n| GET | `/ocean1688/auth/callback` | `code`、`state`（query，均必填） | 1688 授权回调：用临时 code 换取 token 并落库，返回\"授权成功\"/\"授权失败: xxx\" |\n\n另有 `application.yml` 及 `whp-fdq-dev/whp-purchase.yaml`、`whp-docker-test/purchase-service-test.yaml` 中配置的 `redirect_uri: http://127.0.0.1:5671/ocean1688/auth/callback`，与该回调接口一致（服务端口 5671）。\n\n## 相关配套代码\n\n- Service 接口：`whp-purchase/purchase.biz/src/main/java/com/erp/whp/purchase/biz/ocean1688/auth/Ocean1688AuthService.java`\n- 实现：`whp-purchase/purchase.biz/src/main/java/com/erp/whp/purchase/biz/ocean1688/auth/impl/Ocean1688AuthServiceImpl.java`（基于 `ApiExecutor` 换 token，通过 `PlatformAccountInfoClient` 写回平台账号信息）\n\n注：文件里另有一段被注释掉的同名 `/callback` 重定向实现，不生效。\n\n（顺带提醒：`application.yml` 等配置中 1688 的 appKey/secKey 等凭据为明文，与架构文档中提到的敏感凭据明文问题一致。）"
+      },
+      "scores": {
+        "Q1 TEMU店铺授权": {
+          "命中": 5,
+          "总分": 5,
+          "明细": {
+            "类名": "√",
+            "文件路径": "√",
+            "类级路径": "√",
+            "方法saveOrUpdate": "√",
+            "方法getByShopId": "√"
+          }
+        },
+        "Q2 1688授权": {
+          "命中": 5,
+          "总分": 5,
+          "明细": {
+            "类名": "√",
+            "文件路径": "√",
+            "类级路径": "√",
+            "方法getAuthUrl": "√",
+            "方法callback": "√"
+          }
+        }
+      },
+      "extra": {
+        "墙钟秒数": 238.7
+      }
+    }
+  ]
+}

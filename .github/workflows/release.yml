@@ -1,0 +1,220 @@
+name: release
+
+# 手动触发发版；推 tag 也会走同一条路径（补发/修复用）。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, e.g. 0.1.0-beta.1 (without the leading v)'
+        required: true
+        type: string
+      force_rebuild:
+        description: 'Replace the assets of an already published release whose tag points at a different commit.'
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-resume-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---------- 版本号 ----------
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $input = '${{ inputs.version }}'.Trim()
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            if ([string]::IsNullOrWhiteSpace($input)) {
+              throw 'version input is required for a manual release'
+            }
+            $releaseVersion = $input
+          } else {
+            # push tag 触发：tag 形如 v0.1.0-beta.1
+            $releaseVersion = '${{ github.ref_name }}'.Trim() -replace '^v', ''
+          }
+          if ($releaseVersion -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "Invalid release version: $releaseVersion"
+          }
+          $prerelease = $releaseVersion.Contains('-')
+          "version=$releaseVersion" >> $env:GITHUB_OUTPUT
+          "tag=v$releaseVersion" >> $env:GITHUB_OUTPUT
+          "prerelease=$($prerelease.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+      # ---------- 测试：红了就挡住发布 ----------
+      - name: Install Python dependencies
+        working-directory: backend/python
+        run: uv sync --extra dev --python 3.12
+
+      - name: Run Python tests
+        working-directory: backend/python
+        run: uv run pytest -q
+
+      - name: Build and test Java backend
+        working-directory: backend/java
+        run: mvn -B clean package
+        env:
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+          MAVEN_OPTS: -Dfile.encoding=UTF-8
+
+      # ---------- 打包 Windows 安装包 ----------
+      - name: Install renderer dependencies
+        working-directory: desktop/renderer
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Type check desktop main process
+        working-directory: desktop
+        run: npm run typecheck
+
+      # 把版本号写进 desktop/package.json，electron-builder 用它命名安装包。
+      - name: Stamp version into desktop package.json
+        working-directory: desktop
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm version $env:VERSION --no-git-tag-version --allow-same-version
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to stamp version into package.json' }
+
+      - name: Build desktop
+        working-directory: desktop
+        run: npm run build
+
+      - name: Package Windows installer
+        working-directory: desktop
+        run: npm run package
+        env:
+          # electron-builder 在 CI 上会额外下载 winCodeSign / nsis 资源
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
+
+      - name: Collect release assets
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $installer = Get-ChildItem release -Filter '*-setup.exe' -File | Select-Object -First 1
+          if (-not $installer) {
+            throw "Installer not found in release/ (version $env:VERSION)"
+          }
+          Copy-Item $installer.FullName "dist/AI-Resume-Forge-$env:VERSION-Setup.exe" -Force
+          Get-ChildItem release -Filter '*-setup.exe' | ForEach-Object { Write-Host "installer: $($_.Name) ($([math]::Round($_.Length/1MB,1)) MB)" }
+
+      - name: Write checksums
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = "dist/AI-Resume-Forge-$env:VERSION-Setup.exe"
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          "$hash  AI-Resume-Forge-$env:VERSION-Setup.exe" | Out-File dist/SHA256SUMS.txt -Encoding ascii
+
+      # ---------- Tag ----------
+      - name: Ensure immutable release tag
+        shell: pwsh
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch --tags --force
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to fetch tags' }
+          $existing = git rev-parse -q --verify "refs/tags/$env:TAG"
+          if ($LASTEXITCODE -eq 0 -and $existing) {
+            $tagCommit = git rev-list -n 1 "$env:TAG"
+            if ($tagCommit -ne $env:GITHUB_SHA) {
+              if ($env:FORCE_REBUILD -ne 'true') {
+                throw "Tag $env:TAG already points at $tagCommit, but this build is $env:GITHUB_SHA. Re-run with force_rebuild=true to replace the published assets."
+              }
+              Write-Host "FORCE_REBUILD is set: replacing the assets of $env:TAG."
+            }
+            Write-Host "Tag $env:TAG already exists; keeping the immutable tag."
+          } else {
+            git tag "$env:TAG" "$env:GITHUB_SHA"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create tag $env:TAG" }
+            git push origin "refs/tags/$env:TAG"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to push tag $env:TAG" }
+          }
+
+      # ---------- 发布 ----------
+      - name: Publish or repair GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = @(
+            "dist/AI-Resume-Forge-$env:VERSION-Setup.exe",
+            'dist/SHA256SUMS.txt'
+          )
+          foreach ($asset in $assets) {
+            if (-not (Test-Path $asset)) { throw "Missing release asset: $asset" }
+          }
+
+          gh release view "$env:TAG" --repo "$env:REPO" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $env:TAG already exists; replacing assets."
+            gh release upload "$env:TAG" @assets --repo "$env:REPO" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Failed to upload assets for $env:TAG" }
+          } else {
+            $args = @(
+              'release', 'create', "$env:TAG",
+              '--repo', "$env:REPO",
+              '--title', "AI Resume Forge $env:TAG",
+              '--generate-notes'
+            )
+            if ($env:PRERELEASE -eq 'true') {
+              $args += '--prerelease'
+            }
+            $args += $assets
+            & gh @args
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create GitHub Release $env:TAG" }
+          }

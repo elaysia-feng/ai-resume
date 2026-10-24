@@ -1,0 +1,86 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ai-resume-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Python + Java + Desktop
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---------- Python 后端 ----------
+      - name: Install Python dependencies
+        working-directory: backend/python
+        run: uv sync --extra dev --python 3.12
+
+      - name: Run Python tests
+        working-directory: backend/python
+        run: uv run pytest -q
+
+      # ---------- Java 后端 ----------
+      - name: Build and test Java backend
+        working-directory: backend/java
+        run: mvn -B clean package
+        env:
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+          MAVEN_OPTS: -Dfile.encoding=UTF-8
+
+      # ---------- 桌面端 ----------
+      # 渲染层运行时依赖装在 desktop/renderer/node_modules，
+      # Vite 按 root 向上查找解析，所以这一步不能跳过。
+      - name: Install renderer dependencies
+        working-directory: desktop/renderer
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Type check desktop main process
+        working-directory: desktop
+        run: npm run typecheck
+
+      - name: Build desktop (renderer + main + stage)
+        working-directory: desktop
+        run: npm run build
+
+      - name: Upload desktop build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-resume-desktop-build
+          path: |
+            desktop/dist/**
+            desktop/dist-renderer/**
+          retention-days: 7

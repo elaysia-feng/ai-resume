@@ -1,0 +1,7 @@
+# 依赖与构建产物（Electron 主进程编译输出、渲染层暂存、打包目录）
+node_modules/
+dist/
+dist-renderer/
+release/
+out/
+*.log

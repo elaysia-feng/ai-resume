@@ -1,0 +1,74 @@
+{
+  "workspace": "C:\\Users\\seele\\Desktop\\whp-multiplatform-master\\whp-multiplatform-master",
+  "model": "MiniMax-M3.1-Flash",
+  "results": [
+    {
+      "name": "4 后端一次性检索(BM25 top-k)",
+      "ok": true,
+      "error": "",
+      "llm_calls": 2,
+      "reads": 40,
+      "read_bytes": 57626,
+      "input_tokens": 15021,
+      "output_tokens": 7930,
+      "elapsed": 105.93896317481995,
+      "answers": {
+        "Q1 TEMU店铺授权": "没找到。\n\n当前工作区检索结果中：\n\n- `项目架构概览.md` 仅说明 `whp-temu` 包含“店铺授权”相关 Controller；\n- 未出现 `ShopAuthInfoController.java` 的实际路径；\n- `API_INTERFACE_SUMMARY.md` 的现有内容也未给出 `ShopAuthInfo` 的 `@RequestMapping` 或其他接口路径。\n\n因此暂时无法可靠提供该文件的相对路径及其对外接口路径。",
+        "Q2 1688授权": "没找到可确认的 1688 授权 Controller 源文件，因此无法可靠给出其相对路径及全部接口路径。\n\n当前工作区检索结果只能确认：\n\n- 配置文件 `whp-docker-test/purchase-service-test.yaml` 与 `whp-fdq-dev/whp-purchase.yaml` 中存在回调地址：`/ocean1688/auth/callback`\n- `项目架构概览.md` 仅提到采购服务存在 `/ocean1688/*` 接口前缀\n\n未检索到对应的 `@RestController` 文件，不能据此推断类名或其他接口路径。"
+      },
+      "scores": {
+        "Q1 TEMU店铺授权": {
+          "命中": 0,
+          "总分": 5,
+          "明细": {
+            "类名": "×",
+            "文件路径": "×",
+            "类级路径": "×",
+            "方法saveOrUpdate": "×",
+            "方法getByShopId": "×"
+          }
+        },
+        "Q2 1688授权": {
+          "命中": 3,
+          "总分": 5,
+          "明细": {
+            "类名": "×",
+            "文件路径": "√",
+            "类级路径": "√",
+            "方法getAuthUrl": "×",
+            "方法callback": "√"
+          }
+        }
+      },
+      "extra": {
+        "索引文件数": 35774,
+        "索引字节数": 41941717,
+        "分块数": 45029,
+        "建索引秒数": 13.7,
+        "命中文件": {
+          "Q1 TEMU店铺授权": [
+            "whp-multiplatform-master/阅读顺序.md",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-multiplatform-master/multiplatform.fegin/src/main/java/com/erp/whp/multiplatform/fegin/temu/TemuDailySalesClient.java",
+            "API_INTERFACE_SUMMARY.md",
+            "API_INTERFACE_SUMMARY.md",
+            "whp-multiplatform-master/multiplatform.web/src/main/java/com/erp/whp/multiplatform/web/listingsummary/InventoryListingSummaryController.java"
+          ],
+          "Q2 1688授权": [
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-goods/goods.dto/src/main/java/com/erp/whp/goods/dto/mysql/purchase/vo/WhpShopLinkInfoVo.java",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/oracle/purchase/PurchaseMatchSupplierProductController.java",
+            "whp-docker-test/purchase-service-test.yaml",
+            "whp-base/src/main/java/com/erp/whp/base/em/PlatformSiteCode.java"
+          ]
+        },
+        "墙钟秒数": 120.9
+      }
+    }
+  ]
+}

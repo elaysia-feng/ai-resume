@@ -1,212 +1,59 @@
 # AI Resume Forge
 
-AI-powered resume building platform that helps users craft professional resumes using artificial intelligence. Users input a job description (JD), and the system analyzes gaps between their resume and the job requirements, then generates targeted modifications through a multi-agent AI system.
+围绕简历编辑、岗位要求分析和 AI 修改建议构建的全栈应用。用户维护简历内容，结合目标岗位生成修改方案，并在界面中审阅后应用。
 
-## Architecture
+## 仓库组成
 
-```
-┌─────────────┐     ┌─────────────────┐     ┌──────────────────┐
-│             │     │                 │     │                  │
-│  Frontend   │────>│   Java Backend  │────>│  Python Backend  │
-│   (Vue3)    │<────│  (Spring Boot)  │<────│    (FastAPI)     │
-│   :5173     │     │     :8080       │     │      :8000       │
-│             │     │                 │     │                  │
-└─────────────┘     └─────────────────┘     └──────────────────┘
-      │                     │                        │
-      │    REST API         │   Internal API         │
-      └─────────────────────┴────────────────────────┘
-```
+| 目录 | 职责 |
+| --- | --- |
+| `desktop/renderer/` | Vue 3、Pinia、Vite 前端，简历编辑与导出 |
+| `backend/java/` | Java 17 单体应用（Spring Boot），认证、简历、Agent、面试、订单支付、通知等模块在同一个进程内 |
+| `backend/python/` | FastAPI、LangGraph 工作流与模型调用 |
+| `docs/` | 专题说明 |
 
-| Service         | Port | Role                                                    |
-|-----------------|------|---------------------------------------------------------|
-| Frontend        | 5173 | User interface, Copilot UI, real-time event subscription |
-| Java Backend    | 8080 | Auth, session management, resume CRUD, SSE proxy        |
-| Python Backend  | 8000 | LangGraph multi-agent, RAG, LLM integration             |
+Java 后端是单体应用：一次构建、一次启动、端口 8080，前端直接对接 `http://localhost:8080`。
+Python 侧是独立的 AI 运行时，与 Java 之间通过内部 HTTP 接口和共享 SQLite 任务队列协作。
 
-## Tech Stack
+## 能力与调用关系
 
-### Frontend
-- **Vite + Vue 3** - Build tool and UI framework
-- **Pinia** - State management
-- **GSAP + @vuea/motion** - Animations
-- **html2canvas + jspdf** - PDF export
-- **Axios** - HTTP client
+前端负责简历编辑和建议预览；Java 侧负责用户、简历和业务接口；Python 侧处理岗位分析、改写与审核等 AI 流程。Python 服务的具体入口、配置和运行方式见 [后端说明](backend/python/README.md)。
 
-### Java Backend
-- **Spring Boot 3.2.5** - Web framework
-- **MyBatis Plus** - ORM
-- **JWT (jjwt 0.12.5)** - Authentication
-- **Aliyun OSS** - File storage (avatars, resumes)
-- **MySQL** - Business data
-- **Redis** - LangGraph checkpoint storage
+模块存在不代表所有外部服务已配置完成。运行相关流程还需要对应的模型服务（MiniMax API Key）；
+数据与任务队列都落在本地 SQLite 文件上，**不需要再装 MySQL / Redis**。
 
-### Python Backend
-- **FastAPI** - Web framework
-- **LangGraph** - Multi-agent orchestration
-- **LangChain** - LLM integration
-- **Qdrant** - Vector store for RAG
-- **Redis** - LangGraph checkpointer
-- **MiniMax / OpenAI** - LLM provider
+## 本地开发
 
-## Features
+前端可独立启动，完整业务需要后端配合：
 
-### AI Agent Flow
-
-The Python backend implements a multi-node LangGraph workflow:
-
-```
-bootstrap → summarize_conversation → supervisor
-  ├─> jd_analyst → gap_analyzer → retriever → rewriter → reviewer
-  │     ├─> rewriter (retry loop)
-  │     └─> approval_packager → END
-  └─> clarifier → END (waiting for user input)
-```
-
-**Agent Nodes:**
-- `bootstrap` - Loads resume context from Java backend
-- `supervisor` - Routes to JD analyst or clarifier
-- `jd_analyst` - Extracts JD requirements, keywords, priorities
-- `gap_analyzer` - Identifies resume-JD gaps
-- `retriever` - Agentic RAG from Qdrant knowledge base
-- `rewriter` - Generates section patch proposals
-- `reviewer` - Validates schema, prevents fabrication
-- `clarifier` - Asks user for missing information
-- `approval_packager` - Packages patches for user confirmation
-
-### Resume Management
-- CRUD operations for resumes and sections
-- Version history tracking
-- Section schema validation
-- Patch preview and apply with AI suggestions
-
-### Interview Assistant
-- AI-powered interview question generation
-- Real-time evaluation and feedback
-
-### Authentication
-- JWT-based authentication
-- Login/Register with email verification codes
-
-## Project Structure
-
-```
-AI-Resume-Forge/
-├── frontend/                      # Vue 3 SPA
-│   ├── src/
-│   │   ├── views/                # Page components
-│   │   ├── components/
-│   │   │   ├── resume/            # Resume editor components
-│   │   │   │   ├── editors/       # Experience, Education editors
-│   │   │   │   └── templates/     # Classic, Modern, Creative templates
-│   │   │   └── common/
-│   │   ├── store/                # Pinia stores
-│   │   ├── router/               # Vue Router config
-│   │   └── api/                  # Java backend API calls
-│   └── package.json
-│
-├── java-backend/                  # Spring Boot multi-module
-│   ├── src/main/java/
-│   │   └── com/airesumeforge/
-│   │       ├── controller/       # REST endpoints
-│   │       ├── service/          # Business logic
-│   │       ├── entity/           # MyBatis entities
-│   │       ├── mapper/           # MyBatis mappers
-│   │       ├── security/         # JWT utilities
-│   │       └── config/            # Security, OSS config
-│   ├── gateway/                   # API gateway module
-│   ├── auth-service/              # Authentication module
-│   ├── resume-service/            # Resume CRUD module
-│   ├── agent-service/             # Agent orchestration module
-│   ├── interview-service/         # Interview feature module
-│   └── order/                     # Order/payment module
-│   └── pom.xml
-│
-├── python-backend/                 # FastAPI + LangGraph
-│   ├── src/app/
-│   │   ├── agent/
-│   │   │   ├── graph.py          # LangGraph workflow
-│   │   │   ├── state.py          # ResumeAgentState (30+ fields)
-│   │   │   ├── nodes/            # 9 agent nodes
-│   │   │   ├── prompts/          # System prompts
-│   │   │   ├── tools/            # Tool implementations
-│   │   │   └── mcp/              # MCP server for resume domain
-│   │   ├── service/
-│   │   │   ├── java_gateway_service.py   # Java internal API calls
-│   │   │   ├── vector_store_service.py   # Qdrant RAG
-│   │   │   └── embedding_service.py      # Text embedding
-│   │   ├── internal_controller/  # Java-only endpoints
-│   │   └── main.py               # FastAPI entry point
-│   ├── knowledge_base/            # RAG resume reference materials
-│   └── pyproject.toml
-│
-├── docs/                          # Design documents
-├── .gitignore
-└── README.md
-```
-
-## Run States
-
-```
-PENDING → RUNNING → WAITING_USER (clarification needed)
-                    → WAITING_CONFIRM (approval needed)
-                    → FAILED
-WAITING_USER → RUNNING (user answered) / CANCELLED
-WAITING_CONFIRM → SUCCESS / CANCELLED / FAILED
-```
-
-## Quick Start
-
-### Prerequisites
-
-- **MySQL** 8.0+
-- **Redis** 6.0+
-- **Qdrant** (for RAG vector search)
-- **Node.js** 18+
-- **JDK** 17+
-- **Python** 3.11+
-
-### Frontend
-
-```bash
+```sh
 cd frontend
 npm install
 npm run dev
-# Runs on http://localhost:5173
 ```
 
-### Java Backend
+Java 单体应用在 `backend/java/` 中构建和启动：
 
-```bash
-cd java-backend
-./mvnw spring-boot:run
-# Runs on http://localhost:8080
+```sh
+cd backend/java
+mvn package -DskipTests
+java -jar target/ai-resume-forge-backend.jar
 ```
 
-### Python Backend
+上述命令只打包，不执行测试。首次运行前需要导入建表脚本 `backend/java/db_schema/schema.sql`，
+并按 `.env.example` 配置模型和邮件相关环境变量（数据与任务队列落在本地 SQLite，无需额外服务）。
 
-```bash
-cd python-backend
-pip install -r requirements.txt
+Python 服务从 `backend/python/` 启动，先按其依赖文件安装环境：
+
+```sh
 uvicorn src.app.main:app --reload --port 8000
-# Runs on http://localhost:8000
 ```
 
-### Environment Variables
+模型密钥和连接信息使用本地环境配置，不写入简历内容或前端代码。仓库中的 `.env.example` 可作为配置起点。
 
-Create `.env` files as needed (see `.env.example` for template):
+## 验证与进一步阅读
 
-| Variable | Description |
-|----------|-------------|
-| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD` | MySQL connection |
-| `JWT_SECRET` | JWT signing secret |
-| `OSS_ACCESS_KEY_ID`, `OSS_ACCESS_KEY_SECRET` | Aliyun OSS credentials |
-| `OPENAI_API_KEY` or `MINIMAX_API_KEY` | LLM provider key |
-| `QDRANT_HOST`, `QDRANT_PORT` | Qdrant vector store |
+前端执行 `npm run build`。Java 和 Python 的测试分别在各自项目中运行；完整简历分析还需验证模型返回、建议预览和用户确认应用的整条流程。
 
-## Design Aesthetic
-
-Neo-editorial luxury — a premium resume tool feel with warm off-white backgrounds, green accents, and sophisticated typography (Playfair Display headlines, Inter body text).
-
----
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
+- [架构说明](ARCHITECTURE.md)
+- [界面设计](DESIGN.md)
+- [Python 后端](backend/python/README.md)

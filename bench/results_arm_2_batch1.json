@@ -1,0 +1,23 @@
+{
+  "_source": "第一批全量运行（bench/retrieval_bench.py --arm 1a,5,2b,2,4,4b）的任务输出。该批进程在跑 arm 4 时被 OOM 杀掉，来不及写盘，这里按日志逐项还原。",
+  "workspace": "C:\\Users\\seele\\Desktop\\whp-multiplatform-master\\whp-multiplatform-master",
+  "model": "MiniMax-M3.1-Flash",
+  "results": [
+    {
+      "name": "2 前端只给文件清单(自然语言点名,多轮)",
+      "ok": true,
+      "error": "",
+      "llm_calls": 20,
+      "reads": 8,
+      "read_bytes": 64935,
+      "input_tokens": 440970,
+      "output_tokens": 16050,
+      "elapsed": 201.4,
+      "scores": {
+        "Q1 TEMU店铺授权": {"命中": 0, "总分": 5, "明细": {"类名": "×", "文件路径": "×", "类级路径": "×", "方法saveOrUpdate": "×", "方法getByShopId": "×"}},
+        "Q2 1688授权": {"命中": 0, "总分": 5, "明细": {"类名": "×", "文件路径": "×", "类级路径": "×", "方法getAuthUrl": "×", "方法callback": "×"}}
+      },
+      "extra": {"墙钟秒数": 201.4, "_说明": "清单按 1,480,000 字符裁剪（depth=30 完整树的前缀），裁到 whp-order 为止，两个答案文件及其目录都不在树里"}
+    }
+  ]
+}

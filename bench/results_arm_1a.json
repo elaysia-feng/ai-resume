@@ -1,0 +1,48 @@
+{
+  "workspace": "C:\\Users\\seele\\Desktop\\whp-multiplatform-master\\whp-multiplatform-master",
+  "model": "MiniMax-M3.1-Flash",
+  "results": [
+    {
+      "name": "1a 前端直读选中文件(用户已知答案文件)",
+      "ok": true,
+      "error": "",
+      "llm_calls": 2,
+      "reads": 4,
+      "read_bytes": 5784,
+      "input_tokens": 1943,
+      "output_tokens": 492,
+      "elapsed": 7.121066570281982,
+      "answers": {
+        "Q1 TEMU店铺授权": "Controller 文件：\n\n`whp-temu/temu.web/src/main/java/com/erp/whp/temu/web/auth/TemuShopAuthInfoController.java`\n\n类级路径：`/temu/shop_auth`\n\n对外接口：\n\n- `POST /temu/shop_auth/saveOrUpdateShopAuthInfo`：保存或更新店铺授权信息\n- `POST /temu/shop_auth/getByShopId/{shopId}`：根据店铺 ID 查询店铺授权信息",
+        "Q2 1688授权": "对接 1688 平台授权的 Controller 文件相对路径：\n\n`whp-purchase/purchase.web/src/main/java/com/erp/whp/purchase/web/ocean1688/auth/Ocean1688AuthController.java`\n\n对外提供的接口路径：\n\n- `GET /ocean1688/auth/getAuthUrl`\n  - 参数：`shopId`\n  - 获取 1688 授权地址\n- `GET /ocean1688/auth/callback`\n  - 参数：`code`、`state`（其中 `state` 作为 `shopId`）\n  - 授权回调并保存令牌\n\n文件中的 `ModelAndView` 回调接口已被注释，当前未生效。"
+      },
+      "scores": {
+        "Q1 TEMU店铺授权": {
+          "命中": 5,
+          "总分": 5,
+          "明细": {
+            "类名": "√",
+            "文件路径": "√",
+            "类级路径": "√",
+            "方法saveOrUpdate": "√",
+            "方法getByShopId": "√"
+          }
+        },
+        "Q2 1688授权": {
+          "命中": 5,
+          "总分": 5,
+          "明细": {
+            "类名": "√",
+            "文件路径": "√",
+            "类级路径": "√",
+            "方法getAuthUrl": "√",
+            "方法callback": "√"
+          }
+        }
+      },
+      "extra": {
+        "墙钟秒数": 7.1
+      }
+    }
+  ]
+}

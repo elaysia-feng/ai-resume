@@ -1,0 +1,225 @@
+{
+  "A_方案2_树深度曲线": [
+    {
+      "深度": 4,
+      "条目数": 521,
+      "字符数": 17279,
+      "估算tokens": 5759,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 5,
+      "条目数": 695,
+      "字符数": 26471,
+      "估算tokens": 8823,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 6,
+      "条目数": 809,
+      "字符数": 33175,
+      "估算tokens": 11058,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 7,
+      "条目数": 925,
+      "字符数": 39930,
+      "估算tokens": 13310,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 8,
+      "条目数": 1129,
+      "字符数": 54148,
+      "估算tokens": 18049,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 9,
+      "条目数": 1474,
+      "字符数": 82850,
+      "估算tokens": 27616,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": false,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 10,
+      "条目数": 2523,
+      "字符数": 163103,
+      "估算tokens": 54367,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": false,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": false
+    },
+    {
+      "深度": 11,
+      "条目数": 6311,
+      "字符数": 500460,
+      "估算tokens": 166820,
+      "超500K上下文": false,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": false,
+      "Q2 1688授权_答案目录在树里": true
+    },
+    {
+      "深度": 12,
+      "条目数": 15574,
+      "字符数": 1508093,
+      "估算tokens": 502697,
+      "超500K上下文": true,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": true,
+      "Q2 1688授权_答案目录在树里": true
+    },
+    {
+      "深度": 13,
+      "条目数": 24566,
+      "字符数": 2583574,
+      "估算tokens": 861191,
+      "超500K上下文": true,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": true,
+      "Q2 1688授权_答案目录在树里": true
+    },
+    {
+      "深度": 14,
+      "条目数": 28766,
+      "字符数": 3121288,
+      "估算tokens": 1040429,
+      "超500K上下文": true,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": true,
+      "Q2 1688授权_答案目录在树里": true
+    },
+    {
+      "深度": 15,
+      "条目数": 30092,
+      "字符数": 3300252,
+      "估算tokens": 1100084,
+      "超500K上下文": true,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": true,
+      "Q2 1688授权_答案目录在树里": true
+    },
+    {
+      "深度": 16,
+      "条目数": 30202,
+      "字符数": 3315527,
+      "估算tokens": 1105175,
+      "超500K上下文": true,
+      "Q1 TEMU店铺授权_答案在树里": true,
+      "Q1 TEMU店铺授权_答案目录在树里": true,
+      "Q2 1688授权_答案在树里": true,
+      "Q2 1688授权_答案目录在树里": true
+    }
+  ],
+  "B_方案4_BM25排序": {
+    "纯BM25": {
+      "索引文件数": 35774,
+      "分块数": 45034,
+      "各题": {
+        "Q1 TEMU店铺授权": {
+          "答案文件最好排名": null,
+          "答案文件进top20": false,
+          "答案文件进top50": false,
+          "top8命中文件": [
+            "whp-multiplatform-master/阅读顺序.md",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-multiplatform-master/multiplatform.fegin/src/main/java/com/erp/whp/multiplatform/fegin/temu/TemuDailySalesClient.java",
+            "API_INTERFACE_SUMMARY.md",
+            "API_INTERFACE_SUMMARY.md",
+            "whp-multiplatform-master/multiplatform.web/src/main/java/com/erp/whp/multiplatform/web/listingsummary/InventoryListingSummaryController.java"
+          ],
+          "top20里与题目相关的文件数": 0
+        },
+        "Q2 1688授权": {
+          "答案文件最好排名": null,
+          "答案文件进top20": false,
+          "答案文件进top50": false,
+          "top8命中文件": [
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-goods/goods.dto/src/main/java/com/erp/whp/goods/dto/mysql/purchase/vo/WhpShopLinkInfoVo.java",
+            "项目架构概览.md",
+            "项目架构概览.md",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/oracle/purchase/PurchaseMatchSupplierProductController.java",
+            "whp-docker-test/purchase-service-test.yaml",
+            "whp-base/src/main/java/com/erp/whp/base/em/PlatformSiteCode.java"
+          ],
+          "top20里与题目相关的文件数": 0
+        }
+      }
+    },
+    "BM25+文件名加权": {
+      "索引文件数": 35774,
+      "分块数": 45034,
+      "各题": {
+        "Q1 TEMU店铺授权": {
+          "答案文件最好排名": null,
+          "答案文件进top20": false,
+          "答案文件进top50": false,
+          "top8命中文件": [
+            "whp-multiplatform-master/multiplatform.fegin/src/main/java/com/erp/whp/multiplatform/fegin/temu/TemuDailySalesClient.java",
+            "whp-multiplatform-master/multiplatform.fegin/src/main/java/com/erp/whp/multiplatform/fegin/inventory/TemuInventoryCommandClient.java",
+            "whp-multiplatform-master/multiplatform.biz/src/main/java/com/erp/whp/multiplatform/biz/allocation/sales/TemuSalesHistoryProvider.java",
+            "whp-multiplatform-master/multiplatform.dto/src/main/java/com/erp/whp/multiplatform/dto/integration/temu/TemuDailySalesQry.java",
+            "whp-multiplatform-master/multiplatform.dto/src/main/java/com/erp/whp/multiplatform/dto/integration/temu/TemuDailySalesDto.java",
+            "whp-multiplatform-master/multiplatform.biz/src/main/java/com/erp/whp/multiplatform/biz/allocation/sales/TemuSalesHistoryProvider.java",
+            "whp-fdq-dev/whp-temu.yaml",
+            "whp-docker-test/whp-temu-test.yaml"
+          ],
+          "top20里与题目相关的文件数": 0
+        },
+        "Q2 1688授权": {
+          "答案文件最好排名": null,
+          "答案文件进top20": false,
+          "答案文件进top50": false,
+          "top8命中文件": [
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/oracle/purchase/PurchaseMatchSupplierProductController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpPurchaseSupplierConnectController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpPurchaseTransferInfoRecordController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpPurchaseSupplierVisitRecordController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpPurchaseSupplierUploadRecordController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpBatchPurchaseSupplierQualityUploadRecordController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpMatchSupplierProductController.java",
+            "whp-goods/goods.web/src/main/java/com/erp/whp/goods/web/mysql/purchase/WhpMatchSupplierProductBatchUploadController.java"
+          ],
+          "top20里与题目相关的文件数": 0
+        }
+      }
+    }
+  }
+}
