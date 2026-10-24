@@ -30,8 +30,12 @@ jobs:
 
     # 固定官方 PyPI 源：uv.lock 里记录了 index，
     # 万一锁文件被镜像源的 lock 覆盖，CI 也不会去拉国内镜像。
+    #
+    # PYTHONUTF8=1：Windows runner 的 Python 默认用 cp1252 输出，
+    # 碰到项目里的中文（含全角括号）会抛 UnicodeEncodeError 直接崩。
     env:
       UV_DEFAULT_INDEX: https://pypi.org/simple
+      PYTHONUTF8: '1'
 
     steps:
       - name: Checkout

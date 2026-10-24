@@ -49,7 +49,6 @@ HIDDEN_IMPORTS = [
     "langgraph.graph",
     "langgraph.graph.state",
     "langgraph.checkpoint.sqlite",
-    "langgraph_checkpoint_sqlite",
     "langgraph.pregel",
     "langgraph.pregel.main",
     "langchain_openai",
