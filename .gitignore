@@ -26,6 +26,8 @@ backend/java/代码问题/
 .tmp-mysql/
 # 本地临时文件存储根目录（运行时验收用）
 .tmp-storage/
+# 桌面端静默安装验收目录（安装测试用）
+.tmp-install-test/
 # SQLite 运行时产物（业务库 / LangGraph checkpoint）
 *.db
 *.db-wal
