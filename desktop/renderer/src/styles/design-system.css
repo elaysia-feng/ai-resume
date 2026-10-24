@@ -92,7 +92,6 @@
   /* ---------- 表面材质（高级感的主要来源）---------- */
   /* 1. 表面微渐变：极轻的左上到右下，让平面有「纸」的厚度 */
   --ui-surface-wash: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 42%);
-  --ui-surface-wash-dark: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 42%);
   /* 2. 应用底色带一层极淡的品牌色晕，避免大面积纯色发闷 */
   --ui-bg-app-wash: radial-gradient(1200px 600px at 12% -8%, rgba(34, 197, 94, 0.05) 0%, transparent 62%);
   /* 3. 主按钮的品牌渐变：单一色相内的明度变化，不做彩虹渐变 */
@@ -100,7 +99,6 @@
   --ui-accent-gradient-hover: linear-gradient(180deg, #27ac50 0%, #15803d 100%);
   /* 4. 描边层次：hairline 比普通 border 更轻，用于分隔而非框选 */
   --ui-border-hairline: rgba(28, 25, 23, 0.08);
-  --ui-border-hairline-dark: rgba(255, 255, 255, 0.08);
 
   /* ---------- 圆角 ---------- */
   --ui-radius-xs: 4px;
@@ -171,7 +169,6 @@
   --ui-shadow-accent: 0 6px 20px rgba(22, 163, 74, 0.22);
   /* 顶部内高光：卡片压在纸面上那一道「反光」，高级感的关键细节 */
   --ui-highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --ui-highlight-top-dark: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --ui-ring: 0 0 0 3px rgba(34, 197, 94, 0.25);
   --ui-ring-danger: 0 0 0 3px rgba(220, 38, 38, 0.22);
 
@@ -299,18 +296,15 @@
     --ui-shadow-float: 0 16px 40px rgba(0, 0, 0, 0.62), 0 2px 8px rgba(0, 0, 0, 0.4);
     --ui-shadow-accent: 0 6px 20px rgba(34, 197, 94, 0.28);
     --ui-highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    --ui-highlight-top-dark: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     --ui-ring: 0 0 0 3px rgba(74, 222, 128, 0.3);
     --ui-ring-danger: 0 0 0 3px rgba(248, 113, 113, 0.26);
 
     /* 暗色下的表面材质 */
     --ui-surface-wash: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 42%);
-    --ui-surface-wash-dark: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 42%);
     --ui-bg-app-wash: radial-gradient(1200px 600px at 12% -8%, rgba(34, 197, 94, 0.08) 0%, transparent 62%);
     --ui-accent-gradient: linear-gradient(180deg, #34d26a 0%, #22c55e 100%);
     --ui-accent-gradient-hover: linear-gradient(180deg, #4ade80 0%, #34d26a 100%);
     --ui-border-hairline: rgba(255, 255, 255, 0.08);
-    --ui-border-hairline-dark: rgba(255, 255, 255, 0.08);
   }
 }
 
