@@ -28,6 +28,11 @@ jobs:
     name: Package and publish
     runs-on: windows-latest
 
+    # 固定官方 PyPI 源：uv.lock 里记录了 index，
+    # 万一锁文件被镜像源的 lock 覆盖，CI 也不会去拉国内镜像。
+    env:
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,12 +135,25 @@ jobs:
           Write-Host "Java app-image ready: $exe"
 
       # Python：PyInstaller 打成独立 exe，同样不需要用户装 Python。
+      #
+      # 失败时把日志尾部用 ::error:: 注解打出来：job 日志需要 token 才能下载，
+      # 但注解和 step summary 在 run 页面上匿名可见，排查不用等 token。
       - name: Package Python runtime
+        shell: pwsh
         working-directory: backend/python
         run: |
           $ErrorActionPreference = 'Stop'
-          uv run python scripts/build_desktop_bundle.py --clean
-          if ($LASTEXITCODE -ne 0) { throw 'Python bundle build failed' }
+          New-Item -ItemType Directory -Force -Path 'build' | Out-Null
+          $log = 'build/pyinstaller.log'
+          uv run python scripts/build_desktop_bundle.py --clean *>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Write-Host "::error::Python bundle build failed (exit $code)"
+            Get-Content $log -Tail 80 -ErrorAction SilentlyContinue |
+              ForEach-Object { Write-Host "::error::$_" }
+            Add-Content $env:GITHUB_STEP_SUMMARY "## Python bundle build failed (exit $code)`n``````text`n$((Get-Content $log -Tail 80 -ErrorAction SilentlyContinue) -join "`n")`n```````n"
+            throw 'Python bundle build failed'
+          }
           $exe = 'dist/desktop/ai-resume-api/ai-resume-api.exe'
           if (-not (Test-Path $exe)) { throw "Python bundle did not produce $exe" }
           Write-Host "Python bundle ready: $exe"
@@ -168,8 +186,20 @@ jobs:
         run: npm run build
 
       - name: Package Windows installer
+        shell: pwsh
         working-directory: desktop
-        run: npm run package
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path 'build' | Out-Null
+          $log = 'build/electron-builder.log'
+          npm run package *>&1 | Tee-Object -FilePath $log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Write-Host "::error::electron-builder failed (exit $code)"
+            Get-Content $log -Tail 60 -ErrorAction SilentlyContinue |
+              ForEach-Object { Write-Host "::error::$_" }
+            throw "electron-builder failed (exit $code)"
+          }
         env:
           # electron-builder 在 CI 上会额外下载 winCodeSign / nsis 资源
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache

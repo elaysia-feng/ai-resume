@@ -15,6 +15,11 @@ jobs:
     name: Python + Java + Desktop
     runs-on: windows-latest
 
+    # 固定官方 PyPI 源：uv.lock 里记录了 index，
+    # 万一锁文件被镜像源的 lock 覆盖，CI 也不会去拉国内镜像。
+    env:
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
