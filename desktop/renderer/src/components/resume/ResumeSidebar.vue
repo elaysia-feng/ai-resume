@@ -9,15 +9,7 @@
         title="折叠 / 展开区块列表"
         @click="groupsOpen.sections = !groupsOpen.sections"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            :d="groupsOpen.sections ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6'"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <AppIcon :name="groupsOpen.sections ? 'caret-down' : 'caret-right'" :size="16" />
       </button>
     </header>
 
@@ -43,11 +35,7 @@
             @dragend="onDragEnd"
           >
             <span class="resume-rail__handle" title="拖拽调整顺序" aria-hidden="true">
-              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-                <circle cx="2.5" cy="2.5" r="1.2" /><circle cx="7.5" cy="2.5" r="1.2" />
-                <circle cx="2.5" cy="7" r="1.2" /><circle cx="7.5" cy="7" r="1.2" />
-                <circle cx="2.5" cy="11.5" r="1.2" /><circle cx="7.5" cy="11.5" r="1.2" />
-              </svg>
+              <AppIcon name="dots-three-vertical" :size="14" />
             </span>
 
             <button
@@ -80,7 +68,9 @@
               :class="{ 'is-active': activeBtn === btn.event }"
               @click="handleClick(btn.event)"
             >
-              <span class="resume-rail__tool-icon" aria-hidden="true" v-html="btn.icon"></span>
+              <span class="resume-rail__tool-icon" aria-hidden="true">
+                <AppIcon :name="btn.icon" :size="16" />
+              </span>
               <span class="resume-rail__tool-label">{{ btn.label }}</span>
             </button>
           </li>
@@ -98,6 +88,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import AppIcon from '../common/AppIcon.vue'
 
 const props = defineProps({
   activeBtn: {
@@ -126,22 +117,22 @@ const buttons = [
   {
     event: 'template',
     label: '模板',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+    icon: 'layout',
   },
   {
     event: 'style',
     label: '样式',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    icon: 'palette',
   },
   {
     event: 'preview',
     label: '预览',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>',
+    icon: 'eye',
   },
   {
     event: 'settings',
     label: '设置',
-    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    icon: 'gear',
   },
 ]
 

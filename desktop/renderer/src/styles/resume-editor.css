@@ -42,6 +42,7 @@
   gap: var(--ui-space-4);
   padding: 0 var(--ui-space-5);
   background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   border-bottom: 1px solid var(--ui-border);
   z-index: var(--ui-z-header);
 }
@@ -53,12 +54,10 @@
   min-width: 0;
 }
 
+/* 工作台顶栏是 56px 紧凑条，标题比通用页面标题收一档 */
 .editor-topbar__title {
-  font-size: var(--ui-text-md);
-  font-weight: 600;
+  font-size: var(--ui-text-lg);
   line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-  white-space: nowrap;
 }
 
 .editor-topbar__subtitle {
@@ -178,15 +177,22 @@
 .editor-nav__group-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-2);
+  gap: var(--ui-space-1);
+}
+
+.editor-nav__collapse {
+  flex-shrink: 0;
 }
 
 .section-nav__caption {
   display: block;
+  flex: 1;
+  min-width: 0;
   margin: 0 0 var(--ui-space-2);
-  padding-left: var(--ui-space-3);
+  padding-left: var(--ui-space-1);
   font-size: var(--ui-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--ui-tracking-wide);
   color: var(--ui-fg-muted);
 }
 
@@ -203,6 +209,10 @@
 
 .editor-nav__field .ui-label {
   margin-bottom: 0;
+}
+
+.editor-nav__segmented {
+  flex-wrap: wrap;
 }
 
 .editor-nav__chips {
@@ -273,30 +283,35 @@
   overflow-y: auto;
 }
 
+/* 每个分区块都有明确的卡片边界 */
 .section-nav__item {
   display: flex;
   align-items: center;
-  gap: var(--ui-space-2);
-  padding: var(--ui-space-2);
-  border: 1px solid transparent;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
   border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
   cursor: pointer;
   user-select: none;
   transition: background var(--ui-duration-fast) var(--ui-ease-out),
-    border-color var(--ui-duration-fast) var(--ui-ease-out);
+    border-color var(--ui-duration-fast) var(--ui-ease-out),
+    box-shadow var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .section-nav__item:hover {
   background: var(--ui-bg-hover);
+  border-color: var(--ui-border);
 }
 
 .section-nav__item.is-active {
   background: var(--ui-accent-soft);
   border-color: var(--ui-accent-border);
+  box-shadow: var(--ui-shadow-xs);
 }
 
 .section-nav__item.is-hidden {
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .section-nav__item.is-hidden .section-nav__title {
@@ -335,26 +350,12 @@
   font-weight: 500;
 }
 
+/* 行内操作按钮：沿用 .ui-icon-btn，尺寸收窄以适应导航栏 */
 .section-nav__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
+  width: 26px;
+  height: 26px;
   border-radius: var(--ui-radius-sm);
-  background: transparent;
   color: var(--ui-fg-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background var(--ui-duration-fast) var(--ui-ease-out),
-    color var(--ui-duration-fast) var(--ui-ease-out);
-}
-
-.section-nav__action:hover {
-  background: var(--ui-bg-active);
-  color: var(--ui-fg-primary);
 }
 
 .section-nav__action--danger:hover {
@@ -364,17 +365,48 @@
 
 /* ── 拖拽分隔条 ───────────────────────────────────────────── */
 .editor-splitter {
-  flex: 0 0 5px;
-  background: var(--ui-border-subtle);
-  border-left: 1px solid var(--ui-border);
-  border-right: 1px solid var(--ui-border);
+  position: relative;
+  flex: 0 0 6px;
+  background: var(--ui-bg-sunken);
+  border-left: 1px solid var(--ui-border-hairline);
+  border-right: 1px solid var(--ui-border-hairline);
   cursor: col-resize;
   transition: background var(--ui-duration-fast) var(--ui-ease-out);
 }
 
-.editor-splitter:hover,
+/* 悬停时露出品牌色的握把 */
+.editor-splitter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-border-strong);
+  opacity: 0;
+  transition: opacity var(--ui-duration-fast) var(--ui-ease-out),
+    background var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.editor-splitter:hover {
+  background: var(--ui-accent-soft);
+}
+
+.editor-splitter:hover::after {
+  opacity: 1;
+  background: var(--ui-accent);
+}
+
+/* 拖动中保持高亮，方便判断正在调整哪一侧 */
 .editor-splitter.is-active {
   background: var(--ui-accent-soft);
+}
+
+.editor-splitter.is-active::after {
+  opacity: 1;
+  background: var(--ui-accent);
 }
 
 /* ── 中栏：分区编辑区 ─────────────────────────────────────── */
@@ -395,29 +427,65 @@
 }
 
 .editor-canvas__head {
-  display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
   padding-bottom: var(--ui-space-3);
   border-bottom: 1px solid var(--ui-border);
 }
 
-.editor-canvas__title {
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
+.editor-canvas__heading {
+  min-width: 0;
 }
 
-.editor-canvas__hint {
-  margin-top: var(--ui-space-1);
-  font-size: var(--ui-text-xs);
-  color: var(--ui-fg-muted);
+.editor-canvas__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  flex-shrink: 0;
+}
+
+/* 分区卡片的边界由 .ui-panel 提供，这里只做内边距 */
+.editor-canvas__section {
+  padding: var(--ui-space-5);
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-canvas__empty {
   min-height: 320px;
+}
+
+/* 加载态：骨架屏占位，不用整页遮罩 */
+.editor-canvas__loading {
+  gap: var(--ui-space-4);
+}
+
+.editor-canvas__skeleton {
+  height: 96px;
+  border-radius: var(--ui-radius-md);
+}
+
+.editor-canvas__skeleton--title {
+  height: 28px;
+  width: 42%;
+}
+
+.editor-canvas__skeleton--short {
+  height: 64px;
+  width: 68%;
+}
+
+/* 错误态：说明发生了什么 + 怎么办 */
+.editor-canvas__callout {
+  align-items: flex-start;
+}
+
+.editor-canvas__callout strong {
+  display: block;
+  font-weight: 600;
+}
+
+.editor-canvas__callout p {
+  margin: var(--ui-space-1) 0 0;
 }
 
 /* ── 右栏：实时预览 ───────────────────────────────────────── */
@@ -438,10 +506,14 @@
   gap: var(--ui-space-2);
   padding: var(--ui-space-3) var(--ui-space-4);
   background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   border-bottom: 1px solid var(--ui-border);
 }
 
 .editor-preview__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
   font-size: var(--ui-text-sm);
   font-weight: 600;
   color: var(--ui-fg-primary);
@@ -454,9 +526,13 @@
   padding: var(--ui-space-4);
 }
 
+/* 纸张落在桌面上：外层留一圈柔和阴影 */
 .editor-preview__fit {
   position: relative;
   margin: 0 auto;
+  border-radius: 2px;
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-lg);
 }
 
 .editor-preview__stage {
@@ -481,7 +557,7 @@
   bottom: 0;
   width: min(560px, 92%);
   z-index: calc(var(--ui-z-dropdown) + 1);
-  box-shadow: var(--ui-shadow-xl);
+  box-shadow: var(--ui-shadow-float);
 }
 
 /* 三栏顺序：导航 | 编辑区 | 预览；分隔条固定在两者之间 */
@@ -506,7 +582,7 @@
   flex-direction: column;
   background: var(--ui-bg-surface);
   border-left: 1px solid var(--ui-border);
-  box-shadow: var(--ui-shadow-lg);
+  box-shadow: var(--ui-shadow-float);
   z-index: calc(var(--ui-z-dropdown) + 1);
   overflow: hidden;
 }
@@ -516,8 +592,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--ui-space-2);
-  padding: var(--ui-space-4);
+  padding: var(--ui-space-3) var(--ui-space-4);
   border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   flex-shrink: 0;
 }
 
@@ -634,6 +712,7 @@
   gap: var(--ui-space-4);
 }
 
+/* 条目卡片边界由 .ui-panel 提供 */
 .re-entry {
   display: flex;
   flex-direction: column;
@@ -683,7 +762,7 @@
   color: var(--ui-danger);
 }
 
-/* 底部「+ 添加一条」 */
+/* 底部「添加一条」 */
 .re-add {
   display: flex;
   align-items: center;
@@ -790,18 +869,10 @@
   gap: var(--ui-space-2);
 }
 
+/* 头像上传后的结果提示：颜色交给 .ui-callout 决定 */
 .re-avatar__message {
   font-size: var(--ui-text-xs);
   line-height: var(--ui-line-normal);
-  color: var(--ui-fg-secondary);
-}
-
-.re-avatar__message.is-error {
-  color: var(--ui-danger);
-}
-
-.re-avatar__message.is-success {
-  color: var(--ui-success);
 }
 
 /* ── 富文本编辑器容器 ─────────────────────────────────────── */

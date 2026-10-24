@@ -2,30 +2,33 @@
   <aside class="chat-sidebar" :class="{ 'is-collapsed': collapsed }">
     <div class="chat-sidebar-head">
       <template v-if="!collapsed">
-        <span class="chat-sidebar-title">会话</span>
+        <span class="chat-sidebar-title">
+          <AppIcon name="chat-circle" :size="16" />
+          会话
+        </span>
         <span class="ui-badge">{{ sessions.length }}</span>
       </template>
       <button
-        class="chat-sidebar-toggle"
+        class="ui-icon-btn chat-sidebar-toggle"
         type="button"
         :title="collapsed ? '展开会话列表' : '收起会话列表'"
         :aria-expanded="!collapsed"
         @click="toggleCollapsed"
       >
-        {{ collapsed ? '»' : '«' }}
+        <AppIcon :name="collapsed ? 'caret-right' : 'caret-left'" :size="16" />
       </button>
     </div>
 
     <!-- 收起态：只留窄轨道 -->
     <div v-if="collapsed" class="chat-sidebar-rail">
       <button
-        class="chat-sidebar-rail-btn"
+        class="ui-icon-btn ui-icon-btn--outline chat-sidebar-rail-btn"
         type="button"
         title="新建会话"
         :disabled="loading"
         @click="$emit('create')"
       >
-        ＋
+        <AppIcon name="plus" :size="18" />
       </button>
     </div>
 
@@ -37,14 +40,21 @@
           :disabled="loading"
           @click="$emit('create')"
         >
-          ＋ 新建会话
+          <AppIcon name="plus" :size="16" />
+          新建会话
         </button>
       </div>
 
       <div class="chat-session-list ui-scroll">
-        <p v-if="loading" class="chat-sidebar-hint">会话加载中…</p>
+        <!-- 加载态：骨架屏占位，不用转圈 -->
+        <div v-if="loading" class="chat-session-skeletons">
+          <div v-for="index in 4" :key="index" class="ui-skeleton chat-session-skeleton"></div>
+        </div>
 
         <div v-else-if="sessions.length === 0" class="ui-empty chat-sidebar-empty">
+          <span class="ui-empty__icon">
+            <AppIcon name="chat-circle-dots" :size="24" />
+          </span>
           <p class="ui-empty__title">还没有会话</p>
           <p class="ui-empty__hint">新建一个会话，或直接输入第一条消息。</p>
         </div>
@@ -75,12 +85,12 @@
                 </span>
               </button>
               <button
-                class="chat-session-delete"
+                class="ui-icon-btn chat-session-delete"
                 type="button"
                 title="删除会话"
                 @click="askRemove(session.id)"
               >
-                ✕
+                <AppIcon name="x" :size="14" />
               </button>
             </template>
           </div>
@@ -88,7 +98,10 @@
       </div>
 
       <div class="chat-sidebar-bottom">
-        <p class="chat-workspace-label">工作区目录</p>
+        <p class="chat-workspace-label">
+          <AppIcon name="hard-drives" :size="14" />
+          工作区目录
+        </p>
         <p class="chat-workspace-path" :title="workspacePath || '未设置'">{{ workspacePath || '未设置' }}</p>
 
         <button
@@ -122,6 +135,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import AppIcon from '../common/AppIcon.vue';
 
 defineProps({
   sessions: { type: Array, default: () => [] },
@@ -211,8 +225,8 @@ function formatTime(value) {
   width: 260px;
   min-width: 260px;
   height: 100%;
-  background: var(--chat-sidebar-bg);
-  border-right: 1px solid var(--chat-border);
+  background: var(--ui-bg-surface);
+  border-right: 1px solid var(--ui-border-hairline);
   transition: width var(--ui-duration-normal) var(--ui-ease-out),
     min-width var(--ui-duration-normal) var(--ui-ease-out);
 }
@@ -227,9 +241,9 @@ function formatTime(value) {
   align-items: center;
   gap: var(--ui-space-2);
   flex: none;
-  height: 44px;
+  height: var(--ui-header-height);
   padding: 0 var(--ui-space-2) 0 var(--ui-space-4);
-  border-bottom: 1px solid var(--chat-border);
+  border-bottom: 1px solid var(--ui-border-hairline);
 }
 
 .chat-sidebar.is-collapsed .chat-sidebar-head {
@@ -238,40 +252,23 @@ function formatTime(value) {
 }
 
 .chat-sidebar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
   font-size: var(--ui-text-sm);
   font-weight: 600;
-  color: var(--chat-text);
+  letter-spacing: var(--ui-tracking-snug);
+  color: var(--ui-fg-primary);
 }
 
 .chat-sidebar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 26px;
   height: 26px;
   margin-left: auto;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--ui-radius-sm);
-  cursor: pointer;
-  transition: background var(--ui-duration-fast) var(--ui-ease-out),
-    color var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .chat-sidebar.is-collapsed .chat-sidebar-toggle {
   margin-left: 0;
-}
-
-.chat-sidebar-toggle:hover {
-  color: var(--ui-fg-primary);
-  background: var(--ui-bg-hover);
-}
-
-.chat-sidebar-toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
 }
 
 /* 收起态窄轨道 */
@@ -286,26 +283,12 @@ function formatTime(value) {
 .chat-sidebar-rail-btn {
   width: 32px;
   height: 32px;
-  font-size: var(--ui-text-md);
-  color: var(--ui-fg-secondary);
-  background: transparent;
-  border: 1px solid var(--chat-border);
-  border-radius: var(--ui-radius-md);
-  cursor: pointer;
-  transition: color var(--ui-duration-fast) var(--ui-ease-out),
-    border-color var(--ui-duration-fast) var(--ui-ease-out),
-    background var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .chat-sidebar-rail-btn:hover:not(:disabled) {
   color: var(--ui-fg-accent);
   background: var(--ui-accent-soft);
   border-color: var(--ui-accent-border);
-}
-
-.chat-sidebar-rail-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
 }
 
 .chat-sidebar-top {
@@ -320,15 +303,28 @@ function formatTime(value) {
   padding: 0 var(--ui-space-2) var(--ui-space-3);
 }
 
-.chat-sidebar-hint {
-  margin: var(--ui-space-2) var(--ui-space-1);
-  font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
+/* 会话列表加载态 */
+.chat-session-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-1);
+}
+
+.chat-session-skeleton {
+  height: 46px;
+  border-radius: var(--ui-radius-md);
 }
 
 .chat-sidebar-empty {
   gap: var(--ui-space-1);
   padding: var(--ui-space-5) var(--ui-space-2);
+}
+
+.chat-sidebar-empty :deep(.ui-empty__icon) {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius-md);
 }
 
 .chat-sidebar-empty :deep(.ui-empty__title) {
@@ -340,7 +336,9 @@ function formatTime(value) {
   line-height: var(--ui-line-normal);
 }
 
+/* 会话条目：选中态用底色 + 左侧竖条两重强调 */
 .chat-session-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--ui-space-1);
@@ -359,6 +357,18 @@ function formatTime(value) {
 .chat-session-item.is-active {
   background: var(--ui-bg-selected);
   border-color: var(--ui-accent-border);
+}
+
+.chat-session-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent);
 }
 
 .chat-session-open {
@@ -383,7 +393,7 @@ function formatTime(value) {
 .chat-session-title {
   font-size: var(--ui-text-sm);
   font-weight: 500;
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -395,7 +405,7 @@ function formatTime(value) {
   gap: var(--ui-space-2);
   min-width: 0;
   font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
+  color: var(--ui-fg-muted);
 }
 
 .chat-session-time {
@@ -405,17 +415,8 @@ function formatTime(value) {
 }
 
 .chat-session-delete {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  font-size: var(--ui-text-xs);
-  line-height: 22px;
-  text-align: center;
-  color: var(--ui-fg-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--ui-radius-sm);
-  cursor: pointer;
+  width: 24px;
+  height: 24px;
   opacity: 0;
   transition: opacity var(--ui-duration-fast) var(--ui-ease-out),
     color var(--ui-duration-fast) var(--ui-ease-out),
@@ -432,25 +433,23 @@ function formatTime(value) {
   background: var(--ui-danger);
 }
 
-.chat-session-delete:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
 .chat-session-confirm-text {
   flex: 1;
   align-self: center;
   font-size: var(--ui-text-xs);
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
 }
 
 .chat-sidebar-bottom {
   flex: none;
   padding: var(--ui-space-3);
-  border-top: 1px solid var(--chat-border);
+  border-top: 1px solid var(--ui-border-hairline);
 }
 
 .chat-workspace-label {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
   margin: 0 0 var(--ui-space-1);
   font-size: var(--ui-text-xs);
   font-weight: 600;
@@ -463,7 +462,7 @@ function formatTime(value) {
   overflow-y: auto;
   font-size: var(--ui-text-xs);
   line-height: 1.7;
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
   word-break: break-all;
 }
 

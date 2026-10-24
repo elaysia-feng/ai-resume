@@ -38,6 +38,10 @@ backend/python/data/
 # 运行时验收的临时日志与临时库
 .tmp-*.log
 .tmp-*.db
+# 界面改造 agent 的临时脚本与构建产物
+.tmp-*.py
+.tmp-verify-*/
+.tmp-editor-*/
 # pytest 建的临时目录（空目录，删不掉，忽略掉）
 pytest-cache-files-*/
 
@@ -77,6 +81,12 @@ application.yaml
 # Frontend
 dist/
 build/
+# electron-builder 的构建资源目录整体忽略，但应用图标必须入库
+# （注意：先放行目录本身，否则被排除的目录 git 不会再下钻，文件级否定规则无效）
+!desktop/build/
+desktop/build/*
+!desktop/build/icon.ico
+!desktop/build/icon.svg
 
 # Environment
 .env

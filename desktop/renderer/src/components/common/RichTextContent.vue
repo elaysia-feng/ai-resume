@@ -19,10 +19,14 @@ const safeHtml = computed(() => normalizeRichTextHtml(props.html))
 <style scoped>
 .rich-text-content {
   white-space: normal;
+  /* 中文长串不再把容器撑破 */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .rich-text-content :deep(p) {
-  margin: 0 0 8px;
+  margin: 0 0 var(--ui-space-2);
 }
 
 .rich-text-content :deep(p:last-child) {
@@ -35,7 +39,7 @@ const safeHtml = computed(() => normalizeRichTextHtml(props.html))
 .rich-text-content :deep(h4),
 .rich-text-content :deep(h5),
 .rich-text-content :deep(h6) {
-  margin: 0 0 8px;
+  margin: 0 0 var(--ui-space-2);
   font-size: inherit;
   font-weight: 600;
   line-height: inherit;
@@ -43,12 +47,12 @@ const safeHtml = computed(() => normalizeRichTextHtml(props.html))
 
 .rich-text-content :deep(ul),
 .rich-text-content :deep(ol) {
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: var(--ui-space-2) 0;
+  padding-left: var(--ui-space-5);
 }
 
 .rich-text-content :deep(li) {
-  margin-bottom: 4px;
+  margin-bottom: var(--ui-space-1);
 }
 
 .rich-text-content :deep(a) {

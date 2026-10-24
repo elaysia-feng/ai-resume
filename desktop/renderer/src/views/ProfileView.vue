@@ -2,14 +2,18 @@
   <div class="profile-page">
     <header class="page-head">
       <div class="page-head__text">
-        <h1 class="page-title">个人档案</h1>
-        <p class="page-subtitle">查看账号资料、简历与 AI 使用情况，这些信息会作为简历生成与面试的默认上下文。</p>
+        <h1 class="ui-page-title">个人档案</h1>
+        <p class="ui-page-subtitle">查看账号资料、简历与 AI 使用情况，这些信息会作为简历生成与面试的默认上下文。</p>
       </div>
       <div class="page-head__actions">
         <button class="ui-btn ui-btn--outline" :disabled="loading" @click="refreshAll">
+          <AppIcon name="arrows-clockwise" :size="16" />
           {{ loading ? '刷新中…' : '刷新资料' }}
         </button>
-        <button class="ui-btn ui-btn--primary" @click="goCreateResume">新建简历</button>
+        <button class="ui-btn ui-btn--primary" @click="goCreateResume">
+          <AppIcon name="file-plus" :size="16" />
+          新建简历
+        </button>
       </div>
     </header>
 
@@ -26,16 +30,21 @@
           :aria-current="activeSection === section.id ? 'true' : undefined"
           @click="activeSection = section.id"
         >
-          <span class="section-nav__title">{{ section.title }}</span>
-          <span class="section-nav__meta">{{ sectionMeta(section.id) }}</span>
+          <span class="section-nav__icon" aria-hidden="true">
+            <AppIcon :name="section.icon" :size="16" />
+          </span>
+          <span class="section-nav__body">
+            <span class="section-nav__title">{{ section.title }}</span>
+            <span class="section-nav__meta">{{ sectionMeta(section.id) }}</span>
+          </span>
         </button>
       </nav>
 
       <div class="section-body">
         <!-- 分区一：档案概览 -->
         <section v-show="activeSection === 'overview'" class="section-stack">
-          <!-- 头像卡片 -->
-          <article class="ui-card avatar-card">
+          <!-- 账号身份卡片 -->
+          <article class="ui-panel avatar-card">
             <div class="avatar-preview">
               <button type="button" class="avatar-shell" :disabled="avatarBusy" @click="triggerAvatarUpload">
                 <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" alt="头像预览" class="avatar-image" />
@@ -50,42 +59,45 @@
                   {{ accountStatusText }}
                 </span>
               </div>
-              <p class="avatar-info__email">{{ authStore.user?.email || '未获取到邮箱信息' }}</p>
+              <p class="avatar-info__email">{{ accountEmailText }}</p>
               <div class="avatar-actions">
                 <button class="ui-btn ui-btn--outline ui-btn--sm" :disabled="avatarBusy" @click="triggerAvatarUpload">
-                  {{ avatarBusy ? '上传中…' : authStore.user?.avatarUrl ? '替换头像' : '上传头像' }}
+                  <AppIcon name="upload-simple" :size="14" />
+                  {{ avatarBusy ? '上传中…' : authStore.user?.avatarUrl ? '替换账号头像' : '上传账号头像' }}
                 </button>
-                <span class="avatar-tip">{{ avatarStatus || '头像会上传到本机后端并写入当前账号。' }}</span>
+                <span class="avatar-tip">{{ avatarStatus || '账号头像会上传到本机后端并写入当前账号。' }}</span>
               </div>
-              <p class="avatar-note">后端暂未提供删除头像的接口，需要恢复默认头像时可上传一张新图片覆盖。</p>
+              <p class="avatar-note">这是账号身份的头像（显示在侧边栏），与简历里的照片无关；后端暂未提供删除头像的接口，需要恢复默认头像时可上传一张新图片覆盖。</p>
             </div>
           </article>
 
           <!-- 使用统计 -->
-          <article class="ui-card stat-card">
-            <header class="card-head">
-              <h2 class="card-head__title">使用统计</h2>
-              <span class="card-head__desc">按当前账号统计</span>
-            </header>
+          <article class="ui-panel stat-card">
+            <div class="ui-section-head">
+              <div>
+                <h2 class="ui-section-head__title">使用统计</h2>
+                <p class="ui-section-head__hint">按当前账号统计</p>
+              </div>
+            </div>
             <div class="stat-grid">
-              <div class="stat-item">
-                <span class="stat-item__label">简历数量</span>
-                <strong class="stat-item__value">{{ resumes.length }}</strong>
+              <div class="ui-stat stat-item">
+                <span class="ui-stat__value">{{ resumes.length }}</span>
+                <span class="ui-stat__label">简历数量</span>
                 <span class="stat-item__desc">当前账号下所有简历</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-item__label">Agent 会话</span>
-                <strong class="stat-item__value">{{ sessions.length }}</strong>
+              <div class="ui-stat stat-item">
+                <span class="ui-stat__value">{{ sessions.length }}</span>
+                <span class="ui-stat__label">Agent 会话</span>
                 <span class="stat-item__desc">已创建的 AI 会话历史</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-item__label">最近简历更新</span>
-                <strong class="stat-item__value stat-item__value--text">{{ lastResumeUpdateText }}</strong>
+              <div class="ui-stat stat-item">
+                <span class="ui-stat__value stat-item__value--text">{{ lastResumeUpdateText }}</span>
+                <span class="ui-stat__label">最近简历更新</span>
                 <span class="stat-item__desc">按简历更新时间统计</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-item__label">最近 AI 活跃</span>
-                <strong class="stat-item__value stat-item__value--text">{{ lastSessionUpdateText }}</strong>
+              <div class="ui-stat stat-item">
+                <span class="ui-stat__value stat-item__value--text">{{ lastSessionUpdateText }}</span>
+                <span class="ui-stat__label">最近 AI 活跃</span>
                 <span class="stat-item__desc">按会话最后消息时间统计</span>
               </div>
             </div>
@@ -93,24 +105,45 @@
         </section>
 
         <!-- 分区二：账号资料 -->
-        <section v-show="activeSection === 'account'" class="ui-card block">
+        <section v-show="activeSection === 'account'" class="ui-panel block">
           <header class="card-head">
             <div>
               <h2 class="card-head__title">账号资料</h2>
-              <p class="card-head__desc">以下字段来自后端当前用户接口，暂不支持在线编辑。</p>
+              <p class="card-head__desc">这里是账号身份（「我是谁」），只影响应用内的展示。</p>
             </div>
             <button class="ui-btn ui-btn--outline ui-btn--sm" :disabled="loading" @click="refreshAll">
               {{ loading ? '刷新中…' : '刷新' }}
             </button>
           </header>
+
+          <!-- 账号身份 -->
+          <div class="ui-section-head">
+            <div>
+              <h3 class="ui-section-head__title">账号身份</h3>
+              <p class="ui-section-head__hint">昵称、账号头像与账号类型</p>
+            </div>
+          </div>
           <dl class="info-grid">
             <div class="info-item">
-              <dt class="info-item__label">用户名</dt>
+              <dt class="info-item__label">账号昵称</dt>
               <dd class="info-item__value">{{ authStore.user?.username || '未命名用户' }}</dd>
             </div>
             <div class="info-item">
+              <dt class="info-item__label">账号头像</dt>
+              <dd class="info-item__value">
+                <span class="account-avatar">
+                  <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" alt="账号头像" />
+                  <span v-else>{{ userInitials }}</span>
+                </span>
+              </dd>
+            </div>
+            <div class="info-item">
+              <dt class="info-item__label">账号类型</dt>
+              <dd class="info-item__value">{{ accountTypeText }}</dd>
+            </div>
+            <div class="info-item">
               <dt class="info-item__label">邮箱</dt>
-              <dd class="info-item__value">{{ authStore.user?.email || '未绑定' }}</dd>
+              <dd class="info-item__value">{{ accountEmailText }}</dd>
             </div>
             <div class="info-item">
               <dt class="info-item__label">用户 ID</dt>
@@ -122,32 +155,46 @@
             </div>
             <div class="info-item">
               <dt class="info-item__label">邮箱状态</dt>
-              <dd class="info-item__value">{{ authStore.user?.email ? '已绑定' : '未绑定' }}</dd>
+              <dd class="info-item__value">{{ accountEmailStatusText }}</dd>
             </div>
             <div class="info-item">
-              <dt class="info-item__label">注册时间</dt>
+              <dt class="info-item__label">创建时间</dt>
               <dd class="info-item__value">{{ formatDateTime(authStore.user?.createdAt) }}</dd>
             </div>
             <div class="info-item">
               <dt class="info-item__label">最后更新</dt>
               <dd class="info-item__value">{{ formatDateTime(authStore.user?.updatedAt) }}</dd>
             </div>
+          </dl>
+
+          <!-- 简历个人信息：与账号身份分开，避免概念混淆 -->
+          <div class="ui-section-head section-head--spaced">
+            <div>
+              <h3 class="ui-section-head__title">简历个人信息</h3>
+              <p class="ui-section-head__hint">姓名与照片</p>
+            </div>
+          </div>
+          <dl class="info-grid">
             <div class="info-item">
               <dt class="info-item__label">简历数量</dt>
               <dd class="info-item__value">{{ resumes.length }} 份</dd>
             </div>
           </dl>
+          <div class="ui-callout ui-callout--accent identity-note">
+            <AppIcon name="info" :size="16" />
+            <span>简历里的姓名和照片要在每份简历里单独填写，两者互不影响。</span>
+          </div>
         </section>
 
         <!-- 分区三：我的简历 -->
-        <section v-show="activeSection === 'resumes'" class="ui-card block">
-          <header class="card-head">
+        <section v-show="activeSection === 'resumes'" class="ui-panel block">
+          <div class="ui-section-head">
             <div>
-              <h2 class="card-head__title">最近简历</h2>
-              <p class="card-head__desc">最多展示 4 条最近更新的简历。</p>
+              <h2 class="ui-section-head__title">最近简历</h2>
+              <p class="ui-section-head__hint">最多展示 4 条最近更新的简历。</p>
             </div>
             <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goDashboard">全部简历</button>
-          </header>
+          </div>
           <div v-if="recentResumes.length" class="list-block">
             <button v-for="resume in recentResumes" :key="resume.id" type="button" class="list-item" @click="openResume(resume.id)">
               <span class="list-item__main">
@@ -158,6 +205,9 @@
             </button>
           </div>
           <div v-else class="ui-empty">
+            <span class="ui-empty__icon" aria-hidden="true">
+              <AppIcon name="files" :size="24" />
+            </span>
             <p class="ui-empty__title">还没有简历记录</p>
             <p class="ui-empty__hint">新建一份简历后，AI 对话与模拟面试都会以它作为上下文。</p>
             <button class="ui-btn ui-btn--primary" @click="goCreateResume">新建简历</button>
@@ -165,14 +215,14 @@
         </section>
 
         <!-- 分区四：AI 会话 -->
-        <section v-show="activeSection === 'sessions'" class="ui-card block">
-          <header class="card-head">
+        <section v-show="activeSection === 'sessions'" class="ui-panel block">
+          <div class="ui-section-head">
             <div>
-              <h2 class="card-head__title">最近 AI 会话</h2>
-              <p class="card-head__desc">最多展示 4 条最近活跃会话。</p>
+              <h2 class="ui-section-head__title">最近 AI 会话</h2>
+              <p class="ui-section-head__hint">最多展示 4 条最近活跃会话。</p>
             </div>
             <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goHistory">全部会话</button>
-          </header>
+          </div>
           <div v-if="recentSessions.length" class="list-block">
             <button v-for="session in recentSessions" :key="session.id" type="button" class="list-item" @click="goHistory">
               <span class="list-item__main">
@@ -183,6 +233,9 @@
             </button>
           </div>
           <div v-else class="ui-empty">
+            <span class="ui-empty__icon" aria-hidden="true">
+              <AppIcon name="chat-circle-dots" :size="24" />
+            </span>
             <p class="ui-empty__title">还没有 AI 会话记录</p>
             <p class="ui-empty__hint">和 AI 对话一次，这里就会出现你的会话历史。</p>
             <button class="ui-btn ui-btn--primary" @click="goChat">去和 AI 对话</button>
@@ -190,27 +243,39 @@
         </section>
 
         <!-- 分区五：快捷操作 -->
-        <section v-show="activeSection === 'actions'" class="ui-card block">
-          <header class="card-head">
+        <section v-show="activeSection === 'actions'" class="ui-panel block">
+          <div class="ui-section-head">
             <div>
-              <h2 class="card-head__title">快捷操作</h2>
-              <p class="card-head__desc">常用入口集中放在这里。</p>
+              <h2 class="ui-section-head__title">快捷操作</h2>
+              <p class="ui-section-head__hint">常用入口集中放在这里。</p>
             </div>
-          </header>
+          </div>
           <div class="action-grid">
             <button type="button" class="action-tile" @click="goCreateResume">
+              <span class="ui-icon-tile ui-icon-tile--sm action-tile__icon" aria-hidden="true">
+                <AppIcon name="file-plus" :size="16" />
+              </span>
               <span class="action-title">新建简历</span>
               <span class="action-desc">直接进入编辑器创建新简历</span>
             </button>
             <button type="button" class="action-tile" @click="goDashboard">
+              <span class="ui-icon-tile ui-icon-tile--sm action-tile__icon" aria-hidden="true">
+                <AppIcon name="files" :size="16" />
+              </span>
               <span class="action-title">查看全部简历</span>
               <span class="action-desc">进入简历列表管理已有内容</span>
             </button>
             <button type="button" class="action-tile" @click="goHistory">
+              <span class="ui-icon-tile ui-icon-tile--sm action-tile__icon" aria-hidden="true">
+                <AppIcon name="clock-counter-clockwise" :size="16" />
+              </span>
               <span class="action-title">查看 Agent 会话</span>
               <span class="action-desc">进入 AI 历史与多轮对话页</span>
             </button>
             <button type="button" class="action-tile" :disabled="!authStore.user?.email" @click="copyEmail">
+              <span class="ui-icon-tile ui-icon-tile--sm action-tile__icon" aria-hidden="true">
+                <AppIcon name="copy" :size="16" />
+              </span>
               <span class="action-title">复制邮箱</span>
               <span class="action-desc">{{ copyStatus || '快速复制当前绑定邮箱' }}</span>
             </button>
@@ -224,18 +289,20 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AppIcon from '../components/common/AppIcon.vue'
 import { useAuthStore } from '../store/authStore.js'
 import { getResumes } from '../api/resumes.js'
 import { listAgentSessions } from '../api/agentSessions.js'
 import { extractApiMessage } from '../api/request.js'
+import { isLocalIdentity } from '../api/localProfile.js'
 
 // 左侧目录的分区，语义与原来的四块面板一致
 const SECTIONS = [
-  { id: 'overview', title: '档案概览' },
-  { id: 'account', title: '账号资料' },
-  { id: 'resumes', title: '我的简历' },
-  { id: 'sessions', title: 'AI 会话' },
-  { id: 'actions', title: '快捷操作' },
+  { id: 'overview', title: '档案概览', icon: 'user-circle' },
+  { id: 'account', title: '账号资料', icon: 'identification-card' },
+  { id: 'resumes', title: '我的简历', icon: 'files' },
+  { id: 'sessions', title: 'AI 会话', icon: 'chat-circle-dots' },
+  { id: 'actions', title: '快捷操作', icon: 'list-checks' },
 ]
 
 // 会话场景码 -> 中文名称
@@ -269,6 +336,22 @@ const userInitials = computed(() => {
 const displayName = computed(() => authStore.user?.username || '未命名用户')
 const accountStatusText = computed(() => (authStore.user?.enabled === false ? '账号停用' : '账号正常'))
 
+// 本地身份（桌面端首次启动创建的那一个）没有真实邮箱，展示占位邮箱没意义
+const isLocalIdentityUser = computed(() => isLocalIdentity(authStore.user))
+const accountTypeText = computed(() => (isLocalIdentityUser.value ? '本地身份（桌面端）' : '邮箱账号'))
+const accountEmailText = computed(() => {
+  if (isLocalIdentityUser.value) {
+    return '本地身份，无需邮箱'
+  }
+  return authStore.user?.email || '未获取到邮箱信息'
+})
+const accountEmailStatusText = computed(() => {
+  if (isLocalIdentityUser.value) {
+    return '不适用（本地身份）'
+  }
+  return authStore.user?.email ? '已绑定' : '未绑定'
+})
+
 const recentResumes = computed(() =>
   [...resumes.value]
     .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
@@ -301,7 +384,7 @@ function sectionMeta(sectionId) {
     return displayName.value
   }
   if (sectionId === 'account') {
-    return authStore.user?.email || '未绑定邮箱'
+    return accountTypeText.value
   }
   if (sectionId === 'resumes') {
     return `${resumes.value.length} 份简历`
@@ -444,20 +527,6 @@ function openResume(resumeId) {
   gap: var(--ui-space-4);
 }
 
-.page-title {
-  margin: 0;
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-}
-
-.page-subtitle {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
-}
-
 .page-head__actions {
   display: flex;
   flex-shrink: 0;
@@ -489,14 +558,15 @@ function openResume(resumeId) {
 
 .section-nav__item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: var(--ui-space-2);
   width: 100%;
   padding: var(--ui-space-2) var(--ui-space-3);
   border: 1px solid transparent;
   border-radius: var(--ui-radius-md);
   background: transparent;
   color: var(--ui-fg-secondary);
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
   transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
@@ -518,6 +588,30 @@ function openResume(resumeId) {
   background: var(--ui-bg-selected);
   border-color: var(--ui-accent-border);
   color: var(--ui-fg-primary);
+}
+
+.section-nav__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-sunken);
+  color: var(--ui-fg-secondary);
+}
+
+.section-nav__item.is-active .section-nav__icon {
+  background: var(--ui-accent-soft);
+  color: var(--ui-fg-accent);
+}
+
+.section-nav__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .section-nav__title {
@@ -568,13 +662,24 @@ function openResume(resumeId) {
   margin: 0;
   font-size: var(--ui-text-lg);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
 }
 
 .card-head__desc {
   margin: var(--ui-space-1) 0 0;
   font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
   color: var(--ui-fg-secondary);
+}
+
+/* 账号身份与简历个人信息之间的分隔 */
+.section-head--spaced {
+  margin-top: var(--ui-space-6);
+}
+
+.identity-note {
+  margin-top: var(--ui-space-3);
 }
 
 /* ---------- 头像卡片 ---------- */
@@ -644,6 +749,7 @@ function openResume(resumeId) {
   margin: 0;
   font-size: var(--ui-text-xl);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
 }
 
@@ -681,26 +787,12 @@ function openResume(resumeId) {
 }
 
 .stat-item {
-  display: flex;
-  flex-direction: column;
   gap: var(--ui-space-1);
   padding: var(--ui-space-4);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-bg-sunken);
   min-width: 0;
-}
-
-.stat-item__label {
-  font-size: var(--ui-text-xs);
-  color: var(--ui-fg-muted);
-}
-
-.stat-item__value {
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
 }
 
 .stat-item__value--text {
@@ -748,6 +840,28 @@ function openResume(resumeId) {
 .info-item__value--mono {
   font-family: var(--ui-font-mono);
   font-weight: 500;
+}
+
+/* 账号资料里的账号头像小图 */
+.account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent-soft);
+  border: 1px solid var(--ui-accent-border);
+  color: var(--ui-fg-accent);
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ---------- 列表 ---------- */
@@ -820,7 +934,8 @@ function openResume(resumeId) {
 .action-tile {
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-1);
+  align-items: flex-start;
+  gap: var(--ui-space-2);
   padding: var(--ui-space-4);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
@@ -845,6 +960,10 @@ function openResume(resumeId) {
 .action-tile:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.action-tile__icon {
+  margin-bottom: var(--ui-space-1);
 }
 
 .action-title {

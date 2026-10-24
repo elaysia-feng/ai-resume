@@ -1,17 +1,17 @@
 <template>
   <section class="template-market">
-    <header class="template-market__head">
+    <header class="ui-section-head template-market__head">
       <div>
-        <h2 class="section-title">选择模板</h2>
-        <p class="template-market__hint">点击卡片即可切换简历模板，预览会实时更新。</p>
+        <h2 class="ui-section-head__title">选择模板</h2>
+        <p class="ui-section-head__hint">点击卡片即可切换简历模板，预览会实时更新。</p>
       </div>
     </header>
 
     <div v-if="loading" class="templates-grid" aria-busy="true">
-      <div v-for="index in 6" :key="index" class="template-card template-card--skeleton">
-        <div class="template-skeleton__preview"></div>
-        <div class="template-skeleton__line"></div>
-        <div class="template-skeleton__line template-skeleton__line--short"></div>
+      <div v-for="index in 6" :key="index" class="template-card ui-panel template-card--skeleton">
+        <div class="ui-skeleton template-skeleton__preview"></div>
+        <div class="ui-skeleton template-skeleton__line"></div>
+        <div class="ui-skeleton template-skeleton__line template-skeleton__line--short"></div>
       </div>
     </div>
 
@@ -20,7 +20,7 @@
         v-for="tpl in templates"
         :key="tpl.id"
         type="button"
-        class="template-card"
+        class="template-card ui-panel ui-panel--hover"
         :class="{ 'is-selected': modelValue === tpl.id }"
         :aria-pressed="modelValue === tpl.id"
         @click="emit('update:modelValue', tpl.id)"
@@ -38,7 +38,10 @@
               </span>
             </span>
           </span>
-          <span v-if="modelValue === tpl.id" class="template-card__badge">使用中</span>
+          <span v-if="modelValue === tpl.id" class="ui-badge ui-badge--accent template-card__badge">
+            <AppIcon name="check" :size="12" />
+            使用中
+          </span>
         </span>
 
         <span class="template-card__info">
@@ -51,6 +54,8 @@
 </template>
 
 <script setup>
+import AppIcon from '../common/AppIcon.vue'
+
 defineProps({
   modelValue: {
     type: String,
@@ -156,28 +161,15 @@ const templates = [
 }
 
 .template-market__head {
-  display: flex;
+  /* 间距交给 flex gap，避免和 .ui-section-head 默认外边距叠加 */
+  margin-bottom: 0;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-}
-
-.section-title {
-  margin: 0;
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
-.template-market__hint {
-  margin: var(--ui-space-1) 0 0;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
 }
 
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: stretch;
   gap: var(--ui-space-4);
 }
 
@@ -185,21 +177,13 @@ const templates = [
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-3);
+  min-width: 0;
   padding: var(--ui-space-3);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
-  background: var(--ui-bg-surface);
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-out),
-    transform var(--ui-duration-fast) var(--ui-ease-out);
-}
-
-.template-card:hover {
-  border-color: var(--ui-border-strong);
-  box-shadow: var(--ui-shadow-md);
-  transform: translateY(-2px);
 }
 
 .template-card:focus-visible {
@@ -209,14 +193,20 @@ const templates = [
 
 .template-card.is-selected {
   border-color: var(--ui-accent);
-  box-shadow: var(--ui-shadow-sm);
+  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
+}
+
+.template-card.is-selected .template-card__name {
+  color: var(--ui-fg-accent);
 }
 
 .template-card__preview {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  /* A4 比例固定，缩略图不参与卡片高度计算 */
+  aspect-ratio: 210 / 297;
+  flex-shrink: 0;
   padding: var(--ui-space-3);
   border-radius: var(--ui-radius-md);
   border: 1px solid var(--ui-border-subtle);
@@ -287,12 +277,6 @@ const templates = [
   position: absolute;
   top: var(--ui-space-3);
   right: var(--ui-space-3);
-  padding: 2px var(--ui-space-2);
-  border-radius: var(--ui-radius-full);
-  background: var(--ui-accent);
-  color: var(--ui-accent-fg);
-  font-size: var(--ui-text-xs);
-  font-weight: 600;
 }
 
 .template-card__info {
@@ -305,10 +289,6 @@ const templates = [
   font-size: var(--ui-text-sm);
   font-weight: 600;
   color: var(--ui-fg-primary);
-}
-
-.template-card.is-selected .template-card__name {
-  color: var(--ui-fg-accent);
 }
 
 .template-card__desc {
@@ -325,15 +305,13 @@ const templates = [
 
 .template-skeleton__preview {
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 210 / 297;
   border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
 }
 
 .template-skeleton__line {
   height: 12px;
   border-radius: var(--ui-radius-sm);
-  background: var(--ui-bg-sunken);
 }
 
 .template-skeleton__line--short {

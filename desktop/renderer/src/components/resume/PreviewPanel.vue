@@ -6,12 +6,12 @@
         <span class="ui-badge">A4</span>
       </div>
 
-      <div class="preview-panel__zoom" role="group" aria-label="预览缩放">
+      <div class="ui-segmented preview-panel__zoom" role="group" aria-label="预览缩放">
         <button
           v-for="option in zoomOptions"
           :key="option.value"
           type="button"
-          class="preview-panel__zoom-btn"
+          class="ui-segmented__item"
           :class="{ 'is-active': zoomMode === option.value }"
           :aria-pressed="zoomMode === option.value"
           @click="zoomMode = option.value"
@@ -27,6 +27,7 @@
           :disabled="Boolean(exporting)"
           @click="handleExport('pdf')"
         >
+          <AppIcon name="download-simple" :size="16" />
           {{ exporting === 'pdf' ? '导出中…' : '导出 PDF' }}
         </button>
         <button
@@ -35,6 +36,7 @@
           :disabled="Boolean(exporting)"
           @click="handleExport('image')"
         >
+          <AppIcon name="image" :size="16" />
           {{ exporting === 'image' ? '导出中…' : '导出图片' }}
         </button>
         <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="emit('close')">
@@ -43,7 +45,10 @@
       </div>
     </header>
 
-    <p v-if="errorMessage" class="preview-panel__error">{{ errorMessage }}</p>
+    <div v-if="errorMessage" class="ui-callout ui-callout--danger preview-panel__error">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ errorMessage }}</span>
+    </div>
 
     <div ref="viewportRef" class="preview-panel__viewport ui-scroll">
       <div class="preview-panel__stage" :style="stageStyle">
@@ -78,6 +83,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import AppIcon from '../common/AppIcon.vue'
 import { exportToImage, exportToPDF } from '../../utils/export.js'
 
 const PAGE_WIDTH = 794
@@ -233,42 +239,7 @@ async function handleExport(type) {
 }
 
 .preview-panel__zoom {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
-}
-
-.preview-panel__zoom-btn {
-  padding: 3px var(--ui-space-3);
-  border: 0;
-  border-radius: var(--ui-radius-sm);
-  background: transparent;
-  color: var(--ui-fg-secondary);
-  font-size: var(--ui-text-xs);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--ui-duration-fast) var(--ui-ease-out),
-    color var(--ui-duration-fast) var(--ui-ease-out);
-}
-
-.preview-panel__zoom-btn:hover {
-  background: var(--ui-bg-hover);
-  color: var(--ui-fg-primary);
-}
-
-.preview-panel__zoom-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
-.preview-panel__zoom-btn.is-active {
-  background: var(--ui-bg-surface);
-  color: var(--ui-fg-accent);
-  box-shadow: var(--ui-shadow-xs);
+  flex-wrap: wrap;
 }
 
 .preview-panel__actions {
@@ -279,11 +250,9 @@ async function handleExport(type) {
 
 .preview-panel__error {
   margin: 0;
-  padding: var(--ui-space-2) var(--ui-space-4);
-  border-bottom: 1px solid var(--ui-danger-border);
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
-  font-size: var(--ui-text-sm);
+  border-radius: 0;
+  border-width: 1px 0 0 0;
+  align-items: flex-start;
 }
 
 /* ---------- 画布 ---------- */
@@ -305,11 +274,14 @@ async function handleExport(type) {
   left: 0;
   width: 794px;
   min-height: 1123px;
+  /* A4 比例 210 : 297 */
+  aspect-ratio: 210 / 297;
   transform-origin: top left;
   background: var(--ui-neutral-0);
   color: var(--ui-neutral-800);
   border: 1px solid var(--ui-neutral-200);
   border-radius: 3px;
+  /* 纸放在桌面上的柔和阴影 */
   box-shadow: var(--ui-shadow-lg);
 }
 

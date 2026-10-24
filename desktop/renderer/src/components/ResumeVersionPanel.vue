@@ -1,14 +1,15 @@
 <template>
   <section class="version-panel">
-    <header class="panel-header">
-      <div class="panel-heading">
-        <h3 class="panel-title">版本历史</h3>
-        <p class="panel-subtitle">保存、对比和恢复简历的历史版本</p>
+    <div class="ui-section-head">
+      <div>
+        <h3 class="ui-section-head__title">版本历史</h3>
+        <p class="ui-section-head__hint">保存、对比和恢复简历的历史版本</p>
       </div>
       <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" :disabled="loading" @click="loadVersions">
+        <AppIcon name="arrows-clockwise" :size="14" />
         刷新
       </button>
-    </header>
+    </div>
 
     <form class="save-form" @submit.prevent="handleSaveVersion">
       <input
@@ -24,22 +25,34 @@
         <option value="AI">AI 生成</option>
       </select>
       <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="saving" @click="handleSaveVersion">
+        <AppIcon name="note-pencil" :size="14" />
         {{ saving ? '保存中…' : '保存版本' }}
       </button>
     </form>
 
-    <p v-if="message" class="message message--success">{{ message }}</p>
-    <p v-if="error" class="message message--error">{{ error }}</p>
+    <div v-if="message" class="ui-callout ui-callout--accent" role="status">
+      <AppIcon name="check-circle" :size="16" />
+      <span>{{ message }}</span>
+    </div>
+    <div v-if="error" class="ui-callout ui-callout--danger" role="alert">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ error }}</span>
+    </div>
 
     <div class="version-body">
-      <div class="version-list">
-        <div v-if="loading" class="version-skeleton" aria-hidden="true">
-          <div v-for="index in 3" :key="index" class="version-skeleton__row"></div>
+      <div class="ui-panel version-list">
+        <div v-if="loading" aria-hidden="true">
+          <div class="version-skeleton">
+            <div v-for="index in 3" :key="index" class="ui-skeleton version-skeleton__row"></div>
+          </div>
         </div>
 
         <div v-else-if="versions.length === 0" class="ui-empty version-empty">
-          <div class="ui-empty__title">暂无版本记录</div>
-          <div class="ui-empty__hint">保存一个版本后，这里会列出时间、来源与变更摘要。</div>
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="clock-counter-clockwise" :size="24" />
+          </span>
+          <p class="ui-empty__title">暂无版本记录</p>
+          <p class="ui-empty__hint">保存一个版本后，这里会列出时间、来源与变更摘要。</p>
         </div>
 
         <ul v-else class="version-list__items">
@@ -66,14 +79,20 @@
         </ul>
       </div>
 
-      <div class="version-detail">
+      <div class="ui-panel version-detail">
         <div v-if="detailLoading" class="ui-empty version-empty">
-          <div class="ui-empty__title">正在加载版本详情…</div>
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="spinner-gap" :size="24" spin />
+          </span>
+          <p class="ui-empty__title">正在加载版本详情…</p>
         </div>
 
         <div v-else-if="!versionDetail" class="ui-empty version-empty">
-          <div class="ui-empty__title">选择一个版本查看详情</div>
-          <div class="ui-empty__hint">左侧列表中选择任意版本，可查看模块结构并对比或恢复。</div>
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="file-doc" :size="24" />
+          </span>
+          <p class="ui-empty__title">选择一个版本查看详情</p>
+          <p class="ui-empty__hint">左侧列表中选择任意版本，可查看模块结构并对比或恢复。</p>
         </div>
 
         <template v-else>
@@ -103,6 +122,7 @@
               :disabled="compareIds.includes(selectedVersionId) || compareIds.length >= 2"
               @click="toggleCompare(selectedVersionId)"
             >
+              <AppIcon name="swap" :size="14" />
               加入对比
             </button>
             <button
@@ -111,6 +131,7 @@
               :disabled="restoring"
               @click="handleRestore"
             >
+              <AppIcon name="clock-counter-clockwise" :size="14" />
               {{ restoring ? '恢复中…' : '恢复到此版本' }}
             </button>
           </div>
@@ -118,11 +139,11 @@
       </div>
     </div>
 
-    <section v-if="compareDetailList.length" class="compare-panel">
-      <header class="compare-panel__head">
-        <h4 class="compare-panel__title">版本对比</h4>
+    <section v-if="compareDetailList.length" class="ui-panel compare-panel">
+      <div class="ui-section-head">
+        <h4 class="ui-section-head__title">版本对比</h4>
         <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="clearCompare">清空对比</button>
-      </header>
+      </div>
       <ul class="compare-list">
         <li v-for="row in compareRows" :key="row.code" class="compare-row" :class="`is-${row.status}`">
           <span class="compare-row__name">{{ row.title }}</span>
@@ -136,6 +157,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import AppIcon from './common/AppIcon.vue';
 import {
   getResumeVersionDetail,
   getResumeVersions,
@@ -380,26 +402,6 @@ const compareRows = computed(() => {
   color: var(--ui-fg-primary);
 }
 
-.panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-}
-
-.panel-title {
-  margin: 0;
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
-.panel-subtitle {
-  margin: var(--ui-space-1) 0 0;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-}
-
 /* ---------- 保存表单 ---------- */
 .save-form {
   display: grid;
@@ -409,25 +411,6 @@ const compareRows = computed(() => {
 
 .save-form :deep(select) {
   font-family: inherit;
-}
-
-.message {
-  margin: 0;
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border-radius: var(--ui-radius-md);
-  font-size: var(--ui-text-sm);
-}
-
-.message--success {
-  border: 1px solid var(--ui-success-border);
-  background: var(--ui-success-soft);
-  color: var(--ui-success);
-}
-
-.message--error {
-  border: 1px solid var(--ui-danger-border);
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
 }
 
 /* ---------- 主体 ---------- */
@@ -440,9 +423,6 @@ const compareRows = computed(() => {
 
 .version-list,
 .version-detail {
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  background: var(--ui-bg-surface);
   padding: var(--ui-space-3);
 }
 
@@ -530,14 +510,6 @@ const compareRows = computed(() => {
 .version-skeleton__row {
   height: 56px;
   border-radius: var(--ui-radius-md);
-  background: linear-gradient(90deg, var(--ui-bg-sunken) 25%, var(--ui-bg-hover) 37%, var(--ui-bg-sunken) 63%);
-  background-size: 400% 100%;
-  animation: version-skeleton-shine 1.4s ease infinite;
-}
-
-@keyframes version-skeleton-shine {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
 }
 
 /* ---------- 详情 ---------- */
@@ -616,23 +588,6 @@ const compareRows = computed(() => {
   flex-direction: column;
   gap: var(--ui-space-2);
   padding: var(--ui-space-3);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  background: var(--ui-bg-surface);
-}
-
-.compare-panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-2);
-}
-
-.compare-panel__title {
-  margin: 0;
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
 }
 
 .compare-list {

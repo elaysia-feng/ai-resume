@@ -22,7 +22,8 @@
               :disabled="disabled"
               @click="pickAttachments"
             >
-              ＋ 附件
+              <AppIcon name="paperclip" :size="16" />
+              附件
             </button>
             <span class="chat-composer-hint">Enter 发送 · Shift+Enter 换行</span>
           </div>
@@ -34,6 +35,7 @@
               type="button"
               @click="$emit('stop')"
             >
+              <AppIcon name="x-circle" :size="16" />
               停止生成
             </button>
             <button
@@ -43,6 +45,7 @@
               :disabled="!modelValue.trim()"
               @click="$emit('send')"
             >
+              <AppIcon name="paper-plane-tilt" :size="16" />
               发送
             </button>
           </div>
@@ -56,6 +59,7 @@
 
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
+import AppIcon from '../common/AppIcon.vue';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -142,8 +146,9 @@ defineExpose({ focus });
 .chat-composer {
   flex: none;
   padding: var(--ui-space-3) 0 var(--ui-space-4);
-  background: var(--chat-surface);
-  border-top: 1px solid var(--chat-border);
+  background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
+  border-top: 1px solid var(--ui-border-hairline);
 }
 
 /* 与消息流同一条可读行长 */
@@ -153,17 +158,19 @@ defineExpose({ focus });
   padding: 0 var(--ui-space-6);
 }
 
+/* 输入框做成一块抬升面：底色比画布更亮一层 + 分层阴影 */
 .chat-composer-field {
-  background: var(--chat-bg);
-  border: 1px solid var(--chat-border-strong);
-  border-radius: var(--chat-radius-md);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
   transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
     box-shadow var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .chat-composer-field:focus-within {
   border-color: var(--ui-border-focus);
-  box-shadow: var(--ui-ring);
+  box-shadow: var(--ui-ring), var(--ui-shadow-sm);
 }
 
 .chat-composer-input {
@@ -175,7 +182,7 @@ defineExpose({ focus });
   font-family: inherit;
   font-size: var(--ui-text-base);
   line-height: 1.6;
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
   background: transparent;
   border: none;
   resize: none;
@@ -202,14 +209,15 @@ defineExpose({ focus });
 .chat-composer-tools {
   display: flex;
   align-items: center;
-  gap: var(--ui-space-2);
+  gap: var(--ui-space-3);
   min-width: 0;
 }
 
+/* 快捷键提示刻意弱化，不与主按钮抢注意力 */
 .chat-composer-hint {
   min-width: 0;
   font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
+  color: var(--ui-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -225,7 +233,7 @@ defineExpose({ focus });
 .chat-composer-notice {
   margin: var(--ui-space-2) 0 0;
   font-size: var(--ui-text-xs);
-  color: var(--chat-danger);
+  color: var(--ui-danger);
 }
 
 @media (max-width: 768px) {

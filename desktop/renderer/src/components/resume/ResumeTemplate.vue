@@ -2,6 +2,7 @@
   <div class="resume-page-shell">
     <div v-if="isOverflowing" class="resume-page-status">
       <span class="resume-page-status__badge resume-page-status__badge--warning">
+        <AppIcon name="warning-circle" :size="14" />
         当前内容已超出一页 A4，请适当精简内容
       </span>
     </div>
@@ -22,6 +23,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import '../../styles/resume-template-base.css'
+import AppIcon from '../common/AppIcon.vue'
 import ClassicTemplate from './ClassicTemplate.vue'
 import ModernTemplate from './ModernTemplate.vue'
 import CreativeTemplate from './CreativeTemplate.vue'
@@ -226,3 +228,10 @@ defineExpose({
   getExportElement,
 })
 </script>
+
+<style scoped>
+/* 溢出提示改用真实图标，隐藏旧的装饰圆点 */
+.resume-page-status__badge::before {
+  display: none;
+}
+</style>

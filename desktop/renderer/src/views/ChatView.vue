@@ -16,12 +16,18 @@
     <section class="chat-main">
       <header class="chat-topbar">
         <div class="chat-topbar-info">
-          <h2 class="chat-topbar-title" :title="currentSessionTitle">{{ currentSessionTitle }}</h2>
-          <p class="chat-topbar-subtitle">{{ messageCountLabel }}</p>
+          <h2 class="ui-page-title chat-topbar-title" :title="currentSessionTitle">{{ currentSessionTitle }}</h2>
+          <p class="ui-page-subtitle chat-topbar-subtitle">{{ messageCountLabel }}</p>
         </div>
         <div class="chat-topbar-actions">
-          <span v-if="streaming" class="ui-badge ui-badge--accent">生成中</span>
-          <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goBack">返回简历</button>
+          <span v-if="streaming" class="ui-badge ui-badge--accent">
+            <AppIcon name="spinner-gap" :size="12" spin />
+            生成中
+          </span>
+          <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goBack">
+            <AppIcon name="arrow-left" :size="16" />
+            返回简历
+          </button>
         </div>
       </header>
 
@@ -50,6 +56,7 @@ import { useRouter } from 'vue-router';
 import ChatSidebar from '../components/chat/ChatSidebar.vue';
 import ChatMessageList from '../components/chat/ChatMessageList.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
+import AppIcon from '../components/common/AppIcon.vue';
 import {
   createChatSession,
   deleteChatSession,
@@ -370,7 +377,7 @@ function describeError(error) {
   min-height: calc(100vh - var(--ui-header-height) - var(--ui-space-8) * 2);
   min-width: 0;
   overflow: hidden;
-  background: var(--chat-bg);
+  background: var(--ui-bg-canvas);
 }
 
 .chat-main {
@@ -388,28 +395,31 @@ function describeError(error) {
   justify-content: space-between;
   gap: var(--ui-space-4);
   flex: none;
-  height: 52px;
+  height: var(--ui-header-height);
   padding: 0 var(--ui-space-6);
-  background: var(--chat-surface);
-  border-bottom: 1px solid var(--chat-border);
+  background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
+  border-bottom: 1px solid var(--ui-border-hairline);
 }
 
+/* 标题与副标题同一行靠左排，栏高才能压住 */
 .chat-topbar-info {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-space-3);
   min-width: 0;
 }
 
 .chat-topbar-title {
-  margin: 0;
-  font-size: var(--ui-text-md);
-  font-weight: 600;
-  line-height: var(--ui-line-tight);
-  color: var(--chat-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-topbar-subtitle {
-  margin: 2px 0 0;
-  font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -424,7 +434,6 @@ function describeError(error) {
 
 @media (max-width: 768px) {
   .chat-topbar {
-    height: 48px;
     padding: 0 var(--ui-space-4);
   }
 }

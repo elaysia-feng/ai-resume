@@ -4,88 +4,120 @@
     <div class="rich-text-toolbar">
       <!-- 加粗/斜体/下划线 -->
       <div class="toolbar-group">
-        <button class="toolbar-btn" :class="{ active: isBold }" @click="toggleBold" title="加粗 (Ctrl+B)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
-            <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isBold }"
+          title="加粗 (Ctrl+B)"
+          aria-label="加粗"
+          @click="toggleBold"
+        >
+          <span class="toolbar-mark toolbar-mark--bold" aria-hidden="true">B</span>
         </button>
-        <button class="toolbar-btn" :class="{ active: isItalic }" @click="toggleItalic" title="斜体 (Ctrl+I)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <line x1="19" y1="4" x2="10" y2="4" stroke="currentColor" stroke-width="2"/>
-            <line x1="14" y1="20" x2="5" y2="20" stroke="currentColor" stroke-width="2"/>
-            <line x1="15" y1="4" x2="9" y2="20" stroke="currentColor" stroke-width="2"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isItalic }"
+          title="斜体 (Ctrl+I)"
+          aria-label="斜体"
+          @click="toggleItalic"
+        >
+          <span class="toolbar-mark toolbar-mark--italic" aria-hidden="true">I</span>
         </button>
-        <button class="toolbar-btn" :class="{ active: isUnderline }" @click="toggleUnderline" title="下划线 (Ctrl+U)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/>
-            <line x1="4" y1="21" x2="20" y2="21"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isUnderline }"
+          title="下划线 (Ctrl+U)"
+          aria-label="下划线"
+          @click="toggleUnderline"
+        >
+          <span class="toolbar-mark toolbar-mark--underline" aria-hidden="true">U</span>
         </button>
       </div>
 
       <!-- 分隔符 -->
-      <div class="toolbar-divider"></div>
+      <span class="ui-divider toolbar-divider" aria-hidden="true"></span>
 
       <!-- 颜色选择器 -->
       <div class="toolbar-group">
         <div class="color-picker-wrapper" title="文字颜色">
-          <input type="color" class="color-picker" v-model="currentColor" @change="setColor">
-          <span class="color-preview" :style="{ backgroundColor: currentColor }"></span>
+          <AppIcon name="palette" :size="16" />
+          <span class="color-picker">
+            <input
+              type="color"
+              class="color-picker__input"
+              v-model="currentColor"
+              aria-label="文字颜色"
+              @change="setColor"
+            />
+            <span class="color-preview" :style="{ backgroundColor: currentColor }"></span>
+          </span>
         </div>
       </div>
 
       <!-- 分隔符 -->
-      <div class="toolbar-divider"></div>
+      <span class="ui-divider toolbar-divider" aria-hidden="true"></span>
 
       <!-- 对齐 -->
       <div class="toolbar-group">
-        <button class="toolbar-btn" :class="{ active: isLeft }" @click="setAlign('left')" title="左对齐">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="15" y2="12"/>
-            <line x1="3" y1="18" x2="18" y2="18"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isLeft }"
+          title="左对齐"
+          aria-label="左对齐"
+          @click="setAlign('left')"
+        >
+          <span class="align-mark align-mark--left" aria-hidden="true"></span>
         </button>
-        <button class="toolbar-btn" :class="{ active: isCenter }" @click="setAlign('center')" title="居中">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="6" y1="12" x2="18" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isCenter }"
+          title="居中"
+          aria-label="居中"
+          @click="setAlign('center')"
+        >
+          <span class="align-mark align-mark--center" aria-hidden="true"></span>
         </button>
-        <button class="toolbar-btn" :class="{ active: isRight }" @click="setAlign('right')" title="右对齐">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="9" y1="12" x2="21" y2="12"/>
-            <line x1="6" y1="18" x2="21" y2="18"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isRight }"
+          title="右对齐"
+          aria-label="右对齐"
+          @click="setAlign('right')"
+        >
+          <span class="align-mark align-mark--right" aria-hidden="true"></span>
         </button>
       </div>
 
       <!-- 分隔符 -->
-      <div class="toolbar-divider"></div>
+      <span class="ui-divider toolbar-divider" aria-hidden="true"></span>
 
       <!-- 列表 -->
       <div class="toolbar-group">
-        <button class="toolbar-btn" :class="{ active: isList }" @click="toggleList" title="无序列表">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="4" cy="7" r="1.5" fill="currentColor"/>
-            <circle cx="4" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="4" cy="17" r="1.5" fill="currentColor"/>
-            <line x1="9" y1="7" x2="21" y2="7"/>
-            <line x1="9" y1="12" x2="21" y2="12"/>
-            <line x1="9" y1="17" x2="21" y2="17"/>
-          </svg>
+        <button
+          type="button"
+          class="ui-icon-btn toolbar-btn"
+          :class="{ 'is-active': isList }"
+          title="无序列表"
+          aria-label="无序列表"
+          @click="toggleList"
+        >
+          <AppIcon name="list" :size="16" />
         </button>
       </div>
     </div>
 
+    <!-- 工具栏与编辑区之间的分隔线 -->
+    <hr class="ui-divider" />
+
     <!-- 编辑器 -->
     <div
       ref="editorRef"
-      class="rich-text-editor__content"
+      class="ui-input rich-text-editor__content"
       :class="{ 'is-empty': isEmpty }"
       :data-placeholder="placeholder"
       :style="{ minHeight, fontSize: '12px', fontFamily: '宋体, SimSun, serif' }"
@@ -100,6 +132,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import AppIcon from './AppIcon.vue'
 import { normalizeRichTextHtml, stripRichText } from '../../utils/richText.js'
 
 const props = defineProps({
@@ -112,6 +145,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const editorRef = ref(null)
 const currentHtml = ref('')
+// 原生颜色选择器只接受十六进制值，这里是颜色数据的默认值，不是样式色
 const currentColor = ref('#000000')
 const isBold = ref(false)
 const isItalic = ref(false)
@@ -225,130 +259,147 @@ function toggleList() {
 </script>
 
 <style scoped>
+/* 工具栏 + 分隔线 + 编辑区合成一个输入框式的整体 */
 .rich-text-editor {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
 .rich-text-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f9fafb;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border);
+  border-bottom: 0;
+  border-radius: var(--ui-radius-md) var(--ui-radius-md) 0 0;
+  background: var(--ui-bg-sunken);
 }
 
 .toolbar-group {
   display: flex;
-  gap: 2px;
+  align-items: center;
+  gap: var(--ui-space-1);
 }
 
+/* 竖向分隔线：用 .ui-divider 的颜色规则 */
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background: #e5e7eb;
-  margin: 0 4px;
+  margin: 0 var(--ui-space-2);
+  flex-shrink: 0;
 }
 
-.toolbar-select {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+/* 激活态：品牌色背景 + 品牌色图标 */
+.toolbar-btn.is-active {
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent-border);
+  color: var(--ui-fg-accent);
 }
 
-.toolbar-select:hover {
-  border-color: #93c5fd;
-}
-
-.toolbar-select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.toolbar-select--small {
-  width: 60px;
-}
-
-.toolbar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.toolbar-btn:hover {
-  background: #e5e7eb;
-  color: #1f2937;
-}
-
-.toolbar-btn.active {
-  background: #eff6ff;
-  color: #3b82f6;
-  border-color: #bfdbfe;
-}
-
-.color-picker-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.color-picker {
-  width: 30px;
-  height: 30px;
-  padding: 2px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #fff;
-}
-
-.color-preview {
-  position: absolute;
-  left: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,0.1);
+/* 加粗/斜体/下划线用字形标记，不用图标 */
+.toolbar-mark {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  line-height: 1;
   pointer-events: none;
 }
 
-.rich-text-editor__content {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 10px 12px;
-  line-height: 1.6;
-  color: #000;
-  background: #fff;
-  outline: none;
-  overflow-y: auto;
+.toolbar-mark--bold {
+  font-weight: 700;
 }
 
-.rich-text-editor__content:focus {
-  border-color: #3b82f6;
+.toolbar-mark--italic {
+  font-style: italic;
+  font-family: var(--ui-font-display);
+}
+
+.toolbar-mark--underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 对齐标记：三根线按左/中/右排布 */
+.align-mark {
+  display: block;
+  width: 16px;
+  height: 12px;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 100% 2px, 68% 2px, 44% 2px;
+  pointer-events: none;
+}
+
+.align-mark--left {
+  background-position: left 0, left 5px, left 10px;
+}
+
+.align-mark--center {
+  background-position: center 0, center 5px, center 10px;
+}
+
+.align-mark--right {
+  background-position: right 0, right 5px, right 10px;
+}
+
+/* 颜色选择器：原生取色器盖在色块上 */
+.color-picker-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-fg-secondary);
+}
+
+.color-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  cursor: pointer;
+  transition: border-color var(--ui-duration-fast) var(--ui-ease-out);
+}
+
+.color-picker:hover {
+  border-color: var(--ui-border-strong);
+}
+
+.color-picker__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.color-preview {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--ui-radius-xs);
+  border: 1px solid var(--ui-border-hairline);
+  pointer-events: none;
+}
+
+/* 编辑区沿用 .ui-input 的边框与聚焦态 */
+.rich-text-editor__content {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-top: 0;
+  border-radius: 0 0 var(--ui-radius-md) var(--ui-radius-md);
+  line-height: 1.6;
+  overflow-y: auto;
 }
 
 .rich-text-editor__content.is-empty::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: var(--ui-fg-muted);
 }
 
 .rich-text-editor__content :deep(p) {
@@ -362,17 +413,11 @@ function toggleList() {
 @media (max-width: 480px) {
   .rich-text-toolbar {
     gap: 2px;
-    padding: 6px 8px;
+    padding: var(--ui-space-1);
   }
 
-  .toolbar-btn {
-    width: 26px;
-    height: 26px;
-  }
-
-  .toolbar-select {
-    height: 26px;
-    font-size: 12px;
+  .toolbar-divider {
+    margin: 0 var(--ui-space-1);
   }
 }
 </style>

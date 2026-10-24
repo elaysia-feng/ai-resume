@@ -2,22 +2,23 @@
   <div class="history-page">
     <header class="page-head">
       <div class="page-head__text">
-        <h1 class="page-title">历史记录</h1>
-        <p class="page-subtitle">查看与 AI 的全部会话记录，支持按类型筛选、关键词搜索与时间排序。</p>
+        <h1 class="ui-page-title">历史记录</h1>
+        <p class="ui-page-subtitle">查看与 AI 的全部会话记录，支持按类型筛选、关键词搜索与时间排序。</p>
       </div>
       <div class="page-head__actions">
         <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadSessions">
+          <AppIcon name="arrows-clockwise" :size="16" />
           {{ loading ? '刷新中…' : '刷新' }}
         </button>
       </div>
     </header>
 
     <!-- 视图切换：历史总览 / 会话管理（保留原有的会话增删改与消息补录能力） -->
-    <div class="view-switch" role="tablist" aria-label="历史记录视图">
+    <div class="ui-segmented view-switch" role="tablist" aria-label="历史记录视图">
       <button
         type="button"
         role="tab"
-        class="view-switch__item"
+        class="ui-segmented__item"
         :class="{ 'is-active': view === 'overview' }"
         :aria-selected="view === 'overview' ? 'true' : 'false'"
         @click="view = 'overview'"
@@ -27,7 +28,7 @@
       <button
         type="button"
         role="tab"
-        class="view-switch__item"
+        class="ui-segmented__item"
         :class="{ 'is-active': view === 'manage' }"
         :aria-selected="view === 'manage' ? 'true' : 'false'"
         @click="view = 'manage'"
@@ -38,7 +39,7 @@
 
     <template v-if="view === 'overview'">
       <!-- 工具条：搜索 / 筛选 / 排序 / 密度 -->
-      <section class="ui-card toolbar">
+      <section class="ui-panel toolbar">
         <div class="toolbar__row">
           <div class="field field--grow">
             <label class="ui-label" for="history-search">搜索</label>
@@ -65,9 +66,23 @@
           </div>
           <div class="field">
             <span class="ui-label">显示密度</span>
-            <div class="density-switch" role="group" aria-label="显示密度">
-              <button type="button" class="density-switch__item" :class="{ 'is-active': density === 'table' }" @click="density = 'table'">表格</button>
-              <button type="button" class="density-switch__item" :class="{ 'is-active': density === 'list' }" @click="density = 'list'">列表</button>
+            <div class="ui-segmented" role="group" aria-label="显示密度">
+              <button
+                type="button"
+                class="ui-segmented__item"
+                :class="{ 'is-active': density === 'table' }"
+                @click="density = 'table'"
+              >
+                表格
+              </button>
+              <button
+                type="button"
+                class="ui-segmented__item"
+                :class="{ 'is-active': density === 'list' }"
+                @click="density = 'list'"
+              >
+                列表
+              </button>
             </div>
           </div>
         </div>
@@ -78,25 +93,29 @@
       </section>
 
       <!-- 加载中 -->
-      <div v-if="loading" class="ui-card state-card">
+      <div v-if="loading">
         <ul class="skeleton-list" aria-hidden="true">
-          <li v-for="index in 5" :key="index" class="skeleton-row"></li>
+          <li v-for="index in 5" :key="index" class="ui-skeleton skeleton-row"></li>
         </ul>
         <p class="state-text">正在加载历史记录…</p>
       </div>
 
       <!-- 加载失败 -->
-      <div v-else-if="loadError" class="ui-card state-card">
-        <div class="ui-empty">
-          <p class="ui-empty__title">历史记录加载失败</p>
-          <p class="ui-empty__hint">{{ loadError }}</p>
-          <button class="ui-btn ui-btn--primary" @click="loadSessions">重试</button>
+      <div v-else-if="loadError" class="ui-callout ui-callout--danger">
+        <AppIcon name="warning-circle" :size="16" />
+        <div class="callout__body">
+          <strong class="callout__title">历史记录加载失败</strong>
+          <p class="callout__text">{{ loadError }}，请检查后端服务是否已启动后重试。</p>
         </div>
+        <button class="ui-btn ui-btn--sm ui-btn--outline" @click="loadSessions">重试</button>
       </div>
 
       <!-- 没有任何记录 -->
-      <div v-else-if="sessions.length === 0" class="ui-card state-card">
+      <div v-else-if="sessions.length === 0" class="ui-panel state-panel">
         <div class="ui-empty">
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="clock-counter-clockwise" :size="24" />
+          </span>
           <p class="ui-empty__title">还没有历史记录</p>
           <p class="ui-empty__hint">和 AI 对话一次，或者做一次模拟面试，记录就会出现在这里。</p>
           <div class="ui-empty__actions">
@@ -107,8 +126,11 @@
       </div>
 
       <!-- 有记录但筛选后为空 -->
-      <div v-else-if="filteredSessions.length === 0" class="ui-card state-card">
+      <div v-else-if="filteredSessions.length === 0" class="ui-panel state-panel">
         <div class="ui-empty">
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="funnel" :size="24" />
+          </span>
           <p class="ui-empty__title">没有匹配的记录</p>
           <p class="ui-empty__hint">换个关键词或筛选条件再试一次。</p>
           <button class="ui-btn ui-btn--outline" @click="resetFilters">清空筛选</button>
@@ -117,7 +139,7 @@
 
       <!-- 正常列表 -->
       <div v-else class="history-body">
-        <section class="ui-card list-panel">
+        <section class="ui-panel list-panel">
           <div class="ui-scroll list-scroll">
             <table v-if="density === 'table'" class="history-table">
               <thead>
@@ -176,21 +198,27 @@
         </section>
 
         <!-- 选中会话的详情：摘要在这里展示（列表接口不返回摘要） -->
-        <aside class="ui-card detail-panel">
-          <header class="card-head">
-            <h2 class="card-head__title">会话详情</h2>
+        <aside class="ui-panel detail-panel">
+          <div class="ui-section-head">
+            <h2 class="ui-section-head__title">会话详情</h2>
             <span v-if="sessionDetail" class="ui-badge">{{ typeLabel(sessionDetail.sceneCode) }}</span>
-          </header>
+          </div>
 
           <p v-if="detailLoading" class="state-text">加载详情中…</p>
 
-          <div v-else-if="detailError" class="ui-empty">
-            <p class="ui-empty__title">详情加载失败</p>
-            <p class="ui-empty__hint">{{ detailError }}</p>
-            <button class="ui-btn ui-btn--outline" @click="reloadDetail">重试</button>
+          <div v-else-if="detailError" class="ui-callout ui-callout--danger">
+            <AppIcon name="warning-circle" :size="16" />
+            <div class="callout__body">
+              <strong class="callout__title">详情加载失败</strong>
+              <p class="callout__text">{{ detailError }}，请点击重试。</p>
+            </div>
+            <button class="ui-btn ui-btn--sm ui-btn--outline" @click="reloadDetail">重试</button>
           </div>
 
           <div v-else-if="!sessionDetail" class="ui-empty">
+            <span class="ui-empty__icon" aria-hidden="true">
+              <AppIcon name="chat-circle-dots" :size="24" />
+            </span>
             <p class="ui-empty__title">选择一条记录</p>
             <p class="ui-empty__hint">点击左侧任意会话，查看它的摘要、岗位 JD 与消息数量。</p>
           </div>
@@ -239,6 +267,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import AppIcon from '../components/common/AppIcon.vue';
 import AgentSessionManager from '../components/AgentSessionManager.vue';
 import { getAgentSessionDetail, listAgentSessions } from '../api/agentSessions.js';
 import { getResumes } from '../api/resumes.js';
@@ -461,20 +490,6 @@ function goInterview() {
   gap: var(--ui-space-4);
 }
 
-.page-title {
-  margin: 0;
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-}
-
-.page-subtitle {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
-}
-
 .page-head__actions {
   display: flex;
   flex-shrink: 0;
@@ -483,42 +498,7 @@ function goInterview() {
 
 /* ---------- 视图切换 ---------- */
 .view-switch {
-  display: inline-flex;
-  gap: var(--ui-space-1);
-  padding: var(--ui-space-1);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
   align-self: flex-start;
-}
-
-.view-switch__item {
-  padding: var(--ui-space-1) var(--ui-space-4);
-  border: none;
-  border-radius: var(--ui-radius-sm);
-  background: transparent;
-  color: var(--ui-fg-secondary);
-  font-size: var(--ui-text-base);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
-    color var(--ui-duration-fast) var(--ui-ease-in-out);
-}
-
-.view-switch__item:hover {
-  color: var(--ui-fg-primary);
-}
-
-.view-switch__item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
-.view-switch__item.is-active {
-  background: var(--ui-bg-surface);
-  color: var(--ui-fg-primary);
-  font-weight: 600;
-  box-shadow: var(--ui-shadow-xs);
 }
 
 /* ---------- 工具条 ---------- */
@@ -559,38 +539,9 @@ function goInterview() {
   background-repeat: no-repeat;
 }
 
-.density-switch {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
-}
-
-.density-switch__item {
-  padding: var(--ui-space-1) var(--ui-space-3);
-  border: none;
-  border-radius: var(--ui-radius-sm);
-  background: transparent;
-  color: var(--ui-fg-secondary);
-  font-size: var(--ui-text-sm);
-  cursor: pointer;
-}
-
-.density-switch__item.is-active {
-  background: var(--ui-bg-surface);
-  color: var(--ui-fg-primary);
-  font-weight: 600;
-}
-
-.density-switch__item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
 /* ---------- 状态块 ---------- */
-.state-card {
-  padding: var(--ui-space-6);
+.state-panel {
+  padding: var(--ui-space-2);
 }
 
 .state-text {
@@ -607,6 +558,25 @@ function goInterview() {
   justify-content: center;
 }
 
+/* 提示条里的文字块：标题 + 说明 */
+.callout__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.callout__title {
+  font-weight: 600;
+}
+
+.callout__text {
+  margin: 0;
+  line-height: var(--ui-line-normal);
+  word-break: break-word;
+}
+
 .skeleton-list {
   display: flex;
   flex-direction: column;
@@ -619,19 +589,6 @@ function goInterview() {
 .skeleton-row {
   height: 44px;
   border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
-  animation: skeleton-pulse 1.4s var(--ui-ease-in-out) infinite;
-}
-
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.55;
-  }
 }
 
 /* ---------- 列表 + 详情 ---------- */
@@ -797,23 +754,6 @@ function goInterview() {
   top: 0;
 }
 
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-  padding-bottom: var(--ui-space-3);
-  margin-bottom: var(--ui-space-4);
-  border-bottom: 1px solid var(--ui-border);
-}
-
-.card-head__title {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
 .detail-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -858,11 +798,7 @@ function goInterview() {
 
 /* ---------- 原有会话管理面板 ---------- */
 .legacy-panel {
-  padding: var(--ui-space-4);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  background: var(--ui-bg-surface);
-  color: var(--ui-fg-primary);
+  padding: 0;
 }
 
 @media (max-width: 1100px) {

@@ -11,9 +11,15 @@
         <!-- 品牌标识 -->
         <div class="sidebar-brand">
           <span class="sidebar-brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" width="28" height="28" fill="none">
-              <rect width="48" height="48" rx="13" fill="currentColor" />
-              <path d="M15 15h19v4H19v4h13v4H19v6h-4V15z" fill="var(--ui-bg-surface)" />
+            <svg viewBox="0 0 512 512" width="30" height="30" fill="none">
+              <rect x="16" y="16" width="480" height="480" rx="112" fill="var(--ui-brand-900)" />
+              <path d="M138 84h170l80 80v248a34 34 0 0 1-34 34H138a34 34 0 0 1-34-34V118a34 34 0 0 1 34-34z" fill="#ffffff" fill-opacity="0.94" />
+              <path d="M308 84l80 80h-80V84z" fill="#a8a29e" fill-opacity="0.55" />
+              <g fill="none" stroke="#16a34a" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M150 392l62-50 46 30" />
+                <path d="M258 372l74-62" />
+              </g>
+              <path d="M334 288l-2 44-44 2 46-46z" fill="#22c55e" />
             </svg>
           </span>
           <span class="sidebar-brand__text">AI Resume Forge</span>
@@ -31,18 +37,7 @@
               :class="{ 'is-active': isActive(item.path) }"
               :title="item.label"
             >
-              <svg
-                class="nav-item__icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path v-for="(d, i) in iconPaths[item.icon]" :key="i" :d="d" />
-              </svg>
+              <AppIcon :name="item.icon" :size="18" class="nav-item__icon" />
               <span class="nav-item__label">{{ item.label }}</span>
             </router-link>
           </div>
@@ -62,35 +57,17 @@
           </div>
 
           <button type="button" class="ui-btn ui-btn--ghost ui-btn--block sidebar-action" @click="handleLogout">
-            <svg
-              class="sidebar-action__icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path v-for="(d, i) in iconPaths.logout" :key="i" :d="d" />
-            </svg>
+            <AppIcon name="sign-out" :size="18" class="sidebar-action__icon" />
             <span class="nav-item__label">退出登录</span>
           </button>
 
           <button type="button" class="ui-btn ui-btn--ghost ui-btn--block sidebar-action" @click="toggleCollapsed">
-            <svg
+            <AppIcon
+              name="caret-double-left"
+              :size="18"
               class="sidebar-action__icon sidebar-action__icon--flip"
               :class="{ 'is-flipped': collapsed }"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path v-for="(d, i) in iconPaths.collapse" :key="i" :d="d" />
-            </svg>
+            />
             <span class="nav-item__label">{{ collapsed ? '展开侧边栏' : '收起侧边栏' }}</span>
           </button>
         </div>
@@ -125,6 +102,8 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './store/authStore.js';
+import { isLocalIdentity } from './api/localProfile.js';
+import AppIcon from './components/common/AppIcon.vue';
 
 const COLLAPSE_STORAGE_KEY = 'resume_forge_sidebar_collapsed';
 
@@ -144,64 +123,36 @@ function toggleCollapsed() {
 }
 
 // 导航分组：工作台 / 创作 / 成长 / 对话 / 设置
+// icon 字段对应 src/icons/paths.js 的键名
 const navGroups = [
   {
     title: '工作台',
-    items: [{ path: '/dashboard', label: '我的简历', icon: 'grid' }],
+    items: [{ path: '/dashboard', label: '我的简历', icon: 'squares-four' }],
   },
   {
     title: '创作',
     items: [
-      { path: '/dashboard/templates', label: '模板市场', icon: 'template' },
-      { path: '/resume/create', label: '新建简历', icon: 'filePlus' },
+      { path: '/dashboard/templates', label: '模板市场', icon: 'layout' },
+      { path: '/resume/create', label: '新建简历', icon: 'file-plus' },
     ],
   },
   {
     title: '成长',
     items: [
-      { path: '/dashboard/profile', label: '个人档案', icon: 'user' },
-      { path: '/dashboard/interview', label: '模拟面试', icon: 'mic' },
-      { path: '/dashboard/history', label: 'Agent 会话', icon: 'history' },
+      { path: '/dashboard/profile', label: '个人档案', icon: 'user-circle' },
+      { path: '/dashboard/interview', label: '模拟面试', icon: 'microphone' },
+      { path: '/dashboard/history', label: 'Agent 会话', icon: 'clock-counter-clockwise' },
     ],
   },
   {
     title: '对话',
-    items: [{ path: '/chat', label: 'AI 对话', icon: 'chat' }],
+    items: [{ path: '/chat', label: 'AI 对话', icon: 'chat-circle' }],
   },
   {
     title: '设置',
-    items: [{ path: '/settings', label: '设置', icon: 'settings' }],
+    items: [{ path: '/settings', label: '设置', icon: 'gear' }],
   },
 ];
-
-// 内联 SVG 图标（离线可用，不引第三方图标库）
-const iconPaths = {
-  grid: ['M4 4h6v6H4z', 'M14 4h6v6h-6z', 'M14 14h6v6h-6z', 'M4 14h6v6H4z'],
-  template: ['M4 4h16v16H4z', 'M4 9h16', 'M9 20V9'],
-  filePlus: [
-    'M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z',
-    'M14 3v5h5',
-    'M9 14h6',
-    'M12 11v6',
-  ],
-  user: ['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2', 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8'],
-  mic: ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z', 'M19 11v1a7 7 0 0 1-14 0v-1', 'M12 19v3', 'M8 22h8'],
-  history: ['M3.5 12a8.5 8.5 0 1 0 2.9-6.4L3.5 8', 'M3.5 3.5V8H8', 'M12 7.5V12l3.5 2'],
-  chat: ['M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.6 0-3.1-.45-4.3-1.2L3 20.5l1.7-4.8a8.5 8.5 0 1 1 16.3-4.2z'],
-  settings: [
-    'M21 4h-7',
-    'M10 4H3',
-    'M21 12h-9',
-    'M8 12H3',
-    'M21 20h-5',
-    'M12 20H3',
-    'M14 2v4',
-    'M8 10v4',
-    'M16 18v4',
-  ],
-  logout: ['M15 17l5-5-5-5', 'M20 12H9', 'M13 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7'],
-  collapse: ['M9 6l6 6-6 6'],
-};
 
 // 路由名 → 中文页面标题
 const pageTitles = {
@@ -223,7 +174,13 @@ function isActive(path) {
 }
 
 const displayName = computed(() => authStore.currentUser?.username || '用户');
-const displayEmail = computed(() => authStore.currentUser?.email || '未绑定邮箱');
+// 本地身份没有真实邮箱，侧边栏显示「本地身份」而不是占位邮箱
+const displayEmail = computed(() => {
+  if (isLocalIdentity(authStore.currentUser)) {
+    return '本地身份';
+  }
+  return authStore.currentUser?.email || '未绑定邮箱';
+});
 const avatarUrl = computed(() => authStore.currentUser?.avatarUrl || '');
 const userInitial = computed(() => displayName.value.charAt(0).toUpperCase());
 
@@ -242,6 +199,7 @@ function handleLogout() {
   height: 100%;
   min-height: 0;
   background: var(--ui-bg-app);
+  background-image: var(--ui-bg-app-wash);
   color: var(--ui-fg-primary);
   font-family: var(--ui-font-sans);
 }
@@ -264,8 +222,8 @@ function handleLogout() {
   flex-direction: column;
   min-height: 0;
   background: var(--ui-bg-surface);
-  border-right: 1px solid var(--ui-border);
-  transition: width var(--ui-duration-normal) var(--ui-ease-in-out);
+  border-right: 1px solid var(--ui-border-hairline);
+  transition: width var(--ui-duration-normal) var(--ui-ease-out);
 }
 
 .app-sidebar--collapsed {
@@ -280,18 +238,20 @@ function handleLogout() {
   height: var(--ui-header-height);
   flex-shrink: 0;
   padding: 0 var(--ui-space-4);
-  border-bottom: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border-hairline);
 }
 
 .sidebar-brand__mark {
   display: flex;
-  color: var(--ui-accent);
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(22, 163, 74, 0.28));
 }
 
 .sidebar-brand__text {
-  font-size: var(--ui-text-md);
-  font-weight: 700;
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-base);
+  font-weight: 650;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -318,6 +278,7 @@ function handleLogout() {
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--ui-space-3);
@@ -325,10 +286,11 @@ function handleLogout() {
   border-radius: var(--ui-radius-md);
   color: var(--ui-fg-secondary);
   font-size: var(--ui-text-base);
+  font-weight: 500;
   line-height: 1.5rem;
   text-decoration: none;
-  transition: background var(--ui-duration-fast) var(--ui-ease-in-out),
-    color var(--ui-duration-fast) var(--ui-ease-in-out);
+  transition: background var(--ui-duration-fast) var(--ui-ease-out),
+    color var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .nav-item + .nav-item {
@@ -349,6 +311,19 @@ function handleLogout() {
   background: var(--ui-bg-selected);
   color: var(--ui-fg-accent);
   font-weight: 600;
+}
+
+/* 选中项左侧一道品牌色竖条：替代整块底色的第二种强调手段 */
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-accent);
 }
 
 .nav-item__icon {
@@ -496,13 +471,16 @@ function handleLogout() {
   gap: var(--ui-space-4);
   padding: 0 var(--ui-space-6);
   background: var(--ui-bg-surface);
-  border-bottom: 1px solid var(--ui-border);
+  background-image: var(--ui-surface-wash);
+  border-bottom: 1px solid var(--ui-border-hairline);
 }
 
 .app-header__title {
   margin: 0;
+  font-family: var(--ui-font-display);
   font-size: var(--ui-text-md);
-  font-weight: 600;
+  font-weight: 620;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -521,9 +499,10 @@ function handleLogout() {
   align-items: center;
   gap: var(--ui-space-2);
   padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1) var(--ui-space-1);
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ui-border-hairline);
   border-radius: var(--ui-radius-full);
   background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-xs);
   min-width: 0;
 }
 

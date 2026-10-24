@@ -4,12 +4,11 @@
     <div class="re-avatar">
       <div class="re-avatar__preview" title="点击上传头像" @click="triggerUpload">
         <img v-if="avatarPreviewUrl" :src="avatarPreviewUrl" class="re-avatar__img" alt="简历头像" />
-        <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 4a4 4 0 100 8 4 4 0 000-8zM6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
+        <AppIcon v-else name="user" :size="24" />
       </div>
       <div class="re-avatar__actions">
         <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" :disabled="avatarUploading" @click="triggerUpload">
+          <AppIcon name="upload-simple" :size="16" />
           {{ avatarUploading ? '上传中...' : '上传头像' }}
         </button>
         <button
@@ -21,13 +20,14 @@
         >
           移除头像
         </button>
-        <span
+        <p
           v-if="avatarMessage"
-          class="re-avatar__message"
-          :class="{ 'is-error': avatarMessageType === 'error', 'is-success': avatarMessageType === 'success' }"
+          class="ui-callout re-avatar__message"
+          :class="avatarMessageType === 'error' ? 'ui-callout--danger' : 'ui-callout--accent'"
         >
-          {{ avatarMessage }}
-        </span>
+          <AppIcon :name="avatarMessageType === 'error' ? 'warning-circle' : 'check-circle'" :size="16" />
+          <span>{{ avatarMessage }}</span>
+        </p>
       </div>
       <input ref="fileInput" type="file" accept="image/*" class="re-avatar__input" @change="onFileChange" />
     </div>
@@ -161,6 +161,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import AppIcon from '../../common/AppIcon.vue'
 import { uploadResumeAvatar } from '../../../api/resumes.js'
 import { extractApiMessage, resolveApiAssetUrl } from '../../../api/request.js'
 

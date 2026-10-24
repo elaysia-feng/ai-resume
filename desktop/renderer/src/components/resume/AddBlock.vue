@@ -2,7 +2,7 @@
   <section class="add-block">
     <header class="add-block__head">
       <div>
-        <h2 class="section-title">添加区块</h2>
+        <h2 class="ui-page-title section-title">添加区块</h2>
         <p class="add-block__hint">选择要加入简历的内容类型，已添加的区块会标记为不可重复添加。</p>
       </div>
       <input
@@ -109,7 +109,9 @@
             :disabled="isAdded(block.id)"
             @click="handleAdd(block.id)"
           >
-            <span class="block-icon" aria-hidden="true" v-html="block.icon"></span>
+            <span class="block-icon" aria-hidden="true">
+              <AppIcon :name="block.icon" :size="20" />
+            </span>
             <span class="block-info">
               <span class="block-name">{{ block.name }}</span>
               <span class="block-desc">{{ block.desc }}</span>
@@ -121,6 +123,9 @@
     </template>
 
     <div v-if="!visibleGroups.length" class="ui-empty add-block__empty">
+      <div class="ui-empty__icon">
+        <AppIcon name="magnifying-glass" :size="24" />
+      </div>
       <div class="ui-empty__title">没有匹配的区块</div>
       <div class="ui-empty__hint">换个关键词试试，或使用下方的「自定义区块」自由创建。</div>
     </div>
@@ -132,9 +137,7 @@
       @click="toggleCustomForm"
     >
       <span class="block-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
+        <AppIcon name="plus" :size="20" />
       </span>
       <span class="block-info">
         <span class="block-name">自定义区块</span>
@@ -146,6 +149,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import AppIcon from '../common/AppIcon.vue'
 
 const emit = defineEmits(['add-block'])
 
@@ -210,17 +214,18 @@ function submitCustomBlock() {
   resetCustomForm()
 }
 
+// 各区块的图标，取自 src/icons/paths.js 的键名
 const ICONS = {
-  person: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.4 3.1-5.6 7-5.6s7 2.2 7 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  target: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.8"/></svg>',
-  cap: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.5 9L12 5l8.5 4L12 13 3.5 9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 11v4.4c0 .9 2.2 2 5 2s5-1.1 5-2V11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  case: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M9 7V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6V7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  school: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 8h2M13.5 8h2M8.5 12h2M13.5 12h2M10 20.5V16h4v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  bolt: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 2.5L5 13.5h6l-1 8 8-11h-6l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-  award: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="5" stroke="currentColor" stroke-width="1.8"/><path d="M8.6 13.4L7 21l5-2.6L17 21l-1.6-7.6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-  pen: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 20l4.2-1 9.6-9.6-3.2-3.2L5 15.8 4 20z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.8 6.2l3.2 3.2" stroke="currentColor" stroke-width="1.8"/></svg>',
-  rocket: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3c2.8 2.1 4.2 5 4.2 8.3L12 15.6l-4.2-4.3C7.8 8 9.2 5.1 12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="9.2" r="1.7" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 16.4L5 21l4.6-1.4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-  sprout: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 21v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 14C12 11 9.5 9 6 9c0 3 2.5 5 6 5zM12 14c0-3 2.5-5 6-5 0 3-2.5 5-6 5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  person: 'user',
+  target: 'target',
+  cap: 'graduation-cap',
+  case: 'briefcase',
+  school: 'buildings',
+  bolt: 'code',
+  award: 'medal',
+  pen: 'note-pencil',
+  rocket: 'git-branch',
+  sprout: 'hourglass-medium',
 }
 
 const blocks = [
@@ -463,7 +468,6 @@ function handleAdd(id) {
   font-weight: 600;
   color: var(--ui-fg-primary);
 }
-
 .add-block__hint {
   margin: var(--ui-space-1) 0 0;
   font-size: var(--ui-text-sm);
@@ -503,9 +507,11 @@ function handleAdd(id) {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   color: var(--ui-fg-primary);
   text-align: left;
   cursor: pointer;
+  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
   transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
     background var(--ui-duration-fast) var(--ui-ease-out),
     box-shadow var(--ui-duration-fast) var(--ui-ease-out);

@@ -237,8 +237,9 @@ export class BackendSupervisor {
     }
 
     // 开发形态：仓库里的 jar + 系统 java
-    const repoRoot = path.resolve(this.installDir, '..', '..');
-    const jar = path.join(repoRoot, 'backend', 'java', 'target', 'ai-resume-forge-backend.jar');
+    // installDir 在开发态就是仓库根目录（main.ts 的 installDir()），
+    // 所以 backend/ 直接挂在 installDir 下面，不要再往上拼 '..'。
+    const jar = path.join(this.installDir, 'backend', 'java', 'target', 'ai-resume-forge-backend.jar');
     if (!fs.existsSync(jar)) {
       return null;
     }
@@ -274,15 +275,16 @@ export class BackendSupervisor {
       return { command: packaged, args: [], env };
     }
 
-    const repoRoot = path.resolve(this.installDir, '..', '..');
-    const python = path.join(repoRoot, 'backend', 'python', '.venv', 'Scripts', 'python.exe');
+    // 开发形态：仓库 .venv 里的 python -m uvicorn
+    // 同 javaCommand：开发态 installDir 就是仓库根目录。
+    const python = path.join(this.installDir, 'backend', 'python', '.venv', 'Scripts', 'python.exe');
     if (!fs.existsSync(python)) {
       return null;
     }
     return {
       command: python,
       args: ['-m', 'uvicorn', 'src.app.main:app', '--host', config.python.host, '--port', String(config.python.port)],
-      env: { ...env, PYTHONPATH: path.join(repoRoot, 'backend', 'python') },
+      env: { ...env, PYTHONPATH: path.join(this.installDir, 'backend', 'python') },
     };
   }
 }

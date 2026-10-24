@@ -3,7 +3,7 @@
     <!-- ── 顶栏：页面标题 / 保存状态 / 主操作 ───────────────── -->
     <header class="editor-topbar">
       <div class="editor-topbar__lead">
-        <h1 class="editor-topbar__title">简历编辑器</h1>
+        <h1 class="ui-page-title editor-topbar__title">简历编辑器</h1>
         <span class="editor-topbar__subtitle">{{ resumeName || '未命名简历' }}</span>
       </div>
 
@@ -26,18 +26,19 @@
           title="交换编辑区与预览的位置"
           @click="toggleLayout"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 16l-4-4 4-4M17 8l4 4-4 4M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <AppIcon name="swap" :size="16" />
           交换位置
         </button>
         <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="togglePreview">
+          <AppIcon :name="previewVisible ? 'eye' : 'eye-slash'" :size="16" />
           {{ previewVisible ? '隐藏预览' : '显示预览' }}
         </button>
         <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" :disabled="exportingPdf" @click="onExportPdf">
+          <AppIcon name="download-simple" :size="16" />
           {{ exportingPdf ? '导出中...' : '导出 PDF' }}
         </button>
         <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="saveStatus === 'saving'" @click="onMainSave">
+          <AppIcon name="check" :size="16" />
           {{ saveStatus === 'saving' ? '保存中...' : '保存' }}
         </button>
       </div>
@@ -49,13 +50,28 @@
       <aside class="editor-nav" :style="navStyle">
         <section class="editor-nav__group editor-nav__group--grow">
           <div class="editor-nav__group-head">
+            <button
+              type="button"
+              class="ui-icon-btn editor-nav__collapse"
+              :aria-expanded="navListExpanded"
+              title="折叠 / 展开模块列表"
+              @click="navListExpanded = !navListExpanded"
+            >
+              <AppIcon :name="navListExpanded ? 'caret-down' : 'caret-right'" :size="16" />
+            </button>
             <span class="section-nav__caption">简历模块</span>
-            <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="showAddBlock = true">
-              + 添加
+            <button
+              type="button"
+              class="ui-icon-btn"
+              title="添加模块"
+              aria-label="添加模块"
+              @click="showAddBlock = true"
+            >
+              <AppIcon name="plus" :size="16" />
             </button>
           </div>
 
-          <ul class="section-nav__list ui-scroll">
+          <ul v-show="navListExpanded" class="section-nav__list ui-scroll">
             <li
               v-for="section in store.sections"
               :key="section.id"
@@ -74,42 +90,32 @@
               @click="toggleActive(section.id)"
             >
               <span class="section-nav__handle" title="拖拽调整顺序" aria-hidden="true">
-                <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-                  <circle cx="2.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/>
-                  <circle cx="2.5" cy="7" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/>
-                  <circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/>
-                </svg>
+                <AppIcon name="dots-three-vertical" :size="14" />
               </span>
               <span class="section-nav__title">{{ section.sectionTitle }}</span>
               <button
                 type="button"
-                class="section-nav__action"
+                class="ui-icon-btn section-nav__action"
                 :title="section.visible ? '在简历中隐藏' : '在简历中显示'"
+                :aria-label="section.visible ? '在简历中隐藏' : '在简历中显示'"
                 @click.stop="store.toggleVisible(section.id)"
               >
-                <svg v-if="section.visible" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
-                </svg>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 3l18 18M10.6 5.2A9.9 9.9 0 0112 5c6.4 0 10 7 10 7a17.7 17.7 0 01-3.4 4.2M6.2 6.7A17.6 17.6 0 002 12s3.6 7 10 7a9.8 9.8 0 003.8-.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <AppIcon :name="section.visible ? 'eye' : 'eye-slash'" :size="16" />
               </button>
               <button
                 type="button"
-                class="section-nav__action section-nav__action--danger"
+                class="ui-icon-btn section-nav__action section-nav__action--danger"
                 title="删除模块"
+                aria-label="删除模块"
                 @click.stop="onRemoveSection(section.id, section.sectionTitle)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <AppIcon name="trash" :size="16" />
               </button>
             </li>
           </ul>
 
           <p v-if="!store.sections.length" class="editor-nav__empty">
-            还没有模块，点击右上角「+ 添加」创建。
+            还没有模块，点击右上角「添加模块」创建。
           </p>
         </section>
 
@@ -130,12 +136,12 @@
 
           <div class="editor-nav__field">
             <span class="ui-label">正文字号</span>
-            <div class="editor-nav__chips">
+            <div class="ui-segmented editor-nav__segmented" role="group" aria-label="正文字号">
               <button
                 v-for="size in bodyFontOptions"
                 :key="size"
                 type="button"
-                class="editor-nav__chip"
+                class="ui-segmented__item"
                 :class="{ 'is-active': store.resumeBodyFontSize.value === size }"
                 @click="setResumeBodyFontSize(size)"
               >
@@ -189,28 +195,62 @@
 
       <!-- 中栏：当前分区编辑区 -->
       <main class="editor-canvas ui-scroll">
-        <div v-if="activeId && activeSection" class="editor-canvas__inner">
-          <header class="editor-canvas__head">
+        <div v-if="pageLoading" class="editor-canvas__inner editor-canvas__loading">
+          <div class="ui-skeleton editor-canvas__skeleton editor-canvas__skeleton--title"></div>
+          <div class="ui-skeleton editor-canvas__skeleton"></div>
+          <div class="ui-skeleton editor-canvas__skeleton"></div>
+          <div class="ui-skeleton editor-canvas__skeleton editor-canvas__skeleton--short"></div>
+        </div>
+
+        <div v-else-if="loadError" class="editor-canvas__inner">
+          <div class="ui-callout ui-callout--danger editor-canvas__callout">
+            <AppIcon name="warning-circle" :size="18" />
             <div>
-              <h2 class="editor-canvas__title">{{ activeSection.sectionTitle }}</h2>
-              <p class="editor-canvas__hint">修改会实时反映到{{ layout === 'edit-left' ? '右侧' : '左侧' }}预览，停止输入 1.5 秒后自动保存。</p>
+              <strong>简历加载失败</strong>
+              <p>{{ loadError }}。请确认后端服务已启动，然后返回简历列表重新打开，或稍后在顶部点击「保存」重试。</p>
             </div>
-            <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="activeId = null">收起</button>
+          </div>
+        </div>
+
+        <div v-else-if="activeId && activeSection" class="editor-canvas__inner">
+          <header class="ui-section-head editor-canvas__head">
+            <div class="editor-canvas__heading">
+              <h2 class="ui-section-head__title">{{ activeSection.sectionTitle }}</h2>
+              <p class="ui-section-head__hint">修改会实时反映到{{ layout === 'edit-left' ? '右侧' : '左侧' }}预览，停止输入 1.5 秒后自动保存。</p>
+            </div>
+            <div class="editor-canvas__tools">
+              <button
+                type="button"
+                class="ui-icon-btn"
+                :title="sectionExpanded ? '收起该模块' : '展开该模块'"
+                :aria-label="sectionExpanded ? '收起该模块' : '展开该模块'"
+                :aria-expanded="sectionExpanded"
+                @click="sectionExpanded = !sectionExpanded"
+              >
+                <AppIcon :name="sectionExpanded ? 'caret-down' : 'caret-right'" :size="16" />
+              </button>
+              <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="activeId = null">收起</button>
+            </div>
           </header>
 
-          <component
-            :is="activeEditor"
-            :key="activeId"
-            :model-value="activeSectionContent"
-            :is-active="true"
-            :resume-id="editorResumeId"
-            :schema-type="activeSection?.schemaType ?? 'TEXT'"
-            :is-custom="activeSection?.sectionType === 'CUSTOM'"
-            @update:model-value="onEditorUpdate"
-          />
+          <section class="ui-panel editor-canvas__section">
+            <component
+              :is="activeEditor"
+              :key="activeId"
+              :model-value="activeSectionContent"
+              :is-active="sectionExpanded"
+              :resume-id="editorResumeId"
+              :schema-type="activeSection?.schemaType ?? 'TEXT'"
+              :is-custom="activeSection?.sectionType === 'CUSTOM'"
+              @update:model-value="onEditorUpdate"
+            />
+          </section>
         </div>
 
         <div v-else class="ui-empty editor-canvas__empty">
+          <div class="ui-empty__icon">
+            <AppIcon name="squares-four" :size="24" />
+          </div>
           <div class="ui-empty__title">选择一个模块开始编辑</div>
           <div class="ui-empty__hint">在左侧「简历模块」中点选要编辑的分区，右侧会实时预览排版效果。</div>
         </div>
@@ -235,7 +275,10 @@
         :style="isNarrow ? null : { width: `${previewWidth}px` }"
       >
         <header class="editor-preview__head">
-          <span class="editor-preview__title">实时预览</span>
+          <span class="editor-preview__title">
+            <AppIcon name="file-text" :size="16" />
+            实时预览
+          </span>
           <span class="ui-badge">A4</span>
         </header>
         <div ref="previewViewportRef" class="editor-preview__viewport ui-scroll">
@@ -272,7 +315,15 @@
       <aside v-if="showAddBlock" class="editor-drawer">
         <header class="editor-drawer__head">
           <span class="editor-drawer__title">添加模块</span>
-          <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost" @click="showAddBlock = false">关闭</button>
+          <button
+            type="button"
+            class="ui-icon-btn"
+            title="关闭"
+            aria-label="关闭"
+            @click="showAddBlock = false"
+          >
+            <AppIcon name="x" :size="16" />
+          </button>
         </header>
         <div class="editor-drawer__body">
           <AddBlock :added-section-codes="store.sections.map(s => s.sectionCode)" @add-block="onBlockAdded" />
@@ -292,6 +343,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { useRoute, onBeforeRouteLeave } from 'vue-router';
+import AppIcon from '../components/common/AppIcon.vue';
 import {
   sections,
   visibleSections,
@@ -576,10 +628,13 @@ onMounted(async () => {
           await resumeStore.addSectionToApi(resumeId, buildSectionCreatePayload(block));
         }
       }
-    } catch {
-      // error is set on the store
+    } catch (error) {
+      // 顶部状态条会提示保存失败，这里给出可操作的加载失败说明
+      loadError.value = extractApiMessage(error, '无法读取该简历');
     }
   }
+
+  pageLoading.value = false;
 
   // 打开即进入第一个模块，避免首屏空白
   if (!activeId.value && sections.length) {
@@ -699,6 +754,18 @@ const store = {
 const activeId = ref(null);
 const showAddBlock = ref(false);
 const layout = ref('edit-left');
+// 左栏模块列表折叠状态
+const navListExpanded = ref(true);
+// 中栏当前模块展开（true=编辑表单，false=摘要）
+const sectionExpanded = ref(true);
+// 首屏加载 / 加载失败状态
+const pageLoading = ref(true);
+const loadError = ref('');
+
+// 切换模块时默认展开该模块的编辑表单
+watch(activeId, () => {
+  sectionExpanded.value = true;
+});
 
 const templates = [
   { value: 'classic', label: '标准版' },
@@ -710,11 +777,12 @@ const templates = [
 ];
 
 const bodyFontOptions = [9, 10, 11, 12];
+// 左栏配色色板：全部引用设计 token，避免写死十六进制颜色
 const sidebarColorOptions = [
-  { value: 'black', label: '黑', swatch: 'linear-gradient(180deg, #111827 0%, #1f2937 100%)' },
-  { value: 'blue', label: '蓝', swatch: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 100%)' },
-  { value: 'white', label: '白', swatch: 'linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%)' },
-  { value: 'gray', label: '灰', swatch: 'linear-gradient(180deg, #e5e7eb 0%, #f8fafc 100%)' },
+  { value: 'black', label: '黑', swatch: 'linear-gradient(180deg, var(--ui-neutral-900) 0%, var(--ui-neutral-800) 100%)' },
+  { value: 'blue', label: '蓝', swatch: 'linear-gradient(180deg, var(--ui-info) 0%, var(--ui-neutral-950) 100%)' },
+  { value: 'white', label: '白', swatch: 'linear-gradient(180deg, var(--ui-neutral-0) 0%, var(--ui-neutral-100) 100%)' },
+  { value: 'gray', label: '灰', swatch: 'linear-gradient(180deg, var(--ui-neutral-200) 0%, var(--ui-neutral-50) 100%)' },
 ];
 
 const editorMap = {

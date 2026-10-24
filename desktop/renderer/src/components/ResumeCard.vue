@@ -1,20 +1,31 @@
 <template>
-  <article class="resume-card ui-card">
-    <h3 class="resume-card__title">
-      <!-- 标题链接铺满整张卡片：鼠标点任意位置都能进入编辑，Tab 只需一次 -->
-      <router-link class="resume-card__link" :to="`/editor/${resume.id}`">
-        {{ resume.title || '未命名简历' }}
-      </router-link>
-    </h3>
+  <article class="resume-card ui-panel ui-panel--hover">
+    <header class="resume-card__head">
+      <span class="ui-icon-tile ui-icon-tile--muted" aria-hidden="true">
+        <AppIcon name="file-text" :size="18" />
+      </span>
+      <div class="resume-card__head-text">
+        <h3 class="resume-card__title">
+          <!-- 标题链接铺满整张卡片：鼠标点任意位置都能进入编辑，Tab 只需一次 -->
+          <router-link class="resume-card__link" :to="`/editor/${resume.id}`">
+            {{ resume.title || '未命名简历' }}
+          </router-link>
+        </h3>
+        <p class="resume-card__time">
+          <AppIcon name="clock" :size="14" />
+          <span>{{ formatDate(resume.updatedAt) }}</span>
+        </p>
+      </div>
+    </header>
 
     <p class="resume-card__meta">
       <span class="ui-badge">{{ templateLabel }}</span>
-      <span class="resume-card__time">{{ formatDate(resume.updatedAt) }}</span>
     </p>
 
     <footer class="resume-card__foot">
       <span class="resume-card__hint">点击卡片进入编辑</span>
       <button type="button" class="ui-btn ui-btn--sm ui-btn--ghost resume-card__delete" @click="handleDelete">
+        <AppIcon name="trash" :size="14" />
         删除
       </button>
     </footer>
@@ -23,6 +34,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import AppIcon from './common/AppIcon.vue';
 import { useResumeStore } from '../store/resumeStore.js';
 
 const props = defineProps({
@@ -70,18 +82,10 @@ function handleDelete() {
 
 <style scoped>
 .resume-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-3);
   padding: var(--ui-space-4) var(--ui-space-5) var(--ui-space-3);
-  transition: border-color var(--ui-duration-fast) var(--ui-ease-in-out),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-in-out);
-}
-
-.resume-card:hover {
-  border-color: var(--ui-border-strong);
-  box-shadow: var(--ui-shadow-md);
 }
 
 /* 键盘聚焦在标题链接上时，整张卡片给出焦点提示 */
@@ -90,11 +94,25 @@ function handleDelete() {
   box-shadow: var(--ui-ring);
 }
 
-/* ---- 标题 ---- */
+/* ---- 标题区：图标 + 标题 + 更新时间 ---- */
+.resume-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+}
+
+.resume-card__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+
 .resume-card__title {
   margin: 0;
   font-size: var(--ui-text-md);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   line-height: var(--ui-line-tight);
   color: var(--ui-fg-primary);
   word-break: break-word;
@@ -117,7 +135,20 @@ function handleDelete() {
   border-radius: var(--ui-radius-lg);
 }
 
-/* ---- 标签与时间 ---- */
+/* ---- 更新时间 ---- */
+.resume-card__time {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 状态标签 ---- */
 .resume-card__meta {
   display: flex;
   align-items: center;
@@ -126,21 +157,14 @@ function handleDelete() {
   min-width: 0;
 }
 
-.resume-card__time {
-  font-size: var(--ui-text-xs);
-  color: var(--ui-fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ---- 底部操作 ---- */
 .resume-card__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--ui-space-2);
-  padding-top: var(--ui-space-2);
+  margin-top: auto;
+  padding-top: var(--ui-space-3);
   border-top: 1px solid var(--ui-border-subtle);
 }
 

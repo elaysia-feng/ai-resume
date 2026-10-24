@@ -4,65 +4,43 @@
     <section class="auth-brand">
       <div class="auth-brand__inner">
         <div class="auth-brand__logo">
-          <span class="auth-brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" width="32" height="32" fill="none">
-              <rect width="48" height="48" rx="13" fill="currentColor" />
-              <path d="M15 15h19v4H19v4h13v4H19v6h-4V15z" fill="var(--ui-bg-surface)" />
-            </svg>
+          <span class="auth-brand__mark ui-icon-tile ui-icon-tile--lg" aria-hidden="true">
+            <AppIcon name="sparkle" :size="20" />
           </span>
           <span class="auth-brand__name">AI Resume Forge</span>
         </div>
 
-        <h1 class="auth-brand__title">三步开通你的工作台</h1>
-        <p class="auth-brand__desc">
+        <p class="auth-brand__title ui-page-title">三步开通你的工作台</p>
+        <p class="auth-brand__desc ui-page-subtitle">
           验证邮箱、设置密码即可开始。账号只保存在本机，简历与面试记录不会上传到外部服务。
         </p>
 
-        <ul class="auth-brand__points">
+        <ul class="auth-brand__points ui-panel ui-panel--flat">
           <li class="auth-brand__point">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 6h16M4 12h16M4 18h9" />
-            </svg>
+            <AppIcon name="envelope" :size="18" />
             <span>邮箱验证码确认身份</span>
           </li>
           <li class="auth-brand__point">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 4h16v16H4z" />
-              <path d="M4 9h16M9 20V9" />
-            </svg>
+            <AppIcon name="layout" :size="18" />
             <span>注册后直接进入模板市场</span>
           </li>
           <li class="auth-brand__point">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
-              <path d="M19 11v1a7 7 0 0 1-14 0v-1M12 19v3" />
-            </svg>
+            <AppIcon name="microphone" :size="18" />
             <span>随时用模拟面试检验简历</span>
           </li>
         </ul>
       </div>
 
-      <!-- 纯 SVG 装饰，不依赖外部图片 -->
-      <svg class="auth-brand__art" viewBox="0 0 300 200" fill="none" aria-hidden="true">
-        <rect x="18" y="14" width="168" height="176" rx="14" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
-        <rect x="42" y="44" width="84" height="10" rx="5" fill="currentColor" opacity="0.22" />
-        <rect x="42" y="66" width="120" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
-        <rect x="42" y="82" width="104" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
-        <rect x="42" y="106" width="60" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
-        <rect x="42" y="122" width="112" height="7" rx="3.5" fill="currentColor" opacity="0.14" />
-        <circle cx="196" cy="60" r="26" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
-        <path d="M196 50c1.8 5.2 4.8 8.2 10 10-5.2 1.8-8.2 4.8-10 10-1.8-5.2-4.8-8.2-10-10 5.2-1.8 8.2-4.8 10-10z" fill="currentColor" opacity="0.45" />
-        <path d="M236 126h44M236 138h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25" />
-        <circle cx="252" cy="166" r="18" stroke="currentColor" stroke-width="1.5" opacity="0.22" />
-      </svg>
+      <!-- 极淡水印：用内置图标给大面积留白一点纹理，不依赖外部图片 -->
+      <AppIcon name="file-text" class="auth-brand__watermark" :size="240" />
     </section>
 
     <!-- 右侧表单区 -->
     <section class="auth-panel">
-      <div class="auth-card ui-card">
+      <div class="auth-card ui-panel">
         <header class="auth-card__head">
-          <h2 class="auth-card__title">注册账号</h2>
-          <p class="auth-card__subtitle">使用邮箱验证注册，三步完成</p>
+          <h1 class="ui-page-title">注册账号</h1>
+          <p class="ui-page-subtitle">使用邮箱验证注册，三步完成</p>
         </header>
 
         <!-- 步骤进度 -->
@@ -77,9 +55,7 @@
             }"
           >
             <span class="auth-step__dot">
-              <svg v-if="activeStep > step.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
+              <AppIcon v-if="activeStep > step.id" name="check" :size="14" />
               <span v-else>{{ step.id }}</span>
             </span>
             <span class="auth-step__label">{{ step.label }}</span>
@@ -87,77 +63,9 @@
         </ol>
 
         <form class="auth-form" novalidate @submit.prevent="handleSubmit">
-          <!--
-            直接注册（不走邮箱验证码）
-            桌面端是自包含应用，用户没配 SMTP 邮件服务时验证码根本发不出来
-            （后端返回 "Could not parse mail"）。这条路径让应用开箱即用：
-            用户名 + 邮箱 + 密码直接建号，邮箱只作为账号标识，不做校验。
-          -->
-          <template v-if="directMode">
-            <p class="auth-note">
-              直接创建账号，<strong>不需要邮箱验证码</strong>。邮箱只作为账号标识，不会收到任何邮件。
-            </p>
-
-            <div class="auth-field">
-              <label class="ui-label" for="directUsername">用户名</label>
-              <input
-                id="directUsername"
-                v-model="form.username"
-                type="text"
-                class="ui-input"
-                placeholder="用于在应用内展示的名字"
-                autocomplete="username"
-              />
-            </div>
-
-            <div class="auth-field">
-              <label class="ui-label" for="directEmail">邮箱地址</label>
-              <input
-                id="directEmail"
-                v-model="form.email"
-                type="email"
-                class="ui-input"
-                placeholder="you@example.com"
-                autocomplete="email"
-              />
-            </div>
-
-            <div class="auth-field">
-              <label class="ui-label" for="directPassword">密码（至少 8 位）</label>
-              <input
-                id="directPassword"
-                v-model="form.password"
-                type="password"
-                class="ui-input"
-                placeholder="设置登录密码"
-                minlength="8"
-                autocomplete="new-password"
-              />
-            </div>
-
-            <div class="auth-field">
-              <label class="ui-label" for="directConfirmPassword">确认密码</label>
-              <input
-                id="directConfirmPassword"
-                v-model="form.confirmPassword"
-                type="password"
-                class="ui-input"
-                placeholder="再次输入密码"
-                autocomplete="new-password"
-              />
-            </div>
-
-            <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="directMode = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              返回邮箱验证注册
-            </button>
-          </template>
-
           <!-- 第 1 步：验证邮箱 -->
-          <template v-else-if="activeStep === 1">
-            <div class="auth-field">
+          <template v-if="activeStep === 1">
+            <div class="ui-field">
               <label class="ui-label" for="email">邮箱地址</label>
               <input
                 id="email"
@@ -170,40 +78,34 @@
               />
             </div>
 
-            <div class="auth-field">
+            <div class="ui-field">
               <button
                 type="button"
                 class="ui-btn ui-btn--outline ui-btn--block"
                 :disabled="countdown > 0 || sendingCode"
                 @click="handleSendCode"
               >
+                <AppIcon :name="countdown > 0 ? 'clock' : 'paper-plane-tilt'" :size="16" />
                 <span v-if="sendingCode">发送中…</span>
                 <span v-else-if="countdown > 0">{{ countdown }} 秒后可重发</span>
                 <span v-else>发送验证码</span>
               </button>
             </div>
 
-            <p v-if="codeSent" class="auth-hint auth-hint--success">
-              验证码已发送至 {{ form.email }}，请在 60 秒内查收并填写。
-            </p>
-
-            <p class="auth-hint">
-              收不到验证码？桌面端默认不配置邮件服务，可直接用用户名和密码注册。
-            </p>
-            <button
-              type="button"
-              class="ui-btn ui-btn--ghost ui-btn--block"
-              @click="directMode = true; errorMsg = ''; validationError = ''"
-            >
-              用用户名和密码直接注册
-            </button>
+            <div v-if="codeSent" class="ui-callout ui-callout--accent">
+              <AppIcon name="check-circle" :size="16" />
+              <span>验证码已发送至 {{ form.email }}，请在 60 秒内查收并填写。</span>
+            </div>
           </template>
 
           <!-- 第 2 步：输入验证码 -->
           <template v-else-if="activeStep === 2">
-            <p class="auth-note">请输入发送至 <strong>{{ form.email }}</strong> 的 6 位验证码。</p>
+            <div class="ui-callout">
+              <AppIcon name="envelope" :size="16" />
+              <span>请输入发送至 <strong>{{ form.email }}</strong> 的 6 位验证码。</span>
+            </div>
 
-            <div class="auth-field">
+            <div class="ui-field">
               <label class="ui-label" for="code">验证码</label>
               <input
                 id="code"
@@ -218,16 +120,14 @@
             </div>
 
             <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="goBackToStep1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
+              <AppIcon name="arrow-left" :size="16" />
               重新输入邮箱
             </button>
           </template>
 
           <!-- 第 3 步：设置用户名与密码 -->
           <template v-else>
-            <div class="auth-field">
+            <div class="ui-field">
               <label class="ui-label" for="username">用户名</label>
               <input
                 id="username"
@@ -239,100 +139,69 @@
               />
             </div>
 
-            <div class="auth-field">
+            <div class="ui-field">
               <label class="ui-label" for="password">密码（至少 8 位）</label>
               <div class="auth-field__control">
                 <input
                   id="password"
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
-                  class="ui-input auth-field__input--suffix"
+                  class="ui-input auth-input--suffix"
                   placeholder="设置登录密码"
                   minlength="8"
                   autocomplete="new-password"
                 />
                 <button
                   type="button"
-                  class="auth-field__suffix"
+                  class="ui-icon-btn auth-field__suffix"
                   :aria-label="showPassword ? '隐藏密码' : '显示密码'"
                   @click="showPassword = !showPassword"
                 >
-                  <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-2.6 3.3M6.3 6.7A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9" />
-                    <path d="M3 3l18 18" />
-                  </svg>
+                  <AppIcon :name="showPassword ? 'eye-slash' : 'eye'" :size="16" />
                 </button>
               </div>
             </div>
 
-            <div class="auth-field">
+            <div class="ui-field">
               <label class="ui-label" for="confirmPassword">确认密码</label>
               <div class="auth-field__control">
                 <input
                   id="confirmPassword"
                   v-model="form.confirmPassword"
                   :type="showConfirmPassword ? 'text' : 'password'"
-                  class="ui-input auth-field__input--suffix"
+                  class="ui-input auth-input--suffix"
                   placeholder="再次输入密码"
                   autocomplete="new-password"
                 />
                 <button
                   type="button"
-                  class="auth-field__suffix"
+                  class="ui-icon-btn auth-field__suffix"
                   :aria-label="showConfirmPassword ? '隐藏密码' : '显示密码'"
                   @click="showConfirmPassword = !showConfirmPassword"
                 >
-                  <svg v-if="!showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-2.6 3.3M6.3 6.7A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9" />
-                    <path d="M3 3l18 18" />
-                  </svg>
+                  <AppIcon :name="showConfirmPassword ? 'eye-slash' : 'eye'" :size="16" />
                 </button>
               </div>
             </div>
 
             <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="goBackToStep2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
+              <AppIcon name="arrow-left" :size="16" />
               上一步
             </button>
           </template>
 
           <!-- 错误提示 -->
-          <p v-if="validationError" class="auth-alert" role="alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v5M12 16.5v.01" />
-            </svg>
+          <div v-if="validationError" class="ui-callout ui-callout--danger" role="alert">
+            <AppIcon name="warning-circle" :size="16" />
             <span>{{ validationError }}</span>
-          </p>
-          <p v-if="errorMsg" class="auth-alert" role="alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v5M12 16.5v.01" />
-            </svg>
+          </div>
+          <div v-if="errorMsg" class="ui-callout ui-callout--danger" role="alert">
+            <AppIcon name="warning-circle" :size="16" />
             <span>{{ errorMsg }}</span>
-          </p>
+          </div>
 
           <button
-            v-if="directMode"
-            type="submit"
-            class="ui-btn ui-btn--primary ui-btn--block auth-submit"
-            :disabled="loading || !form.username.trim() || !form.email.trim() || form.password.length < 8"
-          >
-            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
-            <span>{{ loading ? '创建中…' : '创建账号' }}</span>
-          </button>
-          <button
-            v-else-if="activeStep === 1"
+            v-if="activeStep === 1"
             type="submit"
             class="ui-btn ui-btn--primary ui-btn--block auth-submit"
             :disabled="!form.email.trim() || sendingCode"
@@ -345,11 +214,11 @@
             class="ui-btn ui-btn--primary ui-btn--block auth-submit"
             :disabled="form.code.length !== 6 || loading"
           >
-            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
+            <AppIcon v-if="loading" name="spinner-gap" :size="16" spin />
             <span>{{ loading ? '验证中…' : '验证验证码' }}</span>
           </button>
           <button v-else type="submit" class="ui-btn ui-btn--primary ui-btn--block auth-submit" :disabled="loading">
-            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
+            <AppIcon v-if="loading" name="spinner-gap" :size="16" spin />
             <span>{{ loading ? '注册中…' : '完成注册' }}</span>
           </button>
         </form>
@@ -368,6 +237,7 @@ import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { sendCode, verifyCode, setPassword } from '../api/auth.js';
 import { useAuthStore } from '../store/authStore.js';
+import AppIcon from '../components/common/AppIcon.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -387,8 +257,6 @@ const validationError = ref('');
 const errorMsg = ref('');
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-// 直接注册模式：桌面端未配置邮件服务时，验证码这条路走不通，改用用户名+密码直接建号
-const directMode = ref(false);
 
 let verifyToken = '';
 let countdownTimer = null;
@@ -465,54 +333,12 @@ async function handleSendCode() {
 }
 
 /**
- * 直接注册：用户名 + 邮箱 + 密码建号，不做邮箱验证。
- * 桌面端是自包含应用，默认没有邮件服务，验证码注册不可用；
- * 这条路径保证应用开箱就能建号使用。
+ * 注册主流程：验证邮箱 → 输入验证码 → 设置用户名与密码。
+ * 桌面端不再走这条路（首次启动改为创建本地身份），这里保留给网页端使用。
  */
-async function handleDirectRegister() {
-  validationError.value = '';
-  errorMsg.value = '';
-
-  if (!form.username.trim()) {
-    errorMsg.value = '还没填写用户名。';
-    return;
-  }
-  if (!form.email.trim()) {
-    errorMsg.value = '还没填写邮箱地址。';
-    return;
-  }
-  if (form.password.length < 8) {
-    errorMsg.value = '密码至少 8 位。';
-    return;
-  }
-  if (form.password !== form.confirmPassword) {
-    errorMsg.value = '两次输入的密码不一致。';
-    return;
-  }
-
-  loading.value = true;
-  try {
-    await authStore.register({
-      username: form.username.trim(),
-      email: form.email.trim(),
-      password: form.password,
-    });
-    router.push({ name: 'Home' });
-  } catch (err) {
-    errorMsg.value = describeError(err, '注册失败，请稍后重试。若提示用户名或邮箱已存在，请换一个再试。');
-  } finally {
-    loading.value = false;
-  }
-}
-
 async function handleSubmit() {
   validationError.value = '';
   errorMsg.value = '';
-
-  if (directMode.value) {
-    await handleDirectRegister();
-    return;
-  }
 
   if (activeStep.value === 1) {
     advanceToStep2();
@@ -582,7 +408,7 @@ function startCountdown(seconds) {
    ======================================== */
 .auth-page {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(360px, 480px);
+  grid-template-columns: minmax(320px, 1fr) minmax(400px, 520px);
   min-height: 100%;
   background: var(--ui-bg-app);
   color: var(--ui-fg-primary);
@@ -595,8 +421,9 @@ function startCountdown(seconds) {
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: linear-gradient(160deg, var(--ui-bg-canvas), var(--ui-bg-app));
-  border-right: 1px solid var(--ui-border);
+  background: var(--ui-bg-canvas);
+  background-image: var(--ui-bg-app-wash);
+  border-right: 1px solid var(--ui-border-hairline);
 }
 
 .auth-brand__inner {
@@ -615,41 +442,37 @@ function startCountdown(seconds) {
   margin-bottom: var(--ui-space-8);
 }
 
+/* 品牌标识：图标底座本身就是品牌色块 */
 .auth-brand__mark {
-  display: flex;
-  color: var(--ui-accent);
+  display: inline-flex;
 }
 
 .auth-brand__name {
+  font-family: var(--ui-font-display);
   font-size: var(--ui-text-lg);
-  font-weight: 700;
+  font-weight: 650;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
 }
 
+/* 品牌主张比卡片标题大一档，但仍是桌面应用的信息密度 */
 .auth-brand__title {
-  margin: 0 0 var(--ui-space-3);
   font-size: var(--ui-text-3xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-  text-wrap: pretty;
 }
 
 .auth-brand__desc {
-  margin: 0 0 var(--ui-space-8);
-  font-size: var(--ui-text-md);
-  line-height: var(--ui-line-relaxed);
-  color: var(--ui-fg-secondary);
-  text-wrap: pretty;
+  margin-bottom: var(--ui-space-8);
 }
 
+/* 能力清单：白底子卡片压在灰底品牌区上，形成一层厚度 */
 .auth-brand__points {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: var(--ui-space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-3);
+  gap: var(--ui-space-4);
+  border-color: var(--ui-border-hairline);
 }
 
 .auth-brand__point {
@@ -660,23 +483,18 @@ function startCountdown(seconds) {
   color: var(--ui-fg-secondary);
 }
 
-.auth-brand__point svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+.auth-brand__point .app-icon {
   color: var(--ui-fg-accent);
 }
 
-/* 纯 SVG 装饰：压在文案下层，不遮挡文字 */
-.auth-brand__art {
+/* 极淡水印：压在大面积留白上，不抢文案 */
+.auth-brand__watermark {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: -32px;
+  bottom: -40px;
   z-index: 0;
-  width: 320px;
-  height: auto;
   color: var(--ui-fg-primary);
-  opacity: 0.5;
+  opacity: 0.05;
   pointer-events: none;
 }
 
@@ -687,30 +505,20 @@ function startCountdown(seconds) {
   justify-content: center;
   padding: var(--ui-space-10) var(--ui-space-8);
   background: var(--ui-bg-app);
+  background-image: var(--ui-bg-app-wash);
 }
 
+/* 表单卡片：细边框 + 分层阴影，比画布浮起来一层 */
 .auth-card {
   width: 100%;
   max-width: 420px;
   padding: var(--ui-space-8);
-  background: var(--ui-bg-surface);
+  border-color: var(--ui-border-hairline);
+  box-shadow: var(--ui-shadow-lg), var(--ui-highlight-top);
 }
 
 .auth-card__head {
   margin-bottom: var(--ui-space-6);
-}
-
-.auth-card__title {
-  margin: 0 0 var(--ui-space-2);
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  color: var(--ui-fg-primary);
-}
-
-.auth-card__subtitle {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
 }
 
 /* ---- 步骤进度 ---- */
@@ -763,11 +571,6 @@ function startCountdown(seconds) {
   font-weight: 600;
 }
 
-.auth-step__dot svg {
-  width: 13px;
-  height: 13px;
-}
-
 .auth-step.is-active .auth-step__dot {
   border-color: var(--ui-accent);
   color: var(--ui-fg-accent);
@@ -798,9 +601,9 @@ function startCountdown(seconds) {
   gap: var(--ui-space-5);
 }
 
-.auth-field {
-  display: flex;
-  flex-direction: column;
+/* .ui-field 自带 gap，标签再加 margin 会把间距撑成两倍 */
+.ui-field > .ui-label {
+  margin-bottom: 0;
 }
 
 .auth-field__control {
@@ -809,41 +612,16 @@ function startCountdown(seconds) {
   align-items: center;
 }
 
-.auth-field__input--suffix {
-  padding-right: 2.5rem;
+/* 给右侧图标按钮让出位置 */
+.auth-input--suffix {
+  padding-right: 2.75rem;
 }
 
 .auth-field__suffix {
   position: absolute;
-  right: var(--ui-space-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: var(--ui-radius-sm);
-  background: transparent;
-  color: var(--ui-fg-muted);
-  cursor: pointer;
-  transition: color var(--ui-duration-fast) var(--ui-ease-in-out),
-    background var(--ui-duration-fast) var(--ui-ease-in-out);
-}
-
-.auth-field__suffix svg {
-  width: 18px;
-  height: 18px;
-}
-
-.auth-field__suffix:hover {
-  color: var(--ui-fg-accent);
-  background: var(--ui-bg-hover);
-}
-
-.auth-field__suffix:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
+  right: var(--ui-space-1);
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .auth-back {
@@ -853,70 +631,15 @@ function startCountdown(seconds) {
   color: var(--ui-fg-secondary);
 }
 
-.auth-back svg {
-  width: 16px;
-  height: 16px;
-}
-
-.auth-note {
-  margin: 0;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-  word-break: break-word;
-}
-
 /* ---- 提示信息 ---- */
-.auth-hint {
-  margin: 0;
-  font-size: var(--ui-text-xs);
-  color: var(--ui-fg-muted);
-  word-break: break-word;
-}
-
-.auth-hint--success {
-  color: var(--ui-success);
-}
-
-.auth-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ui-space-2);
-  margin: 0;
-  padding: var(--ui-space-3);
-  border: 1px solid var(--ui-danger-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
-  font-size: var(--ui-text-sm);
-  line-height: var(--ui-line-normal);
-}
-
-.auth-alert svg {
-  width: 16px;
-  height: 16px;
+.ui-callout .app-icon {
   flex-shrink: 0;
   margin-top: 2px;
 }
 
+/* ---- 提交按钮 ---- */
 .auth-submit {
   min-height: 2.75rem;
-}
-
-/* ---- 提交中动画 ---- */
-.auth-spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--ui-accent-fg);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: auth-spin 0.7s linear infinite;
-}
-
-@keyframes auth-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* ---- 底部切换 ---- */
@@ -946,7 +669,7 @@ function startCountdown(seconds) {
 
   .auth-brand {
     border-right: none;
-    border-bottom: 1px solid var(--ui-border);
+    border-bottom: 1px solid var(--ui-border-hairline);
   }
 
   .auth-brand__inner {
@@ -967,7 +690,7 @@ function startCountdown(seconds) {
     font-size: var(--ui-text-base);
   }
 
-  .auth-brand__art {
+  .auth-brand__watermark {
     display: none;
   }
 

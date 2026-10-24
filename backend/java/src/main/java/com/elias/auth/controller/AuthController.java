@@ -1,5 +1,6 @@
 package com.elias.auth.controller;
 
+import com.elias.auth.dto.request.LocalProfileRequest;
 import com.elias.auth.dto.request.LoginRequest;
 import com.elias.auth.dto.request.RegisterRequest;
 import com.elias.auth.dto.request.SetPasswordRequest;
@@ -16,6 +17,8 @@ import com.elias.common.UserInfoDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.validation.Valid;
 
 /**
  * 认证控制器
@@ -40,6 +43,17 @@ public class AuthController {
             throw BusinessException.badRequest("注册过于频繁，请 10 分钟后再试");
         }
         return ApiResponse.ok(authService.register(request));
+    }
+
+    /**
+     * 创建本地身份（桌面端首次启动用）
+     *
+     * <p>匿名接口，但不走注册限流：它只对应本机唯一的本地账号，
+     * 重复调用不会新建用户，限流按邮箱算在这里也没有意义。</p>
+     */
+    @PostMapping("/local-profile")
+    public ApiResponse<AuthResponse> localProfile(@Valid @RequestBody LocalProfileRequest request) {
+        return ApiResponse.ok(authService.createLocalProfile(request));
     }
 
     /**

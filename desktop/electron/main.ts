@@ -10,10 +10,11 @@ import type { AppConfig, BackendStatus } from './types';
  * 安装目录。
  *
  * 打包后 = exe 所在目录（NSIS 装到哪，配置和数据就放哪）。
- * 开发态 = 仓库根目录（desktop/ 的上一级）。
+ * 开发态 = 仓库根目录（desktop/dist/electron 往上三级）。
+ * 开发态下 config/ data/ logs/ 都落在仓库根，与 .gitignore 的规则对齐。
  */
 function installDir(): string {
-  return app.isPackaged ? path.dirname(app.getPath('exe')) : path.resolve(__dirname, '..', '..');
+  return app.isPackaged ? path.dirname(app.getPath('exe')) : path.resolve(__dirname, '..', '..', '..');
 }
 
 /** 后端进程总管；应用启动后创建 */
@@ -208,6 +209,25 @@ function registerIpcHandlers(): void {
   });
 }
 
+/**
+ * 解析应用图标路径。
+ * 开发态图标在 desktop/build/ 下，打包后随 resources 一起走；
+ * 两处都找不到时返回 undefined，Electron 会用默认图标，不影响启动。
+ */
+function resolveAppIcon(): string | undefined {
+  const candidates = [
+    path.join(__dirname, '..', 'build', 'icon.ico'),
+    path.join(process.resourcesPath ?? '', 'build', 'icon.ico'),
+    path.join(app.getAppPath(), 'build', 'icon.ico'),
+  ];
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1440,
@@ -216,7 +236,8 @@ function createWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     title: 'AI Resume Forge',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#fafaf9',
+    icon: resolveAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

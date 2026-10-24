@@ -1,9 +1,19 @@
 <template>
   <div ref="listRef" class="chat-message-list ui-scroll">
     <div class="chat-stream">
-      <p v-if="loading" class="chat-state-hint">消息加载中…</p>
+      <!-- 加载态：骨架屏占位，不做整页遮罩 -->
+      <div v-if="loading" class="chat-skeleton-list">
+        <div v-for="index in 3" :key="index" class="chat-skeleton-item">
+          <div class="ui-skeleton chat-skeleton-line chat-skeleton-line--label"></div>
+          <div class="ui-skeleton chat-skeleton-line"></div>
+          <div class="ui-skeleton chat-skeleton-line chat-skeleton-line--short"></div>
+        </div>
+      </div>
 
       <div v-else-if="messages.length === 0" class="ui-empty chat-empty">
+        <span class="ui-empty__icon">
+          <AppIcon name="chat-circle-dots" :size="24" />
+        </span>
         <h2 class="ui-empty__title">开始和 AI 聊聊你的简历</h2>
         <p class="ui-empty__hint">
           我可以帮你梳理项目经历、优化表达、准备面试题；设置了工作区目录后，还能一起分析本地文件。
@@ -12,7 +22,7 @@
           <button
             v-for="example in examples"
             :key="example"
-            class="chat-example"
+            class="ui-btn ui-btn--outline ui-btn--sm chat-example"
             type="button"
             @click="$emit('use-example', example)"
           >
@@ -26,13 +36,17 @@
       </template>
     </div>
 
-    <p v-if="error" class="chat-error-banner">{{ error }}</p>
+    <p v-if="error" class="ui-callout ui-callout--danger chat-error-banner" role="alert">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ error }}</span>
+    </p>
   </div>
 </template>
 
 <script setup>
 import { nextTick, ref, watch } from 'vue';
 import ChatMessageItem from './ChatMessageItem.vue';
+import AppIcon from '../common/AppIcon.vue';
 
 const props = defineProps({
   messages: { type: Array, default: () => [] },
@@ -87,9 +101,32 @@ function scrollToBottom() {
   padding: 0 var(--ui-space-6);
 }
 
-.chat-state-hint {
-  font-size: var(--ui-text-sm);
-  color: var(--chat-text-muted);
+/* 加载态：几行骨架占位，形状接近真实消息 */
+.chat-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  padding-top: var(--ui-space-2);
+}
+
+.chat-skeleton-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.chat-skeleton-line {
+  height: 12px;
+  border-radius: var(--ui-radius-full);
+}
+
+.chat-skeleton-line--label {
+  width: 88px;
+  height: 10px;
+}
+
+.chat-skeleton-line--short {
+  width: 62%;
 }
 
 .chat-empty {
@@ -105,28 +142,8 @@ function scrollToBottom() {
 }
 
 .chat-example {
-  padding: var(--ui-space-2) var(--ui-space-3);
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-  background: var(--chat-surface);
-  border: 1px solid var(--chat-border);
-  border-radius: var(--chat-radius-md);
-  cursor: pointer;
+  white-space: normal;
   text-align: left;
-  transition: color var(--ui-duration-fast) var(--ui-ease-out),
-    border-color var(--ui-duration-fast) var(--ui-ease-out),
-    background var(--ui-duration-fast) var(--ui-ease-out);
-}
-
-.chat-example:hover {
-  color: var(--ui-fg-accent);
-  border-color: var(--ui-accent-border);
-  background: var(--ui-accent-soft);
-}
-
-.chat-example:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
 }
 
 @media (max-width: 768px) {

@@ -3,11 +3,12 @@
     <!-- 页头 -->
     <header class="page-head">
       <div class="page-head__text">
-        <h1 class="page-title">我的简历</h1>
-        <p class="page-subtitle">继续编辑已有简历，或者直接开始一次 AI 对话、模拟面试。</p>
+        <h1 class="ui-page-title">我的简历</h1>
+        <p class="ui-page-subtitle">继续编辑已有简历，或者直接开始一次 AI 对话、模拟面试。</p>
       </div>
       <div class="page-head__actions">
         <button class="ui-btn ui-btn--primary" :disabled="creating" @click="handleCreate">
+          <AppIcon name="plus" :size="16" />
           {{ creating ? '创建中…' : '新建简历' }}
         </button>
       </div>
@@ -19,13 +20,11 @@
         v-for="item in quickActions"
         :key="item.key"
         type="button"
-        class="ui-card quick-item"
+        class="ui-panel ui-panel--hover quick-item"
         @click="handleQuickAction(item)"
       >
-        <span class="quick-item__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path v-for="(d, i) in iconPaths[item.icon]" :key="i" :d="d" />
-          </svg>
+        <span class="ui-icon-tile quick-item__icon" aria-hidden="true">
+          <AppIcon :name="item.icon" :size="18" />
         </span>
         <span class="quick-item__body">
           <span class="quick-item__title">{{ item.title }}</span>
@@ -37,31 +36,48 @@
     <div class="home-body">
       <!-- 简历列表 -->
       <section class="panel">
-        <header class="panel__head">
-          <h2 class="panel__title">简历列表</h2>
+        <div class="ui-section-head">
+          <h2 class="ui-section-head__title">简历列表</h2>
           <span class="ui-badge">{{ resumeStore.resumes.length }} 份</span>
-        </header>
+        </div>
 
         <!-- 加载中 -->
-        <div v-if="resumeStore.loading && resumeStore.resumes.length === 0" class="ui-card state-card">
-          <ul class="skeleton-list" aria-hidden="true">
-            <li v-for="index in 3" :key="index" class="skeleton-row"></li>
-          </ul>
+        <div v-if="resumeStore.loading && resumeStore.resumes.length === 0">
+          <div class="resume-grid" aria-hidden="true">
+            <div v-for="index in 3" :key="index" class="resume-skeleton ui-panel">
+              <div class="resume-skeleton__head">
+                <div class="ui-skeleton resume-skeleton__icon"></div>
+                <div class="resume-skeleton__lines">
+                  <div class="ui-skeleton resume-skeleton__title"></div>
+                  <div class="ui-skeleton resume-skeleton__time"></div>
+                </div>
+              </div>
+              <div class="ui-skeleton resume-skeleton__badge"></div>
+              <div class="ui-skeleton resume-skeleton__foot"></div>
+            </div>
+          </div>
           <p class="state-text">正在加载简历…</p>
         </div>
 
         <!-- 加载失败 -->
-        <div v-else-if="resumeStore.error && resumeStore.resumes.length === 0" class="ui-card state-card">
-          <div class="ui-empty">
-            <p class="ui-empty__title">简历列表加载失败</p>
-            <p class="ui-empty__hint">{{ resumeStore.error }}，请检查后端服务是否已启动后重试。</p>
-            <button class="ui-btn ui-btn--primary" @click="resumeStore.fetchResumes()">重新加载</button>
+        <div
+          v-else-if="resumeStore.error && resumeStore.resumes.length === 0"
+          class="ui-callout ui-callout--danger"
+        >
+          <AppIcon name="warning-circle" :size="16" />
+          <div class="callout__body">
+            <strong class="callout__title">简历列表加载失败</strong>
+            <p class="callout__text">{{ resumeStore.error }}，请检查后端服务是否已启动后重试。</p>
           </div>
+          <button class="ui-btn ui-btn--sm ui-btn--outline" @click="resumeStore.fetchResumes()">重新加载</button>
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="resumeStore.resumes.length === 0" class="ui-card state-card">
+        <div v-else-if="resumeStore.resumes.length === 0" class="ui-panel state-panel">
           <div class="ui-empty">
+            <span class="ui-empty__icon" aria-hidden="true">
+              <AppIcon name="files" :size="24" />
+            </span>
             <p class="ui-empty__title">{{ greeting }}你还没有简历</p>
             <p class="ui-empty__hint">
               新建一份空白简历开始写，或者让 AI 帮你从零起草；按 N 键可以快速新建。
@@ -85,40 +101,61 @@
 
       <!-- 侧栏：概览 + 最近对话 -->
       <aside class="side">
-        <section class="ui-card side-card">
-          <h2 class="side-card__title">概览</h2>
-          <dl class="stat-list">
-            <div class="stat">
-              <dt>简历</dt>
-              <dd>{{ resumeStore.resumes.length }} 份</dd>
+        <section class="ui-panel side-card">
+          <div class="ui-section-head">
+            <h2 class="ui-section-head__title">概览</h2>
+          </div>
+
+          <div class="stat-grid">
+            <div class="ui-stat">
+              <span class="ui-stat__label">简历</span>
+              <span class="ui-stat__value">
+                {{ resumeStore.resumes.length }}<small class="stat-unit">份</small>
+              </span>
             </div>
-            <div class="stat">
-              <dt>对话</dt>
-              <dd>{{ recentSessions.length }} 条</dd>
+            <div class="ui-stat">
+              <span class="ui-stat__label">对话</span>
+              <span class="ui-stat__value">
+                {{ recentSessions.length }}<small class="stat-unit">条</small>
+              </span>
             </div>
-            <div class="stat">
-              <dt>最近更新</dt>
-              <dd>{{ lastUpdatedText }}</dd>
-            </div>
-          </dl>
+          </div>
+
+          <p class="side-row">
+            <span class="ui-stat__label">最近更新</span>
+            <span class="side-row__value">{{ lastUpdatedText }}</span>
+          </p>
         </section>
 
-        <section class="ui-card side-card">
-          <header class="side-card__head">
-            <h2 class="side-card__title">最近对话</h2>
+        <section class="ui-panel side-card">
+          <div class="ui-section-head">
+            <h2 class="ui-section-head__title">最近对话</h2>
             <router-link class="ui-btn ui-btn--ghost ui-btn--sm" to="/chat">全部</router-link>
-          </header>
+          </div>
 
-          <p v-if="sessionsLoading" class="state-text state-text--left">正在加载对话…</p>
-          <p v-else-if="recentSessions.length === 0" class="side-card__empty">
-            还没有对话记录，去 AI 对话说说你想投的岗位。
-          </p>
+          <div v-if="sessionsLoading" aria-hidden="true">
+            <ul class="skeleton-list">
+              <li v-for="index in 3" :key="index" class="ui-skeleton skeleton-row"></li>
+            </ul>
+            <p class="state-text state-text--left">正在加载对话…</p>
+          </div>
+
+          <div v-else-if="recentSessions.length === 0" class="ui-empty side-empty">
+            <span class="ui-empty__icon" aria-hidden="true">
+              <AppIcon name="chat-circle" :size="24" />
+            </span>
+            <p class="ui-empty__title">还没有对话记录</p>
+            <p class="ui-empty__hint">去 AI 对话说说你想投的岗位。</p>
+            <router-link class="ui-btn ui-btn--outline ui-btn--sm" to="/chat">去和 AI 对话</router-link>
+          </div>
+
           <ul v-else class="session-list">
             <li v-for="session in recentSessions" :key="session.id">
               <router-link class="session-item" to="/chat" title="在 AI 对话中查看">
                 <span class="session-item__title">{{ session.title || '未命名对话' }}</span>
                 <span class="session-item__meta">
-                  {{ formatDateTime(session.lastMessageAt) }} · {{ session.messageCount ?? 0 }} 条消息
+                  <span>{{ formatDateTime(session.lastMessageAt) }}</span>
+                  <span>{{ session.messageCount ?? 0 }} 条消息</span>
                 </span>
               </router-link>
             </li>
@@ -132,6 +169,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import AppIcon from '../components/common/AppIcon.vue';
 import { useResumeStore } from '../store/resumeStore.js';
 import { useAuthStore } from '../store/authStore.js';
 import { listChatSessions } from '../api/chat.js';
@@ -148,24 +186,11 @@ const recentSessions = ref([]);
 
 // 快捷入口：新建简历走当前页的创建流程，其余直接跳转
 const quickActions = [
-  { key: 'create', icon: 'filePlus', title: '新建简历', desc: '从空白简历开始，边写边存' },
-  { key: 'chat', icon: 'chat', title: 'AI 对话', desc: '让 AI 帮你起草或改写简历', to: '/chat' },
-  { key: 'templates', icon: 'template', title: '模板市场', desc: '挑一套版式，套用后导出 PDF', to: '/dashboard/templates' },
-  { key: 'interview', icon: 'mic', title: '模拟面试', desc: '按目标岗位出题并逐轮点评', to: '/dashboard/interview' },
+  { key: 'create', icon: 'file-plus', title: '新建简历', desc: '从空白简历开始，边写边存' },
+  { key: 'chat', icon: 'chat-circle', title: 'AI 对话', desc: '让 AI 帮你起草或改写简历', to: '/chat' },
+  { key: 'templates', icon: 'layout', title: '模板市场', desc: '挑一套版式，套用后导出 PDF', to: '/dashboard/templates' },
+  { key: 'interview', icon: 'microphone', title: '模拟面试', desc: '按目标岗位出题并逐轮点评', to: '/dashboard/interview' },
 ];
-
-// 内联 SVG 图标（离线可用，不引第三方图标库）
-const iconPaths = {
-  filePlus: [
-    'M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z',
-    'M14 3v5h5',
-    'M9 14h6',
-    'M12 11v6',
-  ],
-  chat: ['M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.6 0-3.1-.45-4.3-1.2L3 20.5l1.7-4.8a8.5 8.5 0 1 1 16.3-4.2z'],
-  template: ['M4 4h16v16H4z', 'M4 9h16', 'M9 20V9'],
-  mic: ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z', 'M19 11v1a7 7 0 0 1-14 0v-1', 'M12 19v3', 'M8 22h8'],
-};
 
 const greeting = computed(() => {
   const name = authStore.currentUser?.username;
@@ -263,20 +288,6 @@ async function loadRecentSessions() {
   gap: var(--ui-space-4);
 }
 
-.page-title {
-  margin: 0;
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-}
-
-.page-subtitle {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
-}
-
 .page-head__actions {
   display: flex;
   flex-shrink: 0;
@@ -295,16 +306,10 @@ async function loadRecentSessions() {
   align-items: flex-start;
   gap: var(--ui-space-3);
   padding: var(--ui-space-4);
+  font-family: inherit;
+  color: var(--ui-fg-primary);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--ui-duration-fast) var(--ui-ease-in-out),
-    box-shadow var(--ui-duration-fast) var(--ui-ease-in-out),
-    background var(--ui-duration-fast) var(--ui-ease-in-out);
-}
-
-.quick-item:hover {
-  border-color: var(--ui-border-strong);
-  box-shadow: var(--ui-shadow-md);
 }
 
 .quick-item:focus-visible {
@@ -313,20 +318,7 @@ async function loadRecentSessions() {
 }
 
 .quick-item__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-accent-soft);
-  color: var(--ui-fg-accent);
-}
-
-.quick-item__icon svg {
-  width: 18px;
-  height: 18px;
 }
 
 .quick-item__body {
@@ -339,6 +331,7 @@ async function loadRecentSessions() {
 .quick-item__title {
   font-size: var(--ui-text-base);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
 }
 
@@ -363,20 +356,6 @@ async function loadRecentSessions() {
   min-width: 0;
 }
 
-.panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-}
-
-.panel__title {
-  margin: 0;
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
 .resume-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -384,8 +363,8 @@ async function loadRecentSessions() {
 }
 
 /* ---------- 状态块 ---------- */
-.state-card {
-  padding: var(--ui-space-6);
+.state-panel {
+  padding: var(--ui-space-2);
 }
 
 .state-text {
@@ -407,31 +386,74 @@ async function loadRecentSessions() {
   justify-content: center;
 }
 
-.skeleton-list {
+/* 提示条里的文字块：标题 + 说明 */
+.callout__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.callout__title {
+  font-weight: 600;
+}
+
+.callout__text {
+  margin: 0;
+  line-height: var(--ui-line-normal);
+  word-break: break-word;
+}
+
+/* 骨架卡片：形状贴近最终简历卡片（图标 + 标题 + 时间 + 状态 + 操作区） */
+.resume-skeleton {
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  padding: var(--ui-space-4) var(--ui-space-5) var(--ui-space-3);
 }
 
-.skeleton-row {
-  height: 108px;
-  border-radius: var(--ui-radius-lg);
-  background: var(--ui-bg-sunken);
-  animation: skeleton-pulse 1.4s var(--ui-ease-in-out) infinite;
+.resume-skeleton__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
 }
 
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
+.resume-skeleton__icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--ui-radius-md);
+}
 
-  50% {
-    opacity: 0.55;
-  }
+.resume-skeleton__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.resume-skeleton__title {
+  height: 14px;
+  width: 62%;
+}
+
+.resume-skeleton__time {
+  height: 10px;
+  width: 40%;
+}
+
+.resume-skeleton__badge {
+  height: 18px;
+  width: 72px;
+  border-radius: var(--ui-radius-full);
+}
+
+.resume-skeleton__foot {
+  height: 12px;
+  width: 100%;
+  margin-top: var(--ui-space-2);
 }
 
 /* ---------- 侧栏 ---------- */
@@ -449,48 +471,34 @@ async function loadRecentSessions() {
   gap: var(--ui-space-3);
 }
 
-.side-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-2);
+.side-empty {
+  padding: var(--ui-space-6) var(--ui-space-2);
 }
 
-.side-card__title {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-4);
 }
 
-.side-card__empty {
-  margin: 0;
-  font-size: var(--ui-text-sm);
-  line-height: var(--ui-line-normal);
+.stat-unit {
+  margin-left: 2px;
+  font-size: var(--ui-text-xs);
+  font-weight: 500;
   color: var(--ui-fg-muted);
 }
 
-.stat-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-2);
-  margin: 0;
-}
-
-.stat {
+.side-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--ui-space-3);
-}
-
-.stat dt {
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-}
-
-.stat dd {
   margin: 0;
+  padding-top: var(--ui-space-3);
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.side-row__value {
   font-size: var(--ui-text-sm);
   font-weight: 600;
   color: var(--ui-fg-primary);
@@ -505,6 +513,20 @@ async function loadRecentSessions() {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeleton-row {
+  height: 44px;
+  border-radius: var(--ui-radius-md);
 }
 
 .session-item {
@@ -535,8 +557,15 @@ async function loadRecentSessions() {
 }
 
 .session-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
   font-size: var(--ui-text-xs);
   color: var(--ui-fg-muted);
+  overflow: hidden;
+}
+
+.session-item__meta span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

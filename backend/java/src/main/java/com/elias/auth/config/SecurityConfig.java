@@ -34,6 +34,8 @@ public class SecurityConfig {
             "/api/auth/verify-code",
             "/api/auth/set-password",
             "/api/auth/login-by-code",
+            // 桌面端首次启动创建本地身份：匿名接口，只对应本机唯一的一个本地账号
+            "/api/auth/local-profile",
             // 支付宝服务端回调没有登录态，靠 outTradeNo + 回调验签识别，不能被鉴权拦掉
             "/api/pay/callback"
     };

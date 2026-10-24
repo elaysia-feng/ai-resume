@@ -1,7 +1,7 @@
 <template>
   <section class="style-panel">
     <header class="style-panel__head">
-      <h2 class="section-title">样式</h2>
+      <h2 class="ui-section-head__title">样式</h2>
       <p class="style-panel__hint">调整排版后右侧预览会立即更新。</p>
     </header>
 
@@ -21,12 +21,12 @@
 
     <div class="control-group">
       <span class="ui-label">正文字号</span>
-      <div class="segment" role="group" aria-label="正文字号">
+      <div class="ui-segmented" role="group" aria-label="正文字号">
         <button
           v-for="size in fontSizes"
           :key="size"
           type="button"
-          class="segment__item"
+          class="ui-segmented__item"
           :class="{ 'is-active': Number(localStyle.fontSize) === size }"
           :aria-pressed="Number(localStyle.fontSize) === size"
           @click="update('fontSize', size)"
@@ -38,12 +38,12 @@
 
     <div class="control-group">
       <span class="ui-label">行距</span>
-      <div class="segment" role="group" aria-label="行距">
+      <div class="ui-segmented" role="group" aria-label="行距">
         <button
           v-for="sp in spacingOptions"
           :key="sp.value"
           type="button"
-          class="segment__item"
+          class="ui-segmented__item"
           :class="{ 'is-active': localStyle.spacing === sp.value }"
           :aria-pressed="localStyle.spacing === sp.value"
           @click="update('spacing', sp.value)"
@@ -55,12 +55,12 @@
 
     <div class="control-group">
       <span class="ui-label">区块间距</span>
-      <div class="segment" role="group" aria-label="区块间距">
+      <div class="ui-segmented" role="group" aria-label="区块间距">
         <button
           v-for="gap in gapOptions"
           :key="gap.value"
           type="button"
-          class="segment__item"
+          class="ui-segmented__item"
           :class="{ 'is-active': localStyle.sectionGap === gap.value }"
           :aria-pressed="localStyle.sectionGap === gap.value"
           @click="update('sectionGap', gap.value)"
@@ -85,7 +85,7 @@
           :aria-pressed="localStyle.color === color.value"
           @click="update('color', color.value)"
         >
-          <span v-if="localStyle.color === color.value" class="swatch__check">✓</span>
+          <AppIcon v-if="localStyle.color === color.value" name="check" :size="14" class="swatch__check" />
         </button>
       </div>
     </div>
@@ -124,12 +124,12 @@
     </div>
 
     <div class="style-panel__preview-wrap">
-      <span class="ui-label">实时预览</span>
+      <span class="ui-label">样式示意</span>
       <div class="style-panel__preview" :style="previewStyle">
-        <p class="preview-name">张明</p>
-        <p class="preview-job">Java 后端开发工程师</p>
-        <p class="preview-section">项目经历</p>
-        <p class="preview-body">负责核心交易链路的设计与实现，推动接口响应时间下降 40%。</p>
+        <p class="preview-name">姓名</p>
+        <p class="preview-job">职位</p>
+        <p class="preview-section">分区标题</p>
+        <p class="preview-body">这里展示当前字号、行距与区块间距的实际排版效果。</p>
       </div>
     </div>
   </section>
@@ -137,6 +137,7 @@
 
 <script setup>
 import { reactive, watch, computed } from 'vue'
+import AppIcon from '../common/AppIcon.vue'
 
 const props = defineProps({
   modelValue: {
@@ -181,7 +182,7 @@ const sidebarColors = [
     value: 'blue',
     name: '深蓝',
     label: '深蓝',
-    swatch: 'linear-gradient(180deg, color-mix(in srgb, var(--ui-info) 82%, var(--ui-neutral-950)) 0%, color-mix(in srgb, var(--ui-info) 55%, var(--ui-neutral-950)) 100%)',
+    swatch: 'linear-gradient(180deg, var(--ui-info) 0%, var(--ui-neutral-950) 100%)',
   },
   { value: 'black', name: '墨黑', label: '墨黑', swatch: 'linear-gradient(180deg, var(--ui-neutral-900) 0%, var(--ui-neutral-800) 100%)' },
   { value: 'white', name: '纯白', label: '纯白', swatch: 'linear-gradient(180deg, var(--ui-neutral-0) 0%, var(--ui-neutral-50) 100%)' },
@@ -236,13 +237,6 @@ const previewStyle = computed(() => {
   gap: var(--ui-space-1);
 }
 
-.section-title {
-  margin: 0;
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
 .style-panel__hint {
   margin: 0;
   font-size: var(--ui-text-sm);
@@ -259,44 +253,9 @@ const previewStyle = computed(() => {
 }
 
 /* ---------- 分段选择 ---------- */
-.segment {
-  display: inline-flex;
+/* 字号 / 行距 / 间距统一使用 .ui-segmented，这里只做换行适配 */
+.control-group :deep(.ui-segmented) {
   flex-wrap: wrap;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
-}
-
-.segment__item {
-  padding: var(--ui-space-1) var(--ui-space-3);
-  border: 0;
-  border-radius: var(--ui-radius-sm);
-  background: transparent;
-  color: var(--ui-fg-secondary);
-  font-size: var(--ui-text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--ui-duration-fast) var(--ui-ease-out),
-    color var(--ui-duration-fast) var(--ui-ease-out);
-}
-
-.segment__item:hover {
-  background: var(--ui-bg-hover);
-  color: var(--ui-fg-primary);
-}
-
-.segment__item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
-.segment__item.is-active {
-  background: var(--ui-bg-surface);
-  color: var(--ui-fg-accent);
-  font-weight: 600;
-  box-shadow: var(--ui-shadow-xs);
 }
 
 /* ---------- 色板 ---------- */
@@ -357,9 +316,7 @@ const previewStyle = computed(() => {
 
 .swatch__check {
   color: var(--ui-accent-fg);
-  font-size: 14px;
-  font-weight: 700;
-  text-shadow: 0 1px 2px var(--ui-overlay);
+  filter: drop-shadow(0 1px 1px var(--ui-overlay));
 }
 
 /* ---------- 开关 ---------- */

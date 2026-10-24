@@ -1,5 +1,6 @@
 package com.elias.auth.service;
 
+import com.elias.auth.dto.request.LocalProfileRequest;
 import com.elias.auth.dto.request.LoginRequest;
 import com.elias.auth.dto.request.RegisterRequest;
 import com.elias.auth.dto.response.AuthResponse;
@@ -21,6 +22,20 @@ public interface AuthService {
      * @throws RuntimeException 用户名或邮箱已存在
      */
     AuthResponse register(RegisterRequest request);
+
+    /**
+     * 创建（或复用）桌面端的本地身份。
+     *
+     * <p>本机只对应一个本地身份：邮箱是固定的占位地址 {@code local@local.invalid}，
+     * 昵称写进 users.username（这张表没有独立的 nickname 列）。
+     * 重复调用不会新建用户，返回的 userId 始终是同一个。</p>
+     *
+     * <p>本地身份不走任何登录入口：密码是随机不可用值，邮箱也永远收不到验证码。</p>
+     *
+     * @param request 本地身份参数（昵称）
+     * @return 认证响应（包含 JWT Token）
+     */
+    AuthResponse createLocalProfile(LocalProfileRequest request);
 
     /**
      * 用户登录

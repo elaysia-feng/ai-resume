@@ -2,7 +2,10 @@
   <section class="agent-copilot">
     <header class="agent-copilot__header">
       <div class="agent-copilot__heading">
-        <h3 class="agent-copilot__title">模块 Copilot</h3>
+        <h3 class="agent-copilot__title">
+          <AppIcon name="sparkle" :size="16" />
+          模块 Copilot
+        </h3>
         <p class="agent-copilot__subtitle">{{ sectionTitle }}</p>
       </div>
       <label class="switch">
@@ -54,7 +57,10 @@
       </button>
     </div>
 
-    <p v-if="error" class="agent-copilot__error">{{ error }}</p>
+    <div v-if="error" class="ui-callout ui-callout--danger agent-copilot__error">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ error }}</span>
+    </div>
     <p v-if="statusText" class="agent-copilot__status">{{ statusText }}</p>
 
     <div v-if="events.length" class="agent-copilot__events">
@@ -106,6 +112,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import AppIcon from '../common/AppIcon.vue';
 import {
   approveAgentRun,
   continueAgentRun,
@@ -308,7 +315,9 @@ function formatJson(value) {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   color: var(--ui-fg-primary);
+  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
 }
 
 .agent-copilot__header {
@@ -323,6 +332,9 @@ function formatJson(value) {
 }
 
 .agent-copilot__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
   margin: 0;
   font-size: var(--ui-text-md);
   font-weight: 600;
@@ -366,12 +378,7 @@ function formatJson(value) {
 
 .agent-copilot__error {
   margin: 0;
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border: 1px solid var(--ui-danger-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
-  font-size: var(--ui-text-sm);
+  align-items: flex-start;
 }
 
 .agent-copilot__status {

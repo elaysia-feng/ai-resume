@@ -2,22 +2,28 @@
   <div class="interview-page">
     <header class="page-head">
       <div class="page-head__text">
-        <h1 class="page-title">模拟面试</h1>
-        <p class="page-subtitle">基于当前后端的 interview run、board 和 question-rounds 接口，逐轮作答并查看结构化反馈。</p>
+        <h1 class="ui-page-title">模拟面试</h1>
+        <p class="ui-page-subtitle">基于当前后端的 interview run、board 和 question-rounds 接口，逐轮作答并查看结构化反馈。</p>
       </div>
       <div class="page-head__actions">
-        <span v-if="runBadge" class="ui-badge" :class="runBadge.tone">{{ runBadge.label }}</span>
+        <span v-if="runBadge" class="ui-badge" :class="runBadge.tone">
+          <AppIcon :name="runBadge.icon" :size="12" :spin="runBadge.spin" />
+          {{ runBadge.label }}
+        </span>
         <button class="ui-btn ui-btn--outline" :disabled="loadingSessions" @click="loadInterviewSessions">
+          <AppIcon name="arrows-clockwise" :size="16" :spin="loadingSessions" />
           {{ loadingSessions ? '刷新中…' : '刷新会话' }}
         </button>
       </div>
     </header>
 
     <!-- 新建面试 -->
-    <section class="ui-card setup">
-      <header class="setup__head">
-        <h2 class="setup__title">开始新的模拟面试</h2>
-        <p class="setup__desc">选择简历并补充岗位 JD 后启动，题目会逐轮下发。</p>
+    <section class="ui-panel setup">
+      <header class="ui-section-head setup__head">
+        <div>
+          <h2 class="ui-section-head__title">开始新的模拟面试</h2>
+          <p class="ui-section-head__hint">选择简历并补充岗位 JD 后启动，题目会逐轮下发。</p>
+        </div>
       </header>
       <div class="setup__grid">
         <div class="field">
@@ -29,33 +35,63 @@
         </div>
         <div class="field">
           <label class="ui-label" for="setup-title">会话标题</label>
-          <input id="setup-title" v-model="createForm.sessionTitle" class="ui-input" type="text" placeholder="例如：Java 后端一面" />
+          <input
+            id="setup-title"
+            ref="setupTitleRef"
+            v-model="createForm.sessionTitle"
+            class="ui-input"
+            type="text"
+            placeholder="例如：Java 后端一面"
+          />
         </div>
         <div class="field field--wide">
           <label class="ui-label" for="setup-jd">岗位 JD</label>
-          <textarea id="setup-jd" v-model="createForm.jobDescription" class="ui-input" rows="3" placeholder="填写岗位要求，留空也可以启动"></textarea>
+          <textarea
+            id="setup-jd"
+            v-model="createForm.jobDescription"
+            class="ui-input ui-textarea"
+            rows="3"
+            placeholder="填写岗位要求，留空也可以启动"
+          ></textarea>
         </div>
       </div>
       <div class="setup__actions">
         <button class="ui-btn ui-btn--primary" :disabled="creating" @click="handleCreateAndStart">
+          <AppIcon name="play" :size="16" />
           {{ creating ? '启动中…' : '新建并开始面试' }}
         </button>
       </div>
     </section>
 
-    <p v-if="message" class="notice notice--success" role="status" aria-live="polite">{{ message }}</p>
-    <p v-if="error" class="notice notice--danger" role="alert">{{ error }}</p>
+    <p v-if="message" class="ui-callout ui-callout--accent notice" role="status" aria-live="polite">
+      <AppIcon name="check-circle" :size="16" />
+      <span>{{ message }}</span>
+    </p>
+    <p v-if="error" class="ui-callout ui-callout--danger notice" role="alert">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ error }}</span>
+    </p>
 
     <div class="interview-layout">
       <!-- 面试会话列表 -->
-      <aside class="ui-card session-panel">
-        <header class="panel-head">
-          <h2 class="panel-head__title">面试会话</h2>
+      <aside class="ui-panel session-panel">
+        <header class="ui-section-head session-panel__head">
+          <h2 class="ui-section-head__title">面试会话</h2>
           <span class="ui-badge">{{ sessions.length }}</span>
         </header>
         <div class="session-list ui-scroll">
-          <p v-if="loadingSessions" class="state-block">加载中…</p>
-          <p v-else-if="sessions.length === 0" class="state-block">暂无面试会话</p>
+          <div v-if="loadingSessions" class="session-skeletons">
+            <div v-for="index in 3" :key="index" class="ui-skeleton session-skeleton"></div>
+          </div>
+
+          <div v-else-if="sessions.length === 0" class="ui-empty session-empty">
+            <span class="ui-empty__icon">
+              <AppIcon name="microphone" :size="24" />
+            </span>
+            <p class="ui-empty__title">暂无面试会话</p>
+            <p class="ui-empty__hint">新建并开始面试后，这里会列出全部面试记录。</p>
+          </div>
+
           <button
             v-for="session in sessions"
             :key="session.id"
@@ -66,7 +102,10 @@
           >
             <span class="session-item__title">{{ session.sessionTitle || `面试会话 #${session.id}` }}</span>
             <span class="session-item__meta">
-              <span class="ui-badge" :class="sessionBadge(session).tone">{{ sessionBadge(session).label }}</span>
+              <span class="ui-badge" :class="sessionBadge(session).tone">
+                <AppIcon :name="sessionBadge(session).icon" :size="12" :spin="sessionBadge(session).spin" />
+                {{ sessionBadge(session).label }}
+              </span>
               <span class="session-item__time">{{ formatDateTime(session.updatedAt || session.lastMessageAt) }}</span>
             </span>
           </button>
@@ -75,36 +114,53 @@
 
       <!-- 面试看板 -->
       <section class="board">
-        <div v-if="!selectedRunId" class="ui-card board-empty">
+        <div v-if="!selectedRunId" class="ui-panel board-empty">
           <div class="ui-empty">
+            <span class="ui-empty__icon">
+              <AppIcon name="microphone" :size="24" />
+            </span>
             <p class="ui-empty__title">还没有进行中的面试</p>
             <p class="ui-empty__hint">在上方选择简历并填写岗位 JD，点击「新建并开始面试」即可开始第一轮问答。</p>
+            <button class="ui-btn ui-btn--primary" type="button" @click="focusSetup">去填写面试信息</button>
           </div>
         </div>
 
         <template v-else>
-          <header class="ui-card board-head">
+          <header class="ui-panel board-head">
             <div class="board-head__text">
               <h2 class="board-head__title">Run #{{ selectedRunId }}</h2>
-              <p class="board-head__meta">
-                状态：{{ board?.status || '未加载' }}
-                <template v-if="loadingBoard">· 加载中…</template>
-              </p>
+              <p class="board-head__meta">状态：{{ board?.status || '未加载' }}</p>
+              <span v-if="loadingBoard" class="board-head__loading">
+                <AppIcon name="spinner-gap" :size="12" spin />
+                加载中…
+              </span>
             </div>
             <div class="board-head__actions">
-              <span v-if="runBadge" class="ui-badge" :class="runBadge.tone">{{ runBadge.label }}</span>
               <button class="ui-btn ui-btn--outline ui-btn--sm" :disabled="loadingBoard" @click="refreshBoard">
+                <AppIcon name="arrows-clockwise" :size="14" :spin="loadingBoard" />
                 {{ loadingBoard ? '刷新中…' : '刷新当前题' }}
               </button>
             </div>
           </header>
 
-          <p v-if="board?.errorMessage" class="notice notice--danger">{{ board.errorMessage }}</p>
+          <!-- 面试进行状态：让「排队中 / 进行中 / 等待回答」有存在感 -->
+          <div v-if="runBadge" class="run-strip" :class="runStripTone">
+            <span class="run-strip__icon">
+              <AppIcon :name="runBadge.icon" :size="16" :spin="runBadge.spin" />
+            </span>
+            <span class="run-strip__label">{{ runBadge.label }}</span>
+            <span class="run-strip__hint">{{ runHint }}</span>
+          </div>
+
+          <p v-if="board?.errorMessage" class="ui-callout ui-callout--danger notice">
+            <AppIcon name="warning-circle" :size="16" />
+            <span>{{ board.errorMessage }}</span>
+          </p>
 
           <!-- 面试总结：总分 / 亮点 / 待提升 -->
-          <section v-if="summaryView" class="ui-card summary">
-            <header class="panel-head">
-              <h2 class="panel-head__title">面试总结</h2>
+          <section v-if="summaryView" class="ui-panel summary">
+            <header class="ui-section-head">
+              <h2 class="ui-section-head__title">面试总结</h2>
               <span v-if="summaryView.score !== null" class="ui-badge ui-badge--accent">{{ summaryView.score }} 分</span>
             </header>
             <div class="summary__body">
@@ -127,7 +183,7 @@
           </section>
 
           <!-- 当前题目 -->
-          <section v-if="currentQuestion" class="ui-card question">
+          <section v-if="currentQuestion" class="ui-panel question">
             <header class="question__head">
               <span class="ui-badge ui-badge--accent">第 {{ currentQuestion.roundNo }} 轮</span>
               <span class="ui-badge">{{ currentQuestion.status }}</span>
@@ -153,8 +209,8 @@
               <textarea
                 id="answer-supplement"
                 v-model="answerForm.supplementText"
-                class="ui-input"
-                rows="3"
+                class="ui-input ui-textarea question__textarea"
+                rows="4"
                 placeholder="可以补充你的选择理由或自由回答"
               ></textarea>
             </div>
@@ -162,35 +218,58 @@
             <!-- 底部固定输入区 -->
             <div class="question__actions">
               <button class="ui-btn ui-btn--primary" :disabled="submitting" @click="handleSubmitAnswer">
+                <AppIcon name="paper-plane-tilt" :size="16" />
                 {{ submitting ? '提交中…' : '提交答案' }}
               </button>
               <span class="question__tip">提交后自动进入下一题</span>
             </div>
           </section>
-          <div v-else class="ui-card board-empty">
+          <div v-else class="ui-panel board-empty">
             <div class="ui-empty">
+              <span class="ui-empty__icon">
+                <AppIcon name="question" :size="24" />
+              </span>
               <p class="ui-empty__title">当前没有待回答题目</p>
               <p class="ui-empty__hint">可能正在出题，稍等几秒后点「刷新当前题」即可。</p>
+              <button class="ui-btn ui-btn--outline" type="button" :disabled="loadingBoard" @click="refreshBoard">
+                <AppIcon name="arrows-clockwise" :size="16" :spin="loadingBoard" />
+                刷新当前题
+              </button>
             </div>
           </div>
 
           <!-- 已回答轮次 -->
-          <section class="ui-card rounds">
-            <header class="panel-head">
-              <h2 class="panel-head__title">已回答轮次</h2>
+          <section class="ui-panel rounds">
+            <header class="ui-section-head">
+              <h2 class="ui-section-head__title">已回答轮次</h2>
               <button class="ui-btn ui-btn--ghost ui-btn--sm" :disabled="loadingRounds" @click="loadRounds">
+                <AppIcon name="arrows-clockwise" :size="14" :spin="loadingRounds" />
                 {{ loadingRounds ? '加载中…' : '刷新历史' }}
               </button>
             </header>
             <div class="round-list ui-scroll">
-              <p v-if="loadingRounds" class="state-block">加载中…</p>
-              <p v-else-if="rounds.length === 0" class="state-block">暂无已回答记录</p>
+              <div v-if="loadingRounds" class="round-skeletons">
+                <div v-for="index in 2" :key="index" class="ui-skeleton round-skeleton"></div>
+              </div>
+
+              <div v-else-if="rounds.length === 0" class="ui-empty rounds-empty">
+                <span class="ui-empty__icon">
+                  <AppIcon name="clock-counter-clockwise" :size="24" />
+                </span>
+                <p class="ui-empty__title">暂无已回答记录</p>
+                <p class="ui-empty__hint">提交第一题后，这里会保留每一轮的作答与评价。</p>
+              </div>
+
               <article v-for="round in rounds" :key="round.roundId" class="round-item">
                 <header class="round-item__head">
                   <span class="ui-badge ui-badge--accent">第 {{ round.roundNo }} 轮</span>
-                  <span class="ui-badge" :class="roundBadge(round).tone">{{ roundBadge(round).label }}</span>
+                  <span class="ui-badge" :class="roundBadge(round).tone">
+                    <AppIcon :name="roundBadge(round).icon" :size="12" />
+                    {{ roundBadge(round).label }}
+                  </span>
                   <span v-if="roundScore(round) !== null" class="round-item__score">
-                    {{ starText(roundScore(round)) }} · {{ roundScore(round) }} 分
+                    <span class="round-item__stars">{{ starText(roundScore(round)) }}</span>
+                    <span>{{ roundScore(round) }} 分</span>
                   </span>
                 </header>
                 <h4 class="round-item__question">{{ round.questionText }}</h4>
@@ -231,17 +310,28 @@ import {
   submitInterviewAnswer,
 } from '../api/index.js';
 import { formatDateTime } from '../utils/resume.js';
+import AppIcon from '../components/common/AppIcon.vue';
 
 const POLL_INTERVAL_MS = 2500;
 
-// run / 会话 / 轮次的状态文案与徽标色调
+// run / 会话 / 轮次的状态文案与徽标色调（icon 用于界面上的状态标识）
 const RUN_STATUS_VIEW = {
-  QUEUED: { label: '排队中', tone: '' },
-  RUNNING: { label: '进行中', tone: 'ui-badge--accent' },
-  WAITING_USER: { label: '等待回答', tone: 'ui-badge--warning' },
-  SUCCESS: { label: '已结束', tone: 'ui-badge--success' },
-  FAILED: { label: '执行失败', tone: 'ui-badge--danger' },
-  CANCELLED: { label: '已取消', tone: '' },
+  QUEUED: { label: '排队中', tone: '', icon: 'hourglass-medium', spin: false },
+  RUNNING: { label: '进行中', tone: 'ui-badge--accent', icon: 'spinner-gap', spin: true },
+  WAITING_USER: { label: '等待回答', tone: 'ui-badge--warning', icon: 'microphone', spin: false },
+  SUCCESS: { label: '已结束', tone: 'ui-badge--success', icon: 'check-circle', spin: false },
+  FAILED: { label: '执行失败', tone: 'ui-badge--danger', icon: 'x-circle', spin: false },
+  CANCELLED: { label: '已取消', tone: '', icon: 'minus', spin: false },
+};
+
+// 状态条上的一句提示：说清「现在在做什么」
+const RUN_STATUS_HINT = {
+  QUEUED: '题目准备中，稍等几秒',
+  RUNNING: '正在生成题目，稍等几秒',
+  WAITING_USER: '请在下方选择答案并提交',
+  SUCCESS: '本场面试已结束，可回看每轮评价',
+  FAILED: '本次面试执行失败，可新建一场重试',
+  CANCELLED: '本次面试已取消',
 };
 
 const loadingSessions = ref(false);
@@ -257,6 +347,7 @@ const selectedRunId = ref(null);
 const board = ref(null);
 const rounds = ref([]);
 const activeRoundId = ref(null);
+const setupTitleRef = ref(null);
 let pollTimer = null;
 
 const createForm = reactive({
@@ -276,7 +367,27 @@ const runBadge = computed(() => {
   if (!board.value?.status) {
     return null;
   }
-  return RUN_STATUS_VIEW[board.value.status] || { label: board.value.status, tone: '' };
+  return RUN_STATUS_VIEW[board.value.status] || { label: board.value.status, tone: '', icon: 'info', spin: false };
+});
+
+const runHint = computed(() => RUN_STATUS_HINT[board.value?.status] || '');
+
+// 状态条配色：排队 / 进行中 / 等待回答 / 已结束 / 失败
+const runStripTone = computed(() => {
+  const status = board.value?.status || '';
+  if (status === 'WAITING_USER') {
+    return 'is-waiting';
+  }
+  if (status === 'SUCCESS') {
+    return 'is-success';
+  }
+  if (status === 'FAILED') {
+    return 'is-danger';
+  }
+  if (status === 'QUEUED' || status === 'RUNNING') {
+    return 'is-live';
+  }
+  return '';
 });
 
 // 面试总结在后端存的是 JSON 字符串（summary / highlight / improvement / score），
@@ -469,6 +580,11 @@ function resetAnswerForm() {
   answerForm.supplementText = '';
 }
 
+// 空态引导：把焦点送回「新建面试」的表单
+function focusSetup() {
+  setupTitleRef.value?.focus();
+}
+
 function startPolling() {
   stopPolling();
   pollTimer = window.setInterval(async () => {
@@ -517,19 +633,19 @@ function sessionBadge(session) {
     return RUN_STATUS_VIEW[runStatus];
   }
   if (session.activeRunId) {
-    return { label: '进行中', tone: 'ui-badge--accent' };
+    return { label: '进行中', tone: 'ui-badge--accent', icon: 'spinner-gap', spin: true };
   }
   if (session.status === 'ARCHIVED') {
-    return { label: '已归档', tone: '' };
+    return { label: '已归档', tone: '', icon: 'note-blank', spin: false };
   }
-  return { label: '未开始', tone: '' };
+  return { label: '未开始', tone: '', icon: 'clock', spin: false };
 }
 
 function roundBadge(round) {
   if (round.status === 'ANSWERED') {
-    return { label: '已作答', tone: 'ui-badge--success' };
+    return { label: '已作答', tone: 'ui-badge--success', icon: 'check-circle' };
   }
-  return { label: round.status || '未知', tone: '' };
+  return { label: round.status || '未知', tone: '', icon: 'info' };
 }
 
 // 单轮分析在后端存的是 JSON 字符串：evaluation / score / reason
@@ -586,18 +702,8 @@ function starText(score) {
   gap: var(--ui-space-4);
 }
 
-.page-title {
-  margin: 0;
-  font-size: var(--ui-text-2xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-}
-
-.page-subtitle {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
+.page-head__text {
+  min-width: 0;
 }
 
 .page-head__actions {
@@ -610,22 +716,6 @@ function starText(score) {
 /* ---------- 提示条 ---------- */
 .notice {
   margin: 0;
-  padding: var(--ui-space-3) var(--ui-space-4);
-  border-radius: var(--ui-radius-md);
-  font-size: var(--ui-text-sm);
-  line-height: var(--ui-line-normal);
-}
-
-.notice--success {
-  background: var(--ui-success-soft);
-  border: 1px solid var(--ui-success-border);
-  color: var(--ui-fg-primary);
-}
-
-.notice--danger {
-  background: var(--ui-danger-soft);
-  border: 1px solid var(--ui-danger-border);
-  color: var(--ui-fg-primary);
 }
 
 /* ---------- 新建面试 ---------- */
@@ -634,20 +724,7 @@ function starText(score) {
 }
 
 .setup__head {
-  margin-bottom: var(--ui-space-4);
-}
-
-.setup__title {
-  margin: 0;
-  font-size: var(--ui-text-md);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-}
-
-.setup__desc {
-  margin: var(--ui-space-1) 0 0;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
+  margin-bottom: var(--ui-space-5);
 }
 
 .setup__grid {
@@ -659,7 +736,7 @@ function starText(score) {
 .setup__actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--ui-space-4);
+  margin-top: var(--ui-space-5);
 }
 
 /* ---------- 表单 ---------- */
@@ -676,16 +753,6 @@ function starText(score) {
 textarea.ui-input {
   resize: vertical;
   font-family: inherit;
-}
-
-.ui-select {
-  appearance: none;
-  padding-right: var(--ui-space-8);
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
 }
 
 /* ---------- 主布局 ---------- */
@@ -705,19 +772,8 @@ textarea.ui-input {
   max-height: calc(100vh - 220px);
 }
 
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-  margin-bottom: var(--ui-space-3);
-}
-
-.panel-head__title {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
+.session-panel__head {
+  margin-bottom: 0;
 }
 
 .session-list {
@@ -725,6 +781,32 @@ textarea.ui-input {
   flex-direction: column;
   gap: var(--ui-space-2);
   min-height: 0;
+}
+
+/* 会话列表加载态 */
+.session-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.session-skeleton {
+  height: 58px;
+  border-radius: var(--ui-radius-md);
+}
+
+.session-empty {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-6) var(--ui-space-3);
+}
+
+.session-empty :deep(.ui-empty__title) {
+  font-size: var(--ui-text-sm);
+}
+
+.session-empty :deep(.ui-empty__hint) {
+  font-size: var(--ui-text-xs);
+  line-height: var(--ui-line-normal);
 }
 
 .session-item {
@@ -777,14 +859,6 @@ textarea.ui-input {
   color: var(--ui-fg-muted);
 }
 
-.state-block {
-  margin: 0;
-  padding: var(--ui-space-6) var(--ui-space-3);
-  text-align: center;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-muted);
-}
-
 /* ---------- 看板 ---------- */
 .board {
   display: flex;
@@ -801,27 +875,134 @@ textarea.ui-input {
   padding: var(--ui-space-4) var(--ui-space-5);
 }
 
+.board-head__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ui-space-2) var(--ui-space-3);
+  min-width: 0;
+}
+
 .board-head__title {
   margin: 0;
   font-size: var(--ui-text-lg);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   color: var(--ui-fg-primary);
 }
 
 .board-head__meta {
-  margin: var(--ui-space-1) 0 0;
+  margin: 0;
   font-size: var(--ui-text-sm);
   color: var(--ui-fg-secondary);
+}
+
+.board-head__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  font-size: var(--ui-text-xs);
+  color: var(--ui-fg-muted);
 }
 
 .board-head__actions {
   display: flex;
   align-items: center;
   gap: var(--ui-space-3);
+  flex: none;
 }
 
 .board-empty {
   padding: 0;
+}
+
+/* ---------- 面试状态条 ---------- */
+.run-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-sunken);
+  color: var(--ui-fg-secondary);
+}
+
+.run-strip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border);
+  color: var(--ui-fg-secondary);
+}
+
+.run-strip__label {
+  font-size: var(--ui-text-base);
+  font-weight: 600;
+  color: var(--ui-fg-primary);
+  white-space: nowrap;
+}
+
+.run-strip__hint {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-fg-secondary);
+  word-break: break-word;
+}
+
+/* 进行中：底色 + 品牌色图标，让状态有存在感 */
+.run-strip.is-live {
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent-border);
+}
+
+.run-strip.is-live .run-strip__icon {
+  background: var(--ui-bg-surface);
+  border-color: var(--ui-accent-border);
+  color: var(--ui-fg-accent);
+}
+
+.run-strip.is-live .run-strip__label {
+  color: var(--ui-fg-accent);
+}
+
+/* 等待回答：状态最强，等用户动作 */
+.run-strip.is-waiting {
+  background: var(--ui-accent-soft);
+  border-color: var(--ui-accent);
+  box-shadow: var(--ui-shadow-accent);
+}
+
+.run-strip.is-waiting .run-strip__icon {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: var(--ui-accent-fg);
+}
+
+.run-strip.is-waiting .run-strip__label {
+  color: var(--ui-fg-accent);
+}
+
+.run-strip.is-success {
+  background: var(--ui-success-soft);
+  border-color: var(--ui-success-border);
+}
+
+.run-strip.is-success .run-strip__icon {
+  color: var(--ui-success);
+}
+
+.run-strip.is-danger {
+  background: var(--ui-danger-soft);
+  border-color: var(--ui-danger-border);
+}
+
+.run-strip.is-danger .run-strip__icon {
+  color: var(--ui-danger);
 }
 
 /* ---------- 总结 ---------- */
@@ -900,6 +1081,7 @@ textarea.ui-input {
   margin: 0;
   font-size: var(--ui-text-lg);
   font-weight: 600;
+  letter-spacing: var(--ui-tracking-snug);
   line-height: var(--ui-line-tight);
   color: var(--ui-fg-primary);
   word-break: break-word;
@@ -913,10 +1095,10 @@ textarea.ui-input {
 
 .option-item {
   display: grid;
-  grid-template-columns: 20px 28px minmax(0, 1fr);
+  grid-template-columns: 16px 26px minmax(0, 1fr);
   align-items: center;
   gap: var(--ui-space-3);
-  padding: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-bg-surface);
@@ -939,16 +1121,39 @@ textarea.ui-input {
   background: var(--ui-bg-selected);
 }
 
+.option-item input[type='radio'] {
+  accent-color: var(--ui-accent);
+}
+
 .option-item__key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-sunken);
   font-size: var(--ui-text-sm);
   font-weight: 700;
   color: var(--ui-fg-primary);
+}
+
+.option-item.is-selected .option-item__key {
+  border-color: var(--ui-accent-border);
+  background: var(--ui-accent-soft);
+  color: var(--ui-fg-accent);
 }
 
 .option-item__text {
   font-size: var(--ui-text-base);
   color: var(--ui-fg-primary);
   word-break: break-word;
+}
+
+/* 作答区留出宽敞的书写空间 */
+.question__textarea {
+  min-height: 140px;
 }
 
 /* 底部固定输入区：作答区始终可见 */
@@ -985,6 +1190,32 @@ textarea.ui-input {
   min-height: 0;
 }
 
+/* 历史记录加载态 */
+.round-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.round-skeleton {
+  height: 132px;
+  border-radius: var(--ui-radius-md);
+}
+
+.rounds-empty {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-6) var(--ui-space-3);
+}
+
+.rounds-empty :deep(.ui-empty__title) {
+  font-size: var(--ui-text-sm);
+}
+
+.rounds-empty :deep(.ui-empty__hint) {
+  font-size: var(--ui-text-xs);
+  line-height: var(--ui-line-normal);
+}
+
 .round-item {
   display: flex;
   flex-direction: column;
@@ -1002,10 +1233,18 @@ textarea.ui-input {
 }
 
 .round-item__score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
   margin-left: auto;
   font-size: var(--ui-text-sm);
   font-weight: 600;
   color: var(--ui-fg-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.round-item__stars {
+  letter-spacing: var(--ui-tracking-normal);
 }
 
 .round-item__question {

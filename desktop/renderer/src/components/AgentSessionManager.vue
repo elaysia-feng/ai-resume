@@ -1,17 +1,18 @@
 <template>
   <section class="session-page">
-    <header class="page-header">
-      <div class="page-header__text">
-        <h2 class="page-title">Agent 会话管理</h2>
-        <p class="page-subtitle">新建、筛选、编辑和删除 Agent 会话，也可以补录历史消息。</p>
+    <div class="ui-section-head">
+      <div>
+        <h2 class="ui-section-head__title">Agent 会话管理</h2>
+        <p class="ui-section-head__hint">新建、筛选、编辑和删除 Agent 会话，也可以补录历史消息。</p>
       </div>
       <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadSessions">
+        <AppIcon name="arrows-clockwise" :size="16" />
         {{ loading ? '刷新中…' : '刷新列表' }}
       </button>
-    </header>
+    </div>
 
     <!-- 筛选 + 新建 -->
-    <div class="ui-card toolbar">
+    <div class="ui-panel toolbar">
       <div class="toolbar__row">
         <div class="field field--grow">
           <label class="ui-label" for="filter-resume">筛选简历</label>
@@ -48,45 +49,54 @@
           <input id="create-title" v-model="createForm.sessionTitle" class="ui-input" type="text" placeholder="可选" />
         </div>
         <button class="ui-btn ui-btn--primary create-btn" :disabled="creating" @click="handleCreateSession">
+          <AppIcon name="plus" :size="16" />
           {{ creating ? '创建中…' : '新建会话' }}
         </button>
       </div>
     </div>
 
-    <p v-if="message" class="message success" role="status">{{ message }}</p>
-    <p v-if="error" class="message error" role="alert">{{ error }}</p>
+    <div v-if="message" class="ui-callout ui-callout--accent" role="status">
+      <AppIcon name="check-circle" :size="16" />
+      <span>{{ message }}</span>
+    </div>
+    <div v-if="error" class="ui-callout ui-callout--danger" role="alert">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ error }}</span>
+    </div>
 
     <div class="session-layout">
       <!-- 会话列表 -->
-      <aside class="ui-card session-list-card">
-        <header class="card-head">
-          <h3 class="card-head__title">会话列表</h3>
+      <aside class="ui-panel session-list-card">
+        <div class="ui-section-head">
+          <h3 class="ui-section-head__title">会话列表</h3>
           <span class="ui-badge">{{ sessions.length }}</span>
-        </header>
+        </div>
 
         <!-- 加载中 -->
-        <div v-if="loading" class="state-block">
+        <div v-if="loading">
           <ul class="skeleton-list" aria-hidden="true">
-            <li v-for="index in 4" :key="index" class="skeleton-row"></li>
+            <li v-for="index in 4" :key="index" class="ui-skeleton skeleton-row"></li>
           </ul>
           <p class="state-text">正在加载会话列表…</p>
         </div>
 
         <!-- 加载失败 -->
-        <div v-else-if="listError" class="state-block">
-          <div class="ui-empty">
-            <p class="ui-empty__title">会话列表加载失败</p>
-            <p class="ui-empty__hint">{{ listError }}</p>
-            <button class="ui-btn ui-btn--primary" @click="loadSessions">重新加载</button>
+        <div v-else-if="listError" class="ui-callout ui-callout--danger">
+          <AppIcon name="warning-circle" :size="16" />
+          <div class="callout__body">
+            <strong class="callout__title">会话列表加载失败</strong>
+            <p class="callout__text">{{ listError }}，请检查后端服务是否已启动后重试。</p>
           </div>
+          <button class="ui-btn ui-btn--sm ui-btn--outline" @click="loadSessions">重新加载</button>
         </div>
 
         <!-- 空列表 -->
-        <div v-else-if="sessions.length === 0" class="state-block">
-          <div class="ui-empty">
-            <p class="ui-empty__title">还没有会话记录</p>
-            <p class="ui-empty__hint">用上面的「新建会话」创建一个，或先去 AI 对话一次。</p>
-          </div>
+        <div v-else-if="sessions.length === 0" class="ui-empty">
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="chat-circle-dots" :size="24" />
+          </span>
+          <p class="ui-empty__title">还没有会话记录</p>
+          <p class="ui-empty__hint">用上面的「新建会话」创建一个，或先去 AI 对话一次。</p>
         </div>
 
         <!-- 列表 -->
@@ -112,29 +122,33 @@
       </aside>
 
       <!-- 会话详情 -->
-      <section class="ui-card session-detail-card">
+      <section class="ui-panel session-detail-card">
         <div v-if="detailLoading" class="state-block">
           <p class="state-text">正在加载会话详情…</p>
         </div>
 
-        <div v-else-if="!sessionDetail" class="state-block">
-          <div class="ui-empty">
-            <p class="ui-empty__title">选择一条会话</p>
-            <p class="ui-empty__hint">点击左侧任意会话，查看它的消息并编辑标题与状态。</p>
-          </div>
+        <div v-else-if="!sessionDetail" class="ui-empty">
+          <span class="ui-empty__icon" aria-hidden="true">
+            <AppIcon name="chat-centered-dots" :size="24" />
+          </span>
+          <p class="ui-empty__title">选择一条会话</p>
+          <p class="ui-empty__hint">点击左侧任意会话，查看它的消息并编辑标题与状态。</p>
         </div>
 
         <template v-else>
           <div class="detail-top">
             <div class="detail-meta">
-              <h3 class="detail-meta__title">{{ sessionDetail.sessionTitle || '未命名会话' }}</h3>
+              <h3 class="ui-section-head__title">{{ sessionDetail.sessionTitle || '未命名会话' }}</h3>
               <p class="detail-meta__badges">
                 <span class="ui-badge">{{ sceneLabel(sessionDetail.sceneCode) }}</span>
                 <span class="ui-badge" :class="statusBadge(sessionDetail).tone">{{ statusBadge(sessionDetail).label }}</span>
                 <span class="detail-meta__time">{{ formatDateTime(sessionDetail.updatedAt) }}</span>
               </p>
             </div>
-            <button class="ui-btn ui-btn--danger ui-btn--sm" @click="handleDeleteSession">删除会话</button>
+            <button class="ui-btn ui-btn--danger ui-btn--sm" @click="handleDeleteSession">
+              <AppIcon name="trash" :size="14" />
+              删除会话
+            </button>
           </div>
 
           <!-- 编辑会话 -->
@@ -151,13 +165,19 @@
                 <option value="DELETED">已删除</option>
               </select>
             </div>
-            <button class="ui-btn ui-btn--outline action-btn" @click="handleUpdateSession">更新会话</button>
+            <button class="ui-btn ui-btn--outline action-btn" @click="handleUpdateSession">
+              <AppIcon name="check" :size="16" />
+              更新会话
+            </button>
           </div>
 
           <!-- 消息列表 -->
-          <div class="message-header">
-            <strong class="message-header__title">消息列表</strong>
-            <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="refreshMessages">刷新消息</button>
+          <div class="ui-section-head message-header">
+            <strong class="ui-section-head__title">消息列表</strong>
+            <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="refreshMessages">
+              <AppIcon name="arrows-clockwise" :size="14" />
+              刷新消息
+            </button>
           </div>
 
           <div class="message-list ui-scroll">
@@ -177,7 +197,7 @@
           </div>
 
           <!-- 补录消息 -->
-          <div class="composer-card">
+          <div class="ui-panel composer-card">
             <p class="composer-card__title">补录消息</p>
             <div class="update-grid">
               <div class="field">
@@ -202,6 +222,7 @@
               <textarea id="message-content" v-model="messageForm.content" class="ui-input field-textarea" rows="5" placeholder="补录一条消息"></textarea>
             </div>
             <button class="ui-btn ui-btn--primary" :disabled="sendingMessage" @click="handleCreateMessage">
+              <AppIcon name="paper-plane-tilt" :size="16" />
               {{ sendingMessage ? '发送中…' : '新增消息' }}
             </button>
           </div>
@@ -213,6 +234,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
+import AppIcon from './common/AppIcon.vue';
 import {
   createAgentMessage,
   createAgentSession,
@@ -453,28 +475,6 @@ async function handleCreateMessage() {
   gap: var(--ui-space-5);
 }
 
-/* ---------- 页头 ---------- */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-4);
-}
-
-.page-title {
-  margin: 0;
-  font-size: var(--ui-text-xl);
-  font-weight: 700;
-  line-height: var(--ui-line-tight);
-  color: var(--ui-fg-primary);
-}
-
-.page-subtitle {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-secondary);
-}
-
 /* ---------- 工具条 ---------- */
 .toolbar {
   padding: var(--ui-space-5);
@@ -517,24 +517,23 @@ async function handleCreateMessage() {
   flex-shrink: 0;
 }
 
-/* ---------- 提示条 ---------- */
-.message {
+/* 提示条里的文字块 */
+.callout__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.callout__title {
+  font-weight: 600;
+}
+
+.callout__text {
   margin: 0;
-  padding: var(--ui-space-3) var(--ui-space-4);
-  border-radius: var(--ui-radius-md);
-  border: 1px solid transparent;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-primary);
-}
-
-.message.success {
-  background: var(--ui-success-soft);
-  border-color: var(--ui-success-border);
-}
-
-.message.error {
-  background: var(--ui-danger-soft);
-  border-color: var(--ui-danger-border);
+  line-height: var(--ui-line-normal);
+  word-break: break-word;
 }
 
 /* ---------- 列表 + 详情 ---------- */
@@ -552,22 +551,6 @@ async function handleCreateMessage() {
   flex-direction: column;
   gap: var(--ui-space-4);
   min-width: 0;
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-  padding-bottom: var(--ui-space-3);
-  border-bottom: 1px solid var(--ui-border);
-}
-
-.card-head__title {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
 }
 
 /* ---------- 会话列表项 ---------- */
@@ -595,6 +578,7 @@ async function handleCreateMessage() {
 
 .session-item:hover {
   background: var(--ui-bg-hover);
+  border-color: var(--ui-border-strong);
 }
 
 .session-item:focus-visible {
@@ -644,14 +628,6 @@ async function handleCreateMessage() {
   min-width: 0;
 }
 
-.detail-meta__title {
-  margin: 0;
-  font-size: var(--ui-text-lg);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-  word-break: break-word;
-}
-
 .detail-meta__badges {
   display: flex;
   flex-wrap: wrap;
@@ -674,17 +650,8 @@ async function handleCreateMessage() {
 
 /* ---------- 消息 ---------- */
 .message-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
   padding-top: var(--ui-space-3);
   border-top: 1px solid var(--ui-border);
-}
-
-.message-header__title {
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-primary);
 }
 
 .message-list {
@@ -741,9 +708,6 @@ async function handleCreateMessage() {
   flex-direction: column;
   gap: var(--ui-space-3);
   padding: var(--ui-space-4);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
 }
 
 .composer-card__title {
@@ -782,30 +746,12 @@ async function handleCreateMessage() {
 .skeleton-row {
   height: 56px;
   border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-sunken);
-  animation: skeleton-pulse 1.4s var(--ui-ease-in-out) infinite;
-}
-
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.55;
-  }
 }
 
 /* ---------- 窄窗口 ---------- */
 @media (max-width: 1100px) {
   .session-layout {
     grid-template-columns: 1fr;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 </style>

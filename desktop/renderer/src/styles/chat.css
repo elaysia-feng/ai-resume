@@ -4,53 +4,31 @@
 
    规则：
    1. 颜色一律来自 --ui-*（design-system.css），这里不写死色值。
-   2. --chat-* 语义变量只做 --ui-* 的映射，组件里只引用 --chat-*。
+   2. 本文件不再定义 :root 变量，只引用 design-system.css 的 token。
    3. Markdown 排版放在这里（消息正文是 v-html 渲染的全局类，
       组件的 scoped 样式管不到）。
    ======================================== */
 
-:root {
-  /* 画布与面板 */
-  --chat-bg: var(--ui-bg-canvas);
-  --chat-surface: var(--ui-bg-surface);
-  --chat-sidebar-bg: var(--ui-bg-surface);
-
-  /* 描边 */
-  --chat-border: var(--ui-border);
-  --chat-border-strong: var(--ui-border-strong);
-
-  /* 文字 */
-  --chat-text: var(--ui-fg-primary);
-  --chat-text-muted: var(--ui-fg-muted);
-
-  /* 强调与状态 */
-  --chat-accent: var(--ui-accent);
-  --chat-accent-soft: var(--ui-accent-soft);
-  --chat-danger: var(--ui-danger);
-  --chat-danger-soft: var(--ui-danger-soft);
-
-  /* 气泡：用户用浅色面板，助手直接落在画布上，像文档流 */
-  --chat-user-bubble: var(--ui-bg-surface);
-  --chat-assistant-bubble: var(--ui-bg-canvas);
-
-  /* 圆角 */
-  --chat-radius-sm: var(--ui-radius-sm);
-  --chat-radius-md: var(--ui-radius-md);
-  --chat-radius-lg: var(--ui-radius-lg);
-}
-
 /* ========================================
    对话页在应用壳里铺满内容区
    ------------------------------------------------------------
-   应用壳的内容区已经有外边距，页面自己不再加外层 padding；
-   这里只让内容区把剩余高度交给对话页，滚动由消息流负责。
+   对话页是一整块工作台：侧栏、消息流、输入区要贴边对齐，
+   所以这里把壳层内容区的内边距收掉，页面自己不再加外层 padding。
    ======================================== */
+.app-content:has(.chat-page) {
+  padding: 0;
+}
+
 .app-content:has(.chat-page) .app-content__inner {
+  max-width: none;
   height: 100%;
 }
 
 /* ========================================
    错误提示条
+   ------------------------------------------------------------
+   贴在消息流底部，随内容滚动，不做整页遮罩。
+   配色与边框由 .ui-callout--danger 提供，这里只管位置。
    ======================================== */
 .chat-error-banner {
   position: sticky;
@@ -58,13 +36,7 @@
   z-index: var(--ui-z-sticky);
   max-width: 820px;
   margin: 0 auto var(--ui-space-3);
-  padding: var(--ui-space-2) var(--ui-space-3);
-  font-size: var(--ui-text-sm);
-  line-height: var(--ui-line-normal);
-  color: var(--chat-danger);
-  background: var(--chat-danger-soft);
-  border: 1px solid var(--ui-danger-border);
-  border-radius: var(--chat-radius-sm);
+  width: calc(100% - var(--ui-space-12));
   word-break: break-word;
 }
 
@@ -75,7 +47,7 @@
 .chat-md {
   font-size: var(--ui-text-base);
   line-height: var(--ui-line-relaxed);
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -101,6 +73,7 @@
   margin: var(--ui-space-5) 0 var(--ui-space-2);
   font-weight: 600;
   line-height: var(--ui-line-tight);
+  letter-spacing: var(--ui-tracking-snug);
 }
 
 .chat-md h1 {
@@ -140,7 +113,7 @@
   font-size: 0.875em;
   color: var(--ui-fg-primary);
   background: var(--ui-bg-sunken);
-  border: 1px solid var(--chat-border);
+  border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-xs);
 }
 
@@ -149,8 +122,8 @@
   padding: var(--ui-space-3) var(--ui-space-4);
   overflow-x: auto;
   background: var(--ui-bg-sunken);
-  border: 1px solid var(--chat-border);
-  border-radius: var(--chat-radius-md);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
 }
 
 .chat-md pre code {
@@ -166,13 +139,13 @@
   margin: 0 0 var(--ui-space-3);
   padding: var(--ui-space-1) 0 var(--ui-space-1) var(--ui-space-3);
   color: var(--ui-fg-secondary);
-  border-left: 3px solid var(--chat-border-strong);
+  border-left: 3px solid var(--ui-border-strong);
 }
 
 .chat-md hr {
   margin: var(--ui-space-4) 0;
   border: 0;
-  border-top: 1px solid var(--chat-border);
+  border-top: 1px solid var(--ui-border);
 }
 
 .chat-md a {
@@ -198,7 +171,7 @@
 .chat-md th,
 .chat-md td {
   padding: var(--ui-space-2) var(--ui-space-3);
-  border: 1px solid var(--chat-border);
+  border: 1px solid var(--ui-border);
   text-align: left;
   vertical-align: top;
 }

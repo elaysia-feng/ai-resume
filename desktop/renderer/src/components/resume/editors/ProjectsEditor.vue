@@ -6,13 +6,16 @@
       </p>
 
       <div v-if="!localEntries().length" class="ui-empty">
+        <div class="ui-empty__icon">
+          <AppIcon name="git-branch" :size="24" />
+        </div>
         <div class="ui-empty__title">还没有项目经历</div>
         <div class="ui-empty__hint">项目名称、担任角色与时间轴要能对上，技术栈单独列一行更容易被搜到。</div>
-        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" @click="addEntry">+ 添加一条</button>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" @click="addEntry"> <AppIcon name="plus" :size="16" /> 添加一条</button>
       </div>
 
       <div v-else class="re-list">
-        <article v-for="(entry, index) in localEntries()" :key="index" class="ui-card re-entry">
+        <article v-for="(entry, index) in localEntries()" :key="index" class="ui-panel re-entry">
           <header class="re-entry__head">
             <span class="re-entry__title">
               <span class="re-entry__index">{{ index + 1 }}</span>
@@ -20,10 +23,12 @@
             </span>
             <button
               type="button"
-              class="ui-btn ui-btn--sm ui-btn--ghost re-entry__remove"
+              class="ui-icon-btn re-entry__remove"
+              title="删除这一条"
+              aria-label="删除这一条"
               @click="removeEntry(index)"
             >
-              删除
+              <AppIcon name="trash" :size="16" />
             </button>
           </header>
 
@@ -104,7 +109,7 @@
           </div>
         </article>
 
-        <button type="button" class="re-add" @click="addEntry">+ 添加一条</button>
+        <button type="button" class="re-add" @click="addEntry"> <AppIcon name="plus" :size="16" /> 添加一条</button>
       </div>
     </div>
 
@@ -118,6 +123,7 @@
 </template>
 
 <script setup>
+import AppIcon from '../../common/AppIcon.vue'
 import { computed, reactive } from 'vue'
 import RichTextEditor from '../../common/RichTextEditor.vue'
 

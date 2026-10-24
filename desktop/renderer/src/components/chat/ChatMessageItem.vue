@@ -6,8 +6,14 @@
     <!-- 工具消息：独立的工具卡片 -->
     <template v-else-if="message.role === 'tool'">
       <div v-for="tool in message.tools" :key="tool.id" class="chat-tool-card">
-        <button class="chat-tool-head" type="button" @click="toggleTool(tool.id)">
-          <span class="chat-tool-caret" aria-hidden="true">{{ isExpanded(tool.id) ? '▾' : '▸' }}</span>
+        <button
+          class="chat-tool-head"
+          type="button"
+          :aria-expanded="isExpanded(tool.id)"
+          @click="toggleTool(tool.id)"
+        >
+          <AppIcon :name="isExpanded(tool.id) ? 'caret-down' : 'caret-right'" :size="14" class="chat-tool-caret" />
+          <AppIcon name="terminal-window" :size="14" class="chat-tool-kind" />
           <span class="chat-tool-name">{{ tool.name || 'tool' }}</span>
           <span class="ui-badge" :class="statusBadgeClass(tool.status)">{{ statusText(tool.status) }}</span>
         </button>
@@ -21,15 +27,19 @@
     <!-- 用户 / 助手消息 -->
     <template v-else>
       <div v-if="message.role === 'assistant'" class="chat-message-head">
-        <span class="chat-role-label">AI 助手</span>
-        <span v-if="message.streaming" class="ui-badge ui-badge--accent">生成中</span>
+        <span class="chat-role-label">
+          <AppIcon name="sparkle" :size="14" />
+          AI 助手
+        </span>
+        <span v-if="message.streaming" class="ui-badge ui-badge--accent">
+          <AppIcon name="spinner-gap" :size="12" spin />
+          生成中
+        </span>
       </div>
 
       <div class="chat-bubble" :class="message.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant'">
         <p v-if="message.streaming && !message.content" class="chat-typing">
-          <span class="chat-typing-dot"></span>
-          <span class="chat-typing-dot"></span>
-          <span class="chat-typing-dot"></span>
+          <AppIcon name="spinner-gap" :size="14" spin />
           正在思考…
         </p>
         <RichTextContent v-else-if="message.role === 'user'" class="chat-user-text" :html="message.content" />
@@ -37,13 +47,19 @@
       </div>
 
       <p v-if="message.streaming && message.content" class="chat-streaming-hint">
-        <span class="chat-typing-dot"></span>
+        <AppIcon name="spinner-gap" :size="12" spin />
         正在生成…
       </p>
 
       <div v-for="tool in message.tools" :key="tool.id" class="chat-tool-card">
-        <button class="chat-tool-head" type="button" @click="toggleTool(tool.id)">
-          <span class="chat-tool-caret" aria-hidden="true">{{ isExpanded(tool.id) ? '▾' : '▸' }}</span>
+        <button
+          class="chat-tool-head"
+          type="button"
+          :aria-expanded="isExpanded(tool.id)"
+          @click="toggleTool(tool.id)"
+        >
+          <AppIcon :name="isExpanded(tool.id) ? 'caret-down' : 'caret-right'" :size="14" class="chat-tool-caret" />
+          <AppIcon name="terminal-window" :size="14" class="chat-tool-kind" />
           <span class="chat-tool-name">{{ tool.name || 'tool' }}</span>
           <span class="ui-badge" :class="statusBadgeClass(tool.status)">{{ statusText(tool.status) }}</span>
         </button>
@@ -59,6 +75,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import RichTextContent from '../common/RichTextContent.vue';
+import AppIcon from '../common/AppIcon.vue';
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -337,6 +354,9 @@ function markdownToHtml(source) {
 }
 
 .chat-role-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
   font-size: var(--ui-text-xs);
   font-weight: 600;
   color: var(--ui-fg-muted);
@@ -345,14 +365,14 @@ function markdownToHtml(source) {
 /* 用户消息用浅色气泡；助手消息不用气泡，直接落在画布上像文档流 */
 .chat-bubble {
   max-width: 100%;
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
 }
 
 .chat-bubble--user {
   max-width: 78%;
   padding: var(--ui-space-3) var(--ui-space-4);
-  background: var(--chat-user-bubble);
-  border: 1px solid var(--chat-border);
+  background: var(--ui-accent-soft);
+  border: 1px solid var(--ui-accent-border);
   border-radius: var(--ui-radius-lg) var(--ui-radius-lg) var(--ui-radius-sm) var(--ui-radius-lg);
   line-height: var(--ui-line-normal);
 }
@@ -370,16 +390,16 @@ function markdownToHtml(source) {
   align-self: center;
   margin: 0;
   font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
+  color: var(--ui-fg-muted);
 }
 
 /* 流式状态：思考中 / 正在生成 */
 .chat-typing {
   display: inline-flex;
   align-items: center;
-  gap: var(--ui-space-1);
+  gap: var(--ui-space-2);
   font-size: var(--ui-text-sm);
-  color: var(--chat-text-muted);
+  color: var(--ui-fg-muted);
 }
 
 .chat-streaming-hint {
@@ -388,38 +408,17 @@ function markdownToHtml(source) {
   gap: var(--ui-space-2);
   margin: 0;
   font-size: var(--ui-text-xs);
-  color: var(--chat-text-muted);
-}
-
-.chat-typing-dot {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  background: currentColor;
-  border-radius: var(--ui-radius-full);
-  animation: chat-typing-blink 1.2s infinite var(--ui-ease-in-out);
-}
-
-.chat-typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.chat-typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes chat-typing-blink {
-  0%, 80%, 100% { opacity: 0.25; }
-  40% { opacity: 1; }
+  color: var(--ui-fg-muted);
 }
 
 /* 工具调用卡片 */
 .chat-tool-card {
   width: 100%;
   overflow: hidden;
-  background: var(--chat-surface);
-  border: 1px solid var(--chat-border);
-  border-radius: var(--chat-radius-md);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-xs);
 }
 
 .chat-tool-head {
@@ -429,11 +428,12 @@ function markdownToHtml(source) {
   width: 100%;
   padding: var(--ui-space-2) var(--ui-space-3);
   font-size: var(--ui-text-sm);
-  color: var(--chat-text);
+  color: var(--ui-fg-primary);
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
+  transition: background var(--ui-duration-fast) var(--ui-ease-out);
 }
 
 .chat-tool-head:hover {
@@ -449,7 +449,8 @@ function markdownToHtml(source) {
   margin-left: auto;
 }
 
-.chat-tool-caret {
+.chat-tool-caret,
+.chat-tool-kind {
   color: var(--ui-fg-muted);
 }
 
@@ -461,7 +462,8 @@ function markdownToHtml(source) {
 
 .chat-tool-body {
   padding: var(--ui-space-2) var(--ui-space-3);
-  border-top: 1px dashed var(--chat-border);
+  border-top: 1px solid var(--ui-border-hairline);
+  background: var(--ui-bg-sunken);
 }
 
 .chat-tool-input {
@@ -471,7 +473,8 @@ function markdownToHtml(source) {
   font-size: var(--ui-text-xs);
   line-height: 1.6;
   color: var(--ui-fg-secondary);
-  background: var(--ui-bg-sunken);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-hairline);
   border-radius: var(--ui-radius-xs);
   white-space: pre-wrap;
   word-break: break-all;

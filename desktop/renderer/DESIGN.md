@@ -12,7 +12,24 @@
   不要装饰性大插画、不要大段副标题。
 - **要做工作台**：信息密度适中、导航常驻、每个页面第一屏就能开始干活。
 - 桌面端可能**完全离线**，不能用 Google Fonts CDN、不能用在线图标库。
-  图标一律用内联 SVG 或 Unicode 符号，字体一律用系统字体栈。
+  字体一律用系统字体栈；图标用内置的 Phosphor 路径表（见第 4 节）。
+- 目标气质：**克制、精确、有厚度**。像 Linear / Arc 这类桌面工具，
+  不是 SaaS 落地页。判断标准是「信息是否清晰、控件是否好点」，
+  不是「有没有大标题和渐变」。
+
+## 0.5 这一轮的设计升级（2026-10）
+
+本轮统一升级三件事，各页面改造时**必须**用上：
+
+1. **图标全部换成 `<AppIcon>`**。禁止再手写 `<svg>` 路径（见第 4 节）。
+2. **卡片/面板用 `.ui-panel`**，不要用裸 `.ui-card`（`.ui-panel` 带微渐变 +
+   顶部反光 + 分层阴影，这是「有厚度」的来源）。
+3. **页面标题用 `.ui-page-title` + `.ui-page-subtitle`**，
+   分区标题用 `.ui-section-head`（左标题右操作）。
+   不要自己再写一套 h1/h2 样式。
+
+禁止项：外发光（glow）、霓虹描边、渐变文字、纯黑阴影、超大标题、
+纯装饰性的彩色圆点。
 
 ## 1. 布局骨架
 
@@ -67,37 +84,109 @@
 
 ## 3. 字体与排版
 
-- `--ui-font-sans`：正文与界面（Inter → 系统 UI 字体 → 微软雅黑）
-- `--ui-font-display`：仅用于简历模板里的标题装饰（Playfair/宋体）
+- `--ui-font-sans`：正文与界面（Segoe UI Variable → 苹方 → 雅黑，全离线）
+- `--ui-font-display`：界面标题（与 sans 同族，只靠字重和字距拉开层级）
 - `--ui-font-mono`：路径、代码、版本号
 
 字号用 `--ui-text-xs .. --ui-text-4xl`（12 / 13 / 14 / 16 / 18 / 20 / 24 / 30 / 36px）。
 
+**字距**（本轮新增，高级感的关键）：
+- 大字号标题用 `--ui-tracking-tight`（-0.02em）
+- 中等字号用 `--ui-tracking-snug`（-0.01em）
+- 小字号正文用 `--ui-tracking-normal`
+- 不要对中文做 `text-transform: uppercase`
+
 中文排版：
-- 不要 `text-transform: uppercase`（中文无意义）
 - 正文行高 `--ui-line-normal`（1.5），标题 `--ui-line-tight`（1.25）
 - 中英混排不要手动加空格，用 `text-wrap: pretty` / `word-break: break-word`
+- 数字用 `font-variant-numeric: tabular-nums`（`.ui-stat__value` 已带）
 
-## 4. 复用现成组件类
+## 4. 图标体系（统一用 AppIcon，禁止手写 SVG）
+
+图标来自 **Phosphor Icons**（regular 权重，MIT 许可），已抽取成纯路径表：
+
+- 路径表：`src/icons/paths.js`（132 个图标，键名即图标名）
+- 组件：`src/components/common/AppIcon.vue`
+- 重新生成：`cd desktop/renderer && node scripts/extract-icons.mjs`
+
+用法：
+
+```vue
+<script setup>
+import AppIcon from '../components/common/AppIcon.vue';
+</script>
+
+<template>
+  <AppIcon name="gear" :size="18" />
+  <AppIcon name="spinner-gap" :size="16" spin />
+</template>
+```
+
+规则：
+
+- **禁止再手写 `<svg>` 图标**（本文件此前允许内联 SVG，本轮起作废）。
+- `size` 默认 20px。导航 18px、正文内联 16px、大图标 24px。
+- 图标颜色跟 `currentColor`，用 CSS 控制，不要给 `<AppIcon>` 写死颜色。
+- 图标必须带 `aria-hidden`（组件已内置），纯装饰图标不要再写 `alt`。
+- 文字按钮优先纯文字；「图标 + 文字」时图标给 16–18px。
+- 常用图标名速查：
+  `gear` `user` `chat-circle` `chat-circle-dots` `sparkle` `magic-wand` `robot` `brain`
+  `file-text` `files` `file-plus` `folder` `paper-plane-tilt` `target` `lightbulb`
+  `plus` `minus` `x` `check` `check-circle` `x-circle` `warning-circle` `info`
+  `magnifying-glass` `funnel` `dots-three` `dots-three-vertical` `caret-right` `caret-down`
+  `arrow-right` `arrow-left` `trash` `copy` `pencil-simple` `note-pencil`
+  `download-simple` `upload-simple` `image` `camera` `microphone`
+  `clock` `clock-counter-clockwise` `calendar` `star` `heart` `medal` `trophy`
+  `certificate` `graduation-cap` `briefcase` `buildings` `envelope` `link`
+  `sign-out` `sign-in` `moon` `sun` `sliders` `toggle-left` `eye` `eye-slash`
+  `lock` `key` `squares-four` `layout` `templates` `user-circle` `users-three`
+  `code` `terminal-window` `table` `chart-line` `chart-bar` `pulse` `desktop`
+  `database` `cloud-arrow-up` `paperclip` `bell` `question` `list` `list-checks`
+
+  完整清单看 `src/icons/paths.js`。**不要新增图标名**：需要新图标时，
+  把 phosphor 的 kebab-case 名字加进 `scripts/extract-icons.mjs` 的 `ICONS` 数组
+  并重跑脚本。
+
+## 4.5 复用现成组件类
 
 `design-system.css` 已提供，**优先用它们，别再各写各的按钮和输入框**：
 
-- `.ui-card` 面板/卡片
-- `.ui-btn` + `--primary` / `--outline` / `--ghost` / `--danger` / `--sm` / `--lg` / `--block`
-- `.ui-input` 输入框/文本域/下拉
-- `.ui-label` 表单标签
+基础类：
+- `.ui-card` 面板/卡片（无渐变）
+- `.ui-panel` **抬升面板**（微渐变 + 顶部反光 + 分层阴影），加 `--hover` 出悬浮态
+- `.ui-panel--flat` 无阴影 / `--flat` 变体
+- `.ui-btn` + `--primary` / `--outline` / `--ghost` / `--subtle` / `--danger` / `--sm` / `--lg` / `--block`
+- `.ui-input` 输入框/文本域/下拉，配 `.ui-textarea` 多行
+- `.ui-label` 表表标签；`.ui-field` + `__hint` + `__error` 表单字段组
 - `.ui-badge` + `--accent` / `--success` / `--warning` / `--danger`
-- `.ui-empty` + `__title` `__hint` 空状态
+- `.ui-empty` + `__title` `__hint` `__icon` 空状态
 - `.ui-divider` 分隔线
 - `.ui-scroll` 细滚动条容器
+- `.ui-page-title` / `.ui-page-subtitle` 页面标题
+- `.ui-section-head` + `__title` `__hint` 分区标题
+
+图标与控件：
+- `.ui-icon-tile` + `--lg` / `--sm` / `--muted` 图标底座
+- `.ui-icon-btn` + `--outline` 纯图标按钮
+- `.ui-segmented` + `__item`（`.is-active`）分段控件
+
+状态与数据：
+- `.ui-skeleton` 骨架屏（加载态优先用它，别用整页遮罩）
+- `.ui-stat` + `__value` `__label` 统计块
+- `.ui-callout` + `--accent` / `--danger` 提示条
 
 ## 5. 间距 / 圆角 / 阴影
 
-- 间距用 `--ui-space-1..12`（4 / 8 / 12 / 16 / 20 / 24 / 28 / 32 / 36 / 40 / 44 / 48px）
+- 间距用 `--ui-space-1..20`（4 / 8 / 12 / 16 / 20 / 24 / 28 / 32 / 36 / 40 / 44 / 48 / 56 / 64 / 80px）
 - 页面内边距：常规 `--ui-space-8`，密集表单 `--ui-space-6`
 - 圆角：控件 `--ui-radius-md`，卡片 `--ui-radius-lg`，徽标 `--ui-radius-full`
-- 阴影只用 `--ui-shadow-xs/sm/md/lg`，不要自定义 rgba 阴影
+  （圆角刻度只有一套，别自造）
+- 阴影只用 `--ui-shadow-xs/sm/md/lg/xl/float/accent`，
+  不要自定义 rgba 阴影。阴影**必须带底色染色**，禁止纯黑投影。
+- 顶面反光 `--ui-highlight-top`：抬升面板上那道内高光，`.ui-panel` 已带
+- 表面材质 `--ui-surface-wash` / `--ui-bg-app-wash` / `--ui-accent-gradient`
 - 动效用 `--ui-duration-fast/normal/slow` + `--ui-ease-out/in-out`
+- 按下反馈：可点元素 `:active` 时 `translateY(1px)`（`.ui-btn` 已带）
 
 ## 6. 交互
 
@@ -116,14 +205,19 @@
 
 ## 8. 禁止事项
 
-1. 不新增 npm 依赖（没有 UI 库，不要自己装）
+1. **不新增 npm 依赖**（UI 库一律不装；图标用内置 `src/icons/paths.js`）
 2. 不改 `src/styles/design-system.css`、`src/styles/main.css`、
    `src/styles/green-theme.css`、`src/main.js`、`src/router/index.js`、
-   `src/store/**`、`src/api/**`、`src/utils/**`（除非任务书明确授权）
+   `src/store/**`、`src/api/**`、`src/utils/**`、`src/icons/paths.js`、
+   `src/components/common/AppIcon.vue`（除非任务书明确授权）
 3. 不定义新的 `:root` 变量；不要写 `#22c55e` 这类硬编码颜色
 4. 不改 `src/components/resume/**` 里不属于你负责的文件（避免并行冲突）
 5. 不重命名 Vue 组件名、props、emit 事件、store 的 action/getter
 6. 不动 `desktop/electron/**`（主进程）和 `backend/**`（后端）
+7. **不手写 `<svg>` 图标**，一律用 `<AppIcon>`（见第 4 节）
+8. **不用外发光 / 霓虹描边 / 渐变文字 / 纯黑阴影**
+9. **不用中文破折号「——」当装饰**，也不要用「·」串起一长串元信息
+10. 不用假数据占位（假头像、假统计数字如「99.9%」），空态就明确写空态
 
 ## 9. 验收
 

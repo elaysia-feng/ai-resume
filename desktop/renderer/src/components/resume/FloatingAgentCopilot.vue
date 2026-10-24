@@ -7,15 +7,7 @@
     aria-label="打开 AI 助手"
     @click="open = true"
   >
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linejoin="round"
-      />
-      <path d="M18 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
-    </svg>
+    <AppIcon name="sparkle" :size="22" />
   </button>
 
   <section
@@ -86,7 +78,10 @@
         </button>
       </div>
 
-      <p v-if="error" class="floating-copilot__error">{{ error }}</p>
+      <p v-if="error" class="ui-callout ui-callout--danger floating-copilot__error">
+        <AppIcon name="warning-circle" :size="16" />
+        <span>{{ error }}</span>
+      </p>
       <p v-if="statusText" class="floating-copilot__status">{{ statusText }}</p>
 
       <div v-if="messages.length" class="floating-copilot__history">
@@ -130,6 +125,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import AppIcon from '../common/AppIcon.vue';
 import {
   approveAgentRun,
   continueAgentRun,
@@ -375,7 +371,7 @@ function formatJson(value) {
   background: var(--ui-accent);
   color: var(--ui-accent-fg);
   cursor: pointer;
-  box-shadow: var(--ui-shadow-lg);
+  box-shadow: var(--ui-shadow-float);
   transition: transform var(--ui-duration-fast) var(--ui-ease-out),
     background var(--ui-duration-fast) var(--ui-ease-out),
     box-shadow var(--ui-duration-fast) var(--ui-ease-out);
@@ -394,7 +390,7 @@ function formatJson(value) {
 
 .copilot-launcher:focus-visible {
   outline: none;
-  box-shadow: var(--ui-ring), var(--ui-shadow-lg);
+  box-shadow: var(--ui-ring), var(--ui-shadow-float);
 }
 
 /* ---------- 浮动面板 ---------- */
@@ -410,8 +406,9 @@ function formatJson(value) {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-bg-surface);
+  background-image: var(--ui-surface-wash);
   color: var(--ui-fg-primary);
-  box-shadow: var(--ui-shadow-xl);
+  box-shadow: var(--ui-shadow-float);
   overflow: hidden;
 }
 
@@ -501,12 +498,7 @@ function formatJson(value) {
 
 .floating-copilot__error {
   margin: 0;
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border: 1px solid var(--ui-danger-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-danger-soft);
-  color: var(--ui-danger);
-  font-size: var(--ui-text-sm);
+  align-items: flex-start;
 }
 
 .floating-copilot__status {
