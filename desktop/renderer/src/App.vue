@@ -13,6 +13,7 @@
         <nav class="nav-links">
           <router-link to="/dashboard" class="nav-link">我的简历</router-link>
           <router-link to="/dashboard/templates" class="nav-link">模板市场</router-link>
+          <router-link to="/settings" class="nav-link">设置</router-link>
           <a href="#" class="nav-link">帮助中心</a>
         </nav>
         <button class="nav-cta">开始使用</button>

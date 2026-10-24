@@ -6,6 +6,7 @@ python -m src.app.worker.agent_run_worker
 
 import asyncio
 import json
+import logging
 import sqlite3
 from typing import Literal
 
@@ -20,6 +21,8 @@ from src.app.internal_dto.graph_run_stream_request import GraphRunStreamRequest
 from src.app.internal_dto.run_status_update_request import RunStatusUpdateRequest
 from src.app.service.java_gateway_service import java_gateway_service
 from src.app.stream import agent_stream
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class AgentRunJobMessage(BaseModel):
@@ -57,6 +60,7 @@ async def run_worker() -> None:
     """
     settings = get_settings()
     max_runs = max(1, settings.python_agent_max_concurrent_runs)
+    poll_interval = max(0.05, settings.agent_task_poll_interval_seconds)
     semaphore = asyncio.Semaphore(max_runs)
     client = agent_stream.get_client()
     stream = settings.agent_resume_run_stream
@@ -72,6 +76,14 @@ async def run_worker() -> None:
         except sqlite3.OperationalError:
             # 数据库被占用或不可用，等一会儿再试，不要让整个 worker 退出。
             await asyncio.sleep(2)
+            continue
+
+        if not messages:
+            # 队列为空时必须让出控制权。
+            # 桌面端把 worker 挂在 FastAPI 的 lifespan 里（见 src/app/main.py），
+            # 这个循环如果一次都不 await，就会独占 event loop，
+            # uvicorn 的 startup 永远完不成，HTTP 接口根本起不来。
+            await asyncio.sleep(poll_interval)
             continue
 
         for message_id, raw, _retry_count in messages:
@@ -146,5 +158,23 @@ async def mark_failed(run_id: int, exc: Exception) -> None:
         pass
 
 
+async def run_worker_forever() -> None:
+    """worker 的守护入口：异常后等一下再重试，不让进程静默死掉。
+
+    桌面端把 worker 挂在 FastAPI 的 lifespan 里（见 src/app/main.py），
+    一次偶发异常如果让 task 直接结束，任务队列就再也没人消费了，
+    而且不会有任何报错——所以这里必须自己兜住。
+    """
+    while True:
+        try:
+            await run_worker()
+            return
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("Agent worker 异常退出，5 秒后重试: %s", exc)
+            await asyncio.sleep(5)
+
+
 if __name__ == "__main__":
-    asyncio.run(run_worker())
+    asyncio.run(run_worker_forever())

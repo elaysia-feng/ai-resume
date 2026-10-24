@@ -15,6 +15,45 @@ export interface BackendStatus {
   message: string;
 }
 
+/** Java 对话模型配置（Anthropic 兼容端点） */
+export interface ChatModelConfig {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  maxTokens: number;
+}
+
+/** Python Agent 模型配置（OpenAI 兼容端点） */
+export interface AgentModelConfig {
+  provider: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+/** 整体应用配置（对应安装目录下的 config/application.yaml） */
+export interface AppConfig {
+  chat: ChatModelConfig;
+  agent: AgentModelConfig;
+  server: { host: string; port: number };
+  python: { host: string; port: number };
+  internalToken: string;
+}
+
+/** 单个后端进程的运行状态 */
+export interface BackendProcessState {
+  /** 进程标识：java / python */
+  id: 'java' | 'python';
+  /** 是否正在运行 */
+  running: boolean;
+  /** 已重启次数 */
+  restarts: number;
+  /** 最近一次退出码，null 表示还没退出过 */
+  lastExitCode: number | null;
+  /** 最近一次退出原因 */
+  lastExitReason: string;
+}
+
 /** 渲染层可访问的桌面端 API */
 export interface DesktopApi {
   /** 弹出原生目录选择框，取消时 path 为 null */
@@ -33,4 +72,17 @@ export interface DesktopApi {
   refreshBackendStatus(): Promise<BackendStatus>;
   /** 订阅后端状态变化，返回取消订阅函数 */
   onBackendStatusChanged(callback: (status: BackendStatus) => void): () => void;
+
+  /* ---- 配置与后端进程（桌面端设置界面用）---- */
+
+  /** 读取安装目录下的 config/application.yaml */
+  getAppConfig(): Promise<AppConfig>;
+  /** 保存配置到 config/application.yaml */
+  saveAppConfig(config: AppConfig): Promise<AppConfig>;
+  /** 应用配置后重启两个后端进程 */
+  restartBackends(): Promise<void>;
+  /** 两个后端进程的运行状态 */
+  getBackendProcesses(): Promise<BackendProcessState[]>;
+  /** 订阅后端进程状态变化，返回取消订阅函数 */
+  onBackendProcessChanged(callback: (state: BackendProcessState) => void): () => void;
 }

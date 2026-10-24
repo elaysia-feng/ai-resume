@@ -5,6 +5,26 @@ TypeScript 主进程 + 复用 `./renderer` 的 Vue3 渲染层。本目录**不�
 
 契约来源：仓库根目录 `docs/desktop-contract.md`（第 0 节架构、第 6 节 Electron 桌面端）。
 
+## 形态：自包含桌面应用
+
+装完 exe 就能用，**用户机器上不需要装 Java / Python / Node，也不需要任何外部中间件**：
+
+- 主进程拉起并守护 Java 后端和 Python AI 运行时；
+- 两个后端的运行时由 CI 打进安装包（jpackage 自带 JRE / PyInstaller 独立 exe）；
+- 模型配置与后端地址在「设置」界面里改，保存到安装目录的 `config/application.yaml`。
+
+```
+{安装目录}/
+├── AI Resume Forge.exe
+├── resources/
+│   ├── app.asar
+│   ├── backend/ai-resume-backend/   # Java 后端（自带 JRE）
+│   └── python/ai-resume-api/        # Python AI 运行时
+├── config/application.yaml          # 设置界面读写
+├── data/                            # SQLite 业务库 / checkpoint / 头像
+└── logs/                            # 后端进程日志
+```
+
 ## 目录结构
 
 ```
@@ -13,14 +33,17 @@ desktop/
 ├── tsconfig.json           # 主进程 TS 配置（tsc --noEmit 类型检查）
 ├── vite.config.mts          # 渲染层构建配置，root = ./renderer
 ├── electron/
-│   ├── main.ts             # 主进程：窗口、IPC、探活、导航拦截
+│   ├── main.ts             # 主进程：窗口、IPC、探活、导航拦截、拉起后端
 │   ├── preload.ts          # contextBridge 暴露 window.desktop
 │   ├── shell.ts            # 注入渲染层的桌面端外壳（状态 + 原生选择入口）
 │   ├── backend.ts          # 后端探活（Electron net.request）
-│   └── types.ts            # DesktopApi / BackendStatus 类型
+│   ├── backend_process.ts  # 后端进程管理：启动 / 守护 / 重启 / 收尾
+│   ├── config.ts           # 读写安装目录的 config/application.yaml
+│   └── types.ts            # DesktopApi / BackendStatus / AppConfig 类型
 ├── scripts/
 │   ├── build-electron.mjs  # esbuild 打包主进程与 preload
 │   ├── stage-renderer.mjs  # renderer/dist -> desktop/dist-renderer（打包用）
+│   ├── ensure-backends.mjs # 打包前检查后端运行时产物是否就位
 │   └── smoke.mjs           # CDP 冒烟验证（开发用）
 ├── dist/                   # 主进程编译产物（已 gitignore）
 ├── dist-renderer/          # 打包进 asar 的渲染层副本（已 gitignore）
@@ -46,6 +69,9 @@ npm run smoke        # CDP 冒烟验证（需先起 dev server）
 >
 > 渲染层的运行期依赖（vue / pinia / axios 等）来自 `./renderer/node_modules`，
 > 所以 `desktop/renderer/` 需要先执行过一次 `npm install`。
+>
+> `npm run package` 之前必须先把两个后端运行时构建出来（脚本里的
+> `ensure-backends.mjs` 会检查并提示具体命令）。
 
 环境变量：
 

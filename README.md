@@ -6,24 +6,31 @@
 
 | 目录 | 职责 |
 | --- | --- |
-| `desktop/renderer/` | Vue 3、Pinia、Vite 前端，简历编辑与导出 |
-| `backend/java/` | Java 17 单体应用（Spring Boot），认证、简历、Agent、面试、订单支付、通知等模块在同一个进程内 |
+| `desktop/` | Electron 桌面端：主进程 + `renderer/`（Vue 3 渲染层）。打包成 Windows 安装包 |
+| `backend/java/` | Java 17 单体应用（Spring Boot），认证、简历、Agent、面试、通知等模块在同一个进程内 |
 | `backend/python/` | FastAPI、LangGraph 工作流与模型调用 |
 | `docs/` | 专题说明 |
 
-Java 后端是单体应用：一次构建、一次启动、端口 8080，前端直接对接 `http://localhost:8080`。
+**这是一个桌面端应用**，不是网页应用：
+
+- 桌面端主进程负责拉起并守护 Java 后端和 Python 运行时，用户装完 exe 就能用，
+  机器上不需要装 Java / Python，也不需要任何外部中间件；
+- 后端运行时由 CI 打进安装包（Java 用 jpackage 自带 JRE，Python 用 PyInstaller 打成独立 exe）；
+- 模型配置与后端地址在桌面端**设置界面**里改，保存到安装目录的 `config/application.yaml`。
+
+Java 后端是单体应用：一次构建、一次启动、端口 8080，渲染层直接对接 `http://localhost:8080`。
 Python 侧是独立的 AI 运行时，与 Java 之间通过内部 HTTP 接口和共享 SQLite 任务队列协作。
 
 ## 能力与调用关系
 
-前端负责简历编辑和建议预览；Java 侧负责用户、简历和业务接口；Python 侧处理岗位分析、改写与审核等 AI 流程。Python 服务的具体入口、配置和运行方式见 [后端说明](backend/python/README.md)。
+渲染层负责简历编辑和建议预览；Java 侧负责用户、简历和业务接口；Python 侧处理岗位分析、改写与审核等 AI 流程。Python 服务的具体入口、配置和运行方式见 [后端说明](backend/python/README.md)。
 
 模块存在不代表所有外部服务已配置完成。运行相关流程还需要对应的模型服务（MiniMax API Key）；
 数据与任务队列都落在本地 SQLite 文件上，**不需要再装 MySQL / Redis**。
 
 ## 本地开发
 
-前端可独立启动，完整业务需要后端配合：
+渲染层可独立启动，完整业务需要后端配合：
 
 ```sh
 cd frontend

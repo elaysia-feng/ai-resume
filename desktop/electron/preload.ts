@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { installDesktopShell } from './shell';
-import type { BackendStatus, DesktopApi } from './types';
+import type { AppConfig, BackendProcessState, BackendStatus, DesktopApi } from './types';
 
 /**
  * 渲染层可用的桌面端能力。
@@ -19,6 +19,18 @@ const api: DesktopApi = {
     ipcRenderer.on('desktop:backend-status-changed', listener);
     return () => {
       ipcRenderer.removeListener('desktop:backend-status-changed', listener);
+    };
+  },
+
+  getAppConfig: () => ipcRenderer.invoke('desktop:get-app-config') as Promise<AppConfig>,
+  saveAppConfig: (config: AppConfig) => ipcRenderer.invoke('desktop:save-app-config', config) as Promise<AppConfig>,
+  restartBackends: () => ipcRenderer.invoke('desktop:restart-backends') as Promise<void>,
+  getBackendProcesses: () => ipcRenderer.invoke('desktop:get-backend-processes') as Promise<BackendProcessState[]>,
+  onBackendProcessChanged: (callback) => {
+    const listener = (_event: unknown, state: BackendProcessState): void => callback(state);
+    ipcRenderer.on('desktop:backend-process-changed', listener);
+    return () => {
+      ipcRenderer.removeListener('desktop:backend-process-changed', listener);
     };
   },
 };

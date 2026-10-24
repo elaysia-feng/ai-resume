@@ -114,6 +114,11 @@ class Settings(BaseSettings):
     # 单次拉取条数和 worker semaphore 都会使用这个值，不是整个集群的全局上限。
     python_agent_max_concurrent_runs: int = Field(default=4, alias="PYTHON_AGENT_MAX_CONCURRENT_RUNS")
 
+    # 任务队列空轮询间隔（秒）。
+    # 桌面端把 worker 挂在 FastAPI 的 lifespan 里，轮询循环必须周期性让出
+    # event loop，否则队列空闲时会把 HTTP 服务饿死。
+    agent_task_poll_interval_seconds: float = Field(default=0.5, alias="AGENT_TASK_POLL_INTERVAL_SECONDS")
+
     # 单个 Python 进程内同时调用 LLM 的上限。
     # 一个 run 里可能有多个节点调用模型，所以它和 run 并发是两层不同的保护。
     agent_llm_max_concurrent_calls: int = Field(default=8, alias="AGENT_LLM_MAX_CONCURRENT_CALLS")

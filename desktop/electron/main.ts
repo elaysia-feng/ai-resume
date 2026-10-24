@@ -2,7 +2,22 @@ import { app, BrowserWindow, dialog, ipcMain, net } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { probeBackend } from './backend';
-import type { BackendStatus } from './types';
+import { BackendSupervisor } from './backend_process';
+import { loadConfig, saveConfig } from './config';
+import type { AppConfig, BackendStatus } from './types';
+
+/**
+ * 安装目录。
+ *
+ * 打包后 = exe 所在目录（NSIS 装到哪，配置和数据就放哪）。
+ * 开发态 = 仓库根目录（desktop/ 的上一级）。
+ */
+function installDir(): string {
+  return app.isPackaged ? path.dirname(app.getPath('exe')) : path.resolve(__dirname, '..', '..');
+}
+
+/** 后端进程总管；应用启动后创建 */
+let supervisor: BackendSupervisor | null = null;
 
 /** 开发模式的渲染层地址，dev 脚本通过 AI_RESUME_DEV_SERVER_URL 注入 */
 const DEV_SERVER_URL = (process.env.AI_RESUME_DEV_SERVER_URL || '').trim();
@@ -109,17 +124,22 @@ async function waitForDevServer(url: string, timeoutMs: number): Promise<boolean
   return false;
 }
 
+/** 向所有窗口广播一个事件 */
+function broadcast(channel: string, payload: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send(channel, payload);
+    }
+  }
+}
+
 /** 重新探活后端，状态变化时广播给所有窗口 */
 async function refreshBackendStatus(): Promise<BackendStatus> {
   const next = await probeBackend(BACKEND_BASE_URL);
   const changed = next.online !== backendStatus.online || next.message !== backendStatus.message;
   backendStatus = next;
   if (changed) {
-    for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) {
-        win.webContents.send('desktop:backend-status-changed', next);
-      }
-    }
+    broadcast('desktop:backend-status-changed', next);
   }
   return next;
 }
@@ -156,6 +176,25 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('desktop:backend-status', () => backendStatus);
   ipcMain.handle('desktop:backend-refresh', () => refreshBackendStatus());
+
+  // ---- 配置与后端进程 ----
+  ipcMain.handle('desktop:get-app-config', () => loadConfig(installDir()));
+  ipcMain.handle('desktop:save-app-config', (_event, config: AppConfig) => {
+    const saved = loadConfig(installDir());
+    const merged: AppConfig = {
+      chat: { ...saved.chat, ...(config?.chat ?? {}) },
+      agent: { ...saved.agent, ...(config?.agent ?? {}) },
+      server: { ...saved.server, ...(config?.server ?? {}) },
+      python: { ...saved.python, ...(config?.python ?? {}) },
+      internalToken: config?.internalToken ?? saved.internalToken,
+    };
+    saveConfig(installDir(), merged);
+    return merged;
+  });
+  ipcMain.handle('desktop:restart-backends', () => {
+    supervisor?.restart(loadConfig(installDir()));
+  });
+  ipcMain.handle('desktop:get-backend-processes', () => supervisor?.status() ?? []);
 
   // preload 需要同步拿到基础信息，这里用 sendSync 返回
   ipcMain.on('desktop:backend-base-url', (event) => {
@@ -277,6 +316,12 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.elias.resumeforge.desktop');
     registerIpcHandlers();
 
+    // 桌面端是自包含应用：后端由主进程拉起并守护，用户不用自己开命令行。
+    supervisor = new BackendSupervisor(installDir(), loadConfig(installDir()), (state) => {
+      broadcast('desktop:backend-process-changed', state);
+    });
+    supervisor.start();
+
     const win = createWindow();
     await loadRenderer(win);
 
@@ -285,5 +330,13 @@ if (!app.requestSingleInstanceLock()) {
     setInterval(() => {
       void refreshBackendStatus();
     }, BACKEND_PROBE_INTERVAL_MS);
+  });
+
+  // 退出前收掉子进程，不留孤儿后端占着端口。
+  app.on('before-quit', () => {
+    supervisor?.stop();
+  });
+  app.on('will-quit', () => {
+    supervisor?.stop();
   });
 }

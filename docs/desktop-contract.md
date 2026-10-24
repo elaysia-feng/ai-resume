@@ -187,8 +187,66 @@ interface DesktopApi {
   backendBaseUrl(): string;                              // 默认 http://localhost:8080
   platform: string;                                      // 'win32' | ...
   version: string;
+  getBackendStatus(): Promise<BackendStatus>;
+  refreshBackendStatus(): Promise<BackendStatus>;
+  onBackendStatusChanged(cb: (s: BackendStatus) => void): () => void;
+
+  // 配置与后端进程（设置界面用）
+  getAppConfig(): Promise<AppConfig>;
+  saveAppConfig(config: AppConfig): Promise<AppConfig>;
+  restartBackends(): Promise<void>;
+  getBackendProcesses(): Promise<BackendProcessState[]>;
+  onBackendProcessChanged(cb: (s: BackendProcessState) => void): () => void;
 }
 ```
+
+### 6.2.1 应用配置（安装目录下的 config/application.yaml）
+
+配置是**应用级**的（一个安装目录一份），**不入库、不进 SQLite**：
+- 位置 = **安装目录**（NSIS 装到哪就放哪），不是 `%APPDATA%`
+- 存 yml：人可读、可手改、可 diff
+- 设置界面读写它，改完点「重启后端」生效
+
+```yaml
+# {安装目录}/config/application.yaml
+chat:                      # Java 对话链路，Anthropic 兼容端点
+  baseUrl: https://api.minimaxi.com/anthropic
+  apiKey: ''
+  model: MiniMax-M3.1-Flash
+  maxTokens: 4096
+agent:                     # Python Agent 链路，OpenAI 兼容端点
+  provider: deepseek       # deepseek / mimo / custom
+  baseUrl: https://api.deepseek.com/v1
+  apiKey: ''
+  model: deepseek-chat
+server:                    # Java 后端监听地址
+  host: 127.0.0.1
+  port: 8080
+python:                    # Python AI 运行时监听地址
+  host: 127.0.0.1
+  port: 8000
+internalToken: change-me   # Java 与 Python 必须一致
+```
+
+### 6.2.2 后端进程由主进程拉起
+
+桌面端是**自包含应用**：用户装完就能用，不需要自己开命令行起后端。
+
+| 进程 | 打包形态 | 说明 |
+| --- | --- | --- |
+| Java 后端 | `resources/backend/ai-resume-backend/ai-resume-backend.exe` | jpackage app-image，**自带 JRE**，用户机器不用装 Java |
+| Python 运行时 | `resources/python/ai-resume-api/ai-resume-api.exe` | PyInstaller onedir，**用户机器不用装 Python** |
+
+主进程职责：
+1. **启动**：按配置注入环境变量后 spawn；Java 额外传
+   `--spring.config.additional-location=file:{安装目录}/config/`，让外部 yml 覆盖 jar 内默认值。
+2. **守护**：进程意外退出时按退避间隔（1s→2s→5s→10s→30s）自动重启。
+3. **收尾**：桌面端退出时 `kill` 子进程，不留孤儿占端口。
+4. **日志**：子进程输出写到 `{安装目录}/logs/{java,python}.log`。
+
+数据目录：`{安装目录}/data/`（SQLite 业务库 + checkpoint + 头像）。
+Java 启动时会**自动建目录并执行建表脚本**（`db_schema/schema.sql` 已打进 jar），
+所以全新安装第一次启动即可用，不需要用户手动导入 SQL。
 
 ### 6.3 选完目录之后
 

@@ -26,6 +26,8 @@ dev = [
     "langgraph-cli[inmem]>=0.1.66",
     "pytest>=8.3.0",
     "ruff>=0.9.0",
+    # 桌面端安装包要把 Python 运行时打成独立 exe（scripts/build_desktop_bundle.py）
+    "pyinstaller>=6.0.0",
 ]
 
 [build-system]

@@ -95,6 +95,41 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
           MAVEN_OPTS: -Dfile.encoding=UTF-8
 
+      # ---------- 打包后端运行时（随安装包分发）----------
+      # Java：用 jpackage 生成自带 JRE 的 app-image，用户机器上不需要装 Java。
+      - name: Package Java backend with bundled JRE
+        shell: pwsh
+        working-directory: backend/java
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = 'build/stage'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item 'target/ai-resume-forge-backend.jar' -Destination $stage -Force
+          & jpackage --type app-image `
+            --name ai-resume-backend `
+            --input $stage `
+            --main-jar ai-resume-forge-backend.jar `
+            --dest 'build/jpackage' `
+            --app-version $env:VERSION `
+            --vendor 'AI Resume Forge'
+          if ($LASTEXITCODE -ne 0) { throw 'jpackage failed' }
+          $exe = 'build/jpackage/ai-resume-backend/ai-resume-backend.exe'
+          if (-not (Test-Path $exe)) { throw "jpackage did not produce $exe" }
+          Write-Host "Java app-image ready: $exe"
+
+      # Python：PyInstaller 打成独立 exe，同样不需要用户装 Python。
+      - name: Package Python runtime
+        working-directory: backend/python
+        run: |
+          $ErrorActionPreference = 'Stop'
+          uv run python scripts/build_desktop_bundle.py --clean
+          if ($LASTEXITCODE -ne 0) { throw 'Python bundle build failed' }
+          $exe = 'dist/desktop/ai-resume-api/ai-resume-api.exe'
+          if (-not (Test-Path $exe)) { throw "Python bundle did not produce $exe" }
+          Write-Host "Python bundle ready: $exe"
+
       # ---------- 打包 Windows 安装包 ----------
       - name: Install renderer dependencies
         working-directory: desktop/renderer

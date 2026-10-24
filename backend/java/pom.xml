@@ -128,6 +128,17 @@
 
     <build>
         <finalName>ai-resume-forge-backend</finalName>
+        <!-- db_schema/ 也作为资源目录：建表脚本要打进 jar，
+             桌面端首次启动时才能自动建表（用户不用手动导入 schema.sql）。 -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>db_schema</directory>
+                <targetPath>db_schema</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
