@@ -131,6 +131,7 @@ jobs:
 
       - name: Collect release assets
         shell: pwsh
+        working-directory: desktop
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -138,6 +139,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $installer = Get-ChildItem release -Filter '*-setup.exe' -File | Select-Object -First 1
           if (-not $installer) {
+            Get-ChildItem release -File -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "release/ contains: $($_.Name)" }
             throw "Installer not found in release/ (version $env:VERSION)"
           }
           Copy-Item $installer.FullName "dist/AI-Resume-Forge-$env:VERSION-Setup.exe" -Force
@@ -145,6 +147,7 @@ jobs:
 
       - name: Write checksums
         shell: pwsh
+        working-directory: desktop
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
