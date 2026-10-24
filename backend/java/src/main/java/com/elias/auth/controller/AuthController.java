@@ -6,7 +6,9 @@ import com.elias.auth.dto.request.SetPasswordRequest;
 import com.elias.auth.dto.request.SendCodeRequest;
 import com.elias.auth.dto.request.VerifyCodeRequest;
 import com.elias.auth.service.AuthService;
+import com.elias.auth.service.RateLimiter;
 import com.elias.common.ApiResponse;
+import com.elias.common.exception.BusinessException;
 import com.elias.auth.dto.response.AuthResponse;
 import com.elias.auth.dto.response.CurrentUserResponse;
 import com.elias.auth.dto.response.VerifyCodeResponse;
@@ -25,12 +27,18 @@ import org.springframework.web.multipart.MultipartFile;
 public class AuthController {
 
     private final AuthService authService;
+    private final RateLimiter rateLimiter;
 
     /**
      * 用户注册
      */
     @PostMapping("/register")
     public ApiResponse<AuthResponse> register(@RequestBody RegisterRequest request) {
+        // 匿名接口必须限流：桌面端后端监听 127.0.0.1，本机任何进程都能调到这里。
+        // 没有限流的话，本机脚本可以无限刷注册号，把本地库撑爆。
+        if (!rateLimiter.tryAcquire("register:" + request.getEmail(), 5, 10 * 60_000L)) {
+            throw BusinessException.badRequest("注册过于频繁，请 10 分钟后再试");
+        }
         return ApiResponse.ok(authService.register(request));
     }
 
@@ -39,6 +47,13 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
+        // 登录限流：防止本机脚本反复试密码
+        String loginKey = request.getUsername() != null && !request.getUsername().isBlank()
+                ? request.getUsername()
+                : String.valueOf(request.getEmail());
+        if (!rateLimiter.tryAcquire("login:" + loginKey, 10, 60_000L)) {
+            throw BusinessException.badRequest("登录尝试过于频繁，请 1 分钟后再试");
+        }
         return ApiResponse.ok(authService.login(request));
     }
 
@@ -50,8 +65,15 @@ public class AuthController {
      */
     @PostMapping("/send-code")
     public ApiResponse<Void> sendCode(@RequestBody SendCodeRequest request) {
+        // 每个邮箱 60 秒一封：防止拿别人的邮箱反复触发验证码（邮件炸弹）。
+        // 发信失败不占用配额 —— 否则网络抖一下用户就得干等一分钟。
+        String key = "send-code:" + request.getEmail();
+        if (rateLimiter.isBlocked(key, 1, 60_000L)) {
+            throw BusinessException.badRequest("验证码发送过于频繁，请 60 秒后再试");
+        }
         String type = request.getType() != null ? request.getType() : "register";
         authService.sendVerificationCode(request.getEmail(), type);
+        rateLimiter.record(key, 60_000L);
         return ApiResponse.ok();
     }
 
@@ -62,6 +84,10 @@ public class AuthController {
      */
     @PostMapping("/verify-code")
     public ApiResponse<VerifyCodeResponse> verifyCode(@RequestBody VerifyCodeRequest request) {
+        // 6 位验证码只有 100 万种，必须限流，否则本机脚本可以直接爆破
+        if (!rateLimiter.tryAcquire("verify-code:" + request.getEmail(), 10, 60_000L)) {
+            throw BusinessException.badRequest("验证码尝试过于频繁，请 1 分钟后再试");
+        }
         String verifyToken = authService.verifyCode(request.getEmail(), request.getCode());
         return ApiResponse.ok(new VerifyCodeResponse(verifyToken));
     }

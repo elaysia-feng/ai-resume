@@ -34,7 +34,6 @@ public class SecurityConfig {
             "/api/auth/verify-code",
             "/api/auth/set-password",
             "/api/auth/login-by-code",
-            "/api/notification/code/**",
             // 支付宝服务端回调没有登录态，靠 outTradeNo + 回调验签识别，不能被鉴权拦掉
             "/api/pay/callback"
     };
