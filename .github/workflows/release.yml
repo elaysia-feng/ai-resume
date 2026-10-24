@@ -107,12 +107,22 @@ jobs:
           $stage = 'build/stage'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item 'target/ai-resume-forge-backend.jar' -Destination $stage -Force
+
+          # jpackage 只接受纯数字版本（major.minor.patch）。
+          # 直接传 0.1.0-beta.2 会被判成非法版本：
+          #   IllegalArgumentException: 版本 [0.1.0-beta.2] 不是有效版本 [0-beta]
+          # 预发布信息由安装包文件名承载（electron-builder 用 package.json 的 version）。
+          $appVersion = ($env:VERSION -split '-')[0]
+          if ($appVersion -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Cannot derive a numeric --app-version from '$env:VERSION'"
+          }
+
           & jpackage --type app-image `
             --name ai-resume-backend `
             --input $stage `
             --main-jar ai-resume-forge-backend.jar `
             --dest 'build/jpackage' `
-            --app-version $env:VERSION `
+            --app-version $appVersion `
             --vendor 'AI Resume Forge'
           if ($LASTEXITCODE -ne 0) { throw 'jpackage failed' }
           $exe = 'build/jpackage/ai-resume-backend/ai-resume-backend.exe'
