@@ -87,8 +87,76 @@
         </ol>
 
         <form class="auth-form" novalidate @submit.prevent="handleSubmit">
+          <!--
+            直接注册（不走邮箱验证码）
+            桌面端是自包含应用，用户没配 SMTP 邮件服务时验证码根本发不出来
+            （后端返回 "Could not parse mail"）。这条路径让应用开箱即用：
+            用户名 + 邮箱 + 密码直接建号，邮箱只作为账号标识，不做校验。
+          -->
+          <template v-if="directMode">
+            <p class="auth-note">
+              直接创建账号，<strong>不需要邮箱验证码</strong>。邮箱只作为账号标识，不会收到任何邮件。
+            </p>
+
+            <div class="auth-field">
+              <label class="ui-label" for="directUsername">用户名</label>
+              <input
+                id="directUsername"
+                v-model="form.username"
+                type="text"
+                class="ui-input"
+                placeholder="用于在应用内展示的名字"
+                autocomplete="username"
+              />
+            </div>
+
+            <div class="auth-field">
+              <label class="ui-label" for="directEmail">邮箱地址</label>
+              <input
+                id="directEmail"
+                v-model="form.email"
+                type="email"
+                class="ui-input"
+                placeholder="you@example.com"
+                autocomplete="email"
+              />
+            </div>
+
+            <div class="auth-field">
+              <label class="ui-label" for="directPassword">密码（至少 8 位）</label>
+              <input
+                id="directPassword"
+                v-model="form.password"
+                type="password"
+                class="ui-input"
+                placeholder="设置登录密码"
+                minlength="8"
+                autocomplete="new-password"
+              />
+            </div>
+
+            <div class="auth-field">
+              <label class="ui-label" for="directConfirmPassword">确认密码</label>
+              <input
+                id="directConfirmPassword"
+                v-model="form.confirmPassword"
+                type="password"
+                class="ui-input"
+                placeholder="再次输入密码"
+                autocomplete="new-password"
+              />
+            </div>
+
+            <button type="button" class="ui-btn ui-btn--ghost auth-back" @click="directMode = false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              返回邮箱验证注册
+            </button>
+          </template>
+
           <!-- 第 1 步：验证邮箱 -->
-          <template v-if="activeStep === 1">
+          <template v-else-if="activeStep === 1">
             <div class="auth-field">
               <label class="ui-label" for="email">邮箱地址</label>
               <input
@@ -118,6 +186,17 @@
             <p v-if="codeSent" class="auth-hint auth-hint--success">
               验证码已发送至 {{ form.email }}，请在 60 秒内查收并填写。
             </p>
+
+            <p class="auth-hint">
+              收不到验证码？桌面端默认不配置邮件服务，可直接用用户名和密码注册。
+            </p>
+            <button
+              type="button"
+              class="ui-btn ui-btn--ghost ui-btn--block"
+              @click="directMode = true; errorMsg = ''; validationError = ''"
+            >
+              用用户名和密码直接注册
+            </button>
           </template>
 
           <!-- 第 2 步：输入验证码 -->
@@ -244,7 +323,16 @@
           </p>
 
           <button
-            v-if="activeStep === 1"
+            v-if="directMode"
+            type="submit"
+            class="ui-btn ui-btn--primary ui-btn--block auth-submit"
+            :disabled="loading || !form.username.trim() || !form.email.trim() || form.password.length < 8"
+          >
+            <span v-if="loading" class="auth-spinner" aria-hidden="true"></span>
+            <span>{{ loading ? '创建中…' : '创建账号' }}</span>
+          </button>
+          <button
+            v-else-if="activeStep === 1"
             type="submit"
             class="ui-btn ui-btn--primary ui-btn--block auth-submit"
             :disabled="!form.email.trim() || sendingCode"
@@ -299,6 +387,8 @@ const validationError = ref('');
 const errorMsg = ref('');
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+// 直接注册模式：桌面端未配置邮件服务时，验证码这条路走不通，改用用户名+密码直接建号
+const directMode = ref(false);
 
 let verifyToken = '';
 let countdownTimer = null;
@@ -374,9 +464,55 @@ async function handleSendCode() {
   }
 }
 
+/**
+ * 直接注册：用户名 + 邮箱 + 密码建号，不做邮箱验证。
+ * 桌面端是自包含应用，默认没有邮件服务，验证码注册不可用；
+ * 这条路径保证应用开箱就能建号使用。
+ */
+async function handleDirectRegister() {
+  validationError.value = '';
+  errorMsg.value = '';
+
+  if (!form.username.trim()) {
+    errorMsg.value = '还没填写用户名。';
+    return;
+  }
+  if (!form.email.trim()) {
+    errorMsg.value = '还没填写邮箱地址。';
+    return;
+  }
+  if (form.password.length < 8) {
+    errorMsg.value = '密码至少 8 位。';
+    return;
+  }
+  if (form.password !== form.confirmPassword) {
+    errorMsg.value = '两次输入的密码不一致。';
+    return;
+  }
+
+  loading.value = true;
+  try {
+    await authStore.register({
+      username: form.username.trim(),
+      email: form.email.trim(),
+      password: form.password,
+    });
+    router.push({ name: 'Home' });
+  } catch (err) {
+    errorMsg.value = describeError(err, '注册失败，请稍后重试。若提示用户名或邮箱已存在，请换一个再试。');
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function handleSubmit() {
   validationError.value = '';
   errorMsg.value = '';
+
+  if (directMode.value) {
+    await handleDirectRegister();
+    return;
+  }
 
   if (activeStep.value === 1) {
     advanceToStep2();
