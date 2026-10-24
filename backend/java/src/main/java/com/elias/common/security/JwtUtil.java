@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 /**
@@ -55,10 +57,27 @@ public class JwtUtil {
 
     /**
      * 获取签名密钥
+     *
+     * HS256 要求密钥至少 256 bit（32 字节）。配置里的 secret 往往是
+     * "change-me" 这种短字符串，直接当密钥会在签发时抛 WeakKeyException ——
+     * 表现是注册接口返回「key byte array is 72 bits ... not secure enough」，
+     * 而且用户已经写进库了（半成品数据），用户根本注册不进去。
+     *
+     * 这里统一处理：长度够就直接用（保持与旧行为一致，旧 token 继续有效）；
+     * 不够就用 SHA-256 派生到 32 字节 —— 任意长度的配置都能得到合法密钥，
+     * 且同一 secret 派生结果稳定，重启后已签发的 token 依然有效。
      */
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        if (keyBytes.length >= 32) {
+            return Keys.hmacShaKeyFor(keyBytes);
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(keyBytes);
+            return Keys.hmacShaKeyFor(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("当前 JVM 不支持 SHA-256，无法派生 JWT 签名密钥", e);
+        }
     }
 
     /**

@@ -98,4 +98,41 @@ class JwtUtilTest {
         IllegalStateException e = assertThrows(IllegalStateException.class, jwtUtil::validate);
         assertTrue(e.getMessage().contains("JWT_SECRET"));
     }
+
+    @Test
+    @DisplayName("短密钥（默认的 change-me）也能签发 token")
+    void shortSecretStillWorks() {
+        // HS256 要求密钥至少 256 bit。桌面端默认 JWT_SECRET 是 "change-me"，
+        // 只有 72 bit，直接当密钥会在签发时抛 WeakKeyException，
+        // 表现是注册接口直接失败 —— 用户根本建不了号。
+        JwtUtil jwtUtil = new JwtUtil("change-me", EXPIRATION);
+
+        String token = jwtUtil.generateToken("alice", 42L);
+
+        assertNotNull(token);
+        assertEquals("alice", jwtUtil.getUsernameFromToken(token));
+        assertTrue(jwtUtil.validateToken(token));
+    }
+
+    @Test
+    @DisplayName("同一个短密钥派生出的签名稳定，重启后旧 token 依然有效")
+    void shortSecretDerivationIsStable() {
+        String first = new JwtUtil("change-me", EXPIRATION).generateToken("alice", 42L);
+        String second = new JwtUtil("change-me", EXPIRATION).generateToken("alice", 42L);
+
+        // 同密钥同载荷 ⇒ 同一秒内签出的 token 签名一致
+        assertEquals(first, second);
+        // 换个实例（模拟重启）仍能验签
+        assertTrue(new JwtUtil("change-me", EXPIRATION).validateToken(first));
+    }
+
+    @Test
+    @DisplayName("短密钥派生的结果与长密钥互不通用")
+    void shortAndLongSecretsAreIndependent() {
+        String shortToken = new JwtUtil("change-me", EXPIRATION).generateToken("alice", 42L);
+        String longToken = new JwtUtil(SECRET, EXPIRATION).generateToken("alice", 42L);
+
+        assertFalse(newJwtUtil().validateToken(shortToken));
+        assertFalse(new JwtUtil("change-me", EXPIRATION).validateToken(longToken));
+    }
 }

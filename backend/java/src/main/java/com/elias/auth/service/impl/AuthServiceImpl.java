@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,8 +45,14 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 用户注册
+     *
+     * 加事务：插入用户和签发 token 必须在同一个事务里。
+     * 签发 token 失败时（比如 JWT 密钥不合法）如果不回滚，
+     * 用户已经写进库了，用户却拿不到 token，重试只会得到
+     * "Username already exists" —— 半成品数据留在库里。
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AuthResponse register(RegisterRequest request) {
         log.info("[注册] 收到注册请求, username={}, email={}", request.getUsername(), request.getEmail());
 
