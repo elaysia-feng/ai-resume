@@ -78,7 +78,12 @@ export function defaultConfig(): AppConfig {
       host: '127.0.0.1',
       port: 8000,
     },
-    internalToken: 'change-me',
+    internalToken:
+      // 这个值同时用作「Java ↔ Python 内部通信令牌」和「JWT 签名密钥」
+      // （backend_process.ts 里 JWT_SECRET: config.internalToken）。
+      // 默认值原来只有 9 字节，HS256 要求至少 256 bit —— 短密钥会让
+      // 注册接口直接失败。现在给一个足够长的默认值，用户可以在设置界面改。
+      'ai-resume-forge-internal-token-please-change-me-2026',
   };
 }
 
