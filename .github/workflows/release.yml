@@ -186,6 +186,7 @@ jobs:
       # ---------- 发布 ----------
       - name: Publish or repair GitHub Release
         shell: pwsh
+        working-directory: desktop
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -202,22 +203,53 @@ jobs:
             if (-not (Test-Path $asset)) { throw "Missing release asset: $asset" }
           }
 
+          # 自己写发布说明，不用 --generate-notes：
+          # 首次发版时仓库没有上一个 tag，自动生成会拿不到对比基准。
+          #
+          # 用单引号 here-string（全部字面量），反引号在单引号 here-string 里
+          # 不需要转义；双引号 here-string 里 ` 会被当转义符吃掉，markdown 会坏掉。
+          $notesTemplate = @'
+          # AI Resume Forge __VERSION__
+
+          Windows 桌面端（Electron）预发布版本。
+
+          ## 产物
+
+          - `AI-Resume-Forge-__VERSION__-Setup.exe`：Windows 安装包（NSIS，可选安装目录）
+          - `SHA256SUMS.txt`：产物校验和
+
+          ## 本版要点
+
+          - 桌面端形态：Electron 主进程 + Vue3 渲染层，前端已并入 `desktop/renderer/`
+          - 后端单体化：七个微服务合并为一个 Spring Boot 进程（:8080）
+          - 存储全 SQLite：MySQL / Redis / RabbitMQ / Qdrant 全部移除，本地零外部中间件
+          - 去掉支付功能与向量检索链路
+          - 5star 法则（STAR + 量化结果）纳入评分：规则层 + LLM rubric
+
+          ## 校验
+
+          `SHA256SUMS.txt` 里是安装包的 SHA256。
+          '@
+          $notesFile = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          $notesTemplate.Replace('__VERSION__', $env:VERSION) | Out-File -FilePath $notesFile -Encoding utf8
+
           gh release view "$env:TAG" --repo "$env:REPO" *> $null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $env:TAG already exists; replacing assets."
             gh release upload "$env:TAG" @assets --repo "$env:REPO" --clobber
             if ($LASTEXITCODE -ne 0) { throw "Failed to upload assets for $env:TAG" }
           } else {
-            $args = @(
+            # 注意：不能用 $args 存 gh 的参数——$args 是 PowerShell 自动变量。
+            $releaseArgs = @(
               'release', 'create', "$env:TAG",
               '--repo', "$env:REPO",
               '--title', "AI Resume Forge $env:TAG",
-              '--generate-notes'
+              '--notes-file', $notesFile
             )
             if ($env:PRERELEASE -eq 'true') {
-              $args += '--prerelease'
+              $releaseArgs += '--prerelease'
             }
-            $args += $assets
-            & gh @args
+            $releaseArgs += $assets
+            & gh @releaseArgs
             if ($LASTEXITCODE -ne 0) { throw "Failed to create GitHub Release $env:TAG" }
           }
