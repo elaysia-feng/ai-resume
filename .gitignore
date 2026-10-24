@@ -53,6 +53,8 @@ pytest-cache-files-*/
 !docs/取文件方式-流程对比.md
 # 依赖清单是部署依据，必须入库
 !docs/依赖清单.md
+# 渲染层设计规范是界面开发的唯一依据，必须入库
+!desktop/renderer/DESIGN.md
 
 # IDEs
 .idea/
