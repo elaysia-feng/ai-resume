@@ -18,6 +18,8 @@
 --    - verification_code   ：邮箱验证码（原来用 Redis 缓存）
 -- 4. 外键需要 PRAGMA foreign_keys=ON 才会生效，
 --    由 application.yaml 的 datasource.hikari.connection-init-sql 打开。
+-- SQLite 不提供表/列 COMMENT 元数据；表、索引用途使用本脚本的 SQL 注释说明。
+-- 本脚本对应本地测试库的目标结构；表结构调整后需重置本地库，正式发行前再编写版本迁移。
 -- ============================================================
 
 PRAGMA foreign_keys = ON;
@@ -70,8 +72,12 @@ CREATE TABLE IF NOT EXISTS resume_sections (
     CONSTRAINT fk_resume_sections_resume_id FOREIGN KEY (resume_id) REFERENCES resumes (id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_resume_sections_resume_id ON resume_sections (resume_id);
-CREATE INDEX IF NOT EXISTS idx_resume_sections_section_code ON resume_sections (section_code);
+-- 按简历读取模块并按 sort_order、id 排序，避免详情查询额外排序。
+CREATE INDEX IF NOT EXISTS idx_resume_sections_resume_sort
+    ON resume_sections (resume_id, sort_order, id);
+-- 按简历校验 section_code 是否已存在，避免跨简历扫描同名模块。
+CREATE INDEX IF NOT EXISTS idx_resume_sections_resume_section_code
+    ON resume_sections (resume_id, section_code);
 
 CREATE TABLE IF NOT EXISTS resume_versions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,9 +92,7 @@ CREATE TABLE IF NOT EXISTS resume_versions (
     CONSTRAINT uk_resume_versions_resume_id_version_no UNIQUE (resume_id, version_no)
 );
 
-CREATE INDEX IF NOT EXISTS idx_resume_versions_resume_id ON resume_versions (resume_id);
-CREATE INDEX IF NOT EXISTS idx_resume_versions_resume_id_created_at ON resume_versions (resume_id, created_at);
-
+-- 唯一约束 uk_resume_versions_resume_id_version_no 已覆盖 resume_id 前缀查询。
 CREATE TABLE IF NOT EXISTS resume_version_sections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     version_id BIGINT NOT NULL,
@@ -104,9 +108,9 @@ CREATE TABLE IF NOT EXISTS resume_version_sections (
     CONSTRAINT fk_resume_version_sections_version_id FOREIGN KEY (version_id) REFERENCES resume_versions (id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_resume_version_sections_version_id ON resume_version_sections (version_id);
+-- 复合索引 idx_resume_version_sections_version_id_sort_order 已覆盖 version_id 前缀查询。
 CREATE INDEX IF NOT EXISTS idx_resume_version_sections_version_id_sort_order ON resume_version_sections (version_id, sort_order);
-CREATE INDEX IF NOT EXISTS idx_resume_version_sections_section_code ON resume_version_sections (section_code);
+-- 当前版本模块通过 version_id 读取；复合索引已覆盖该等值前缀。
 
 -- ============================================================
 -- 三、AI 会话与 Agent
@@ -128,10 +132,14 @@ CREATE TABLE IF NOT EXISTS ai_session (
     CONSTRAINT fk_ai_session_parent_session_id FOREIGN KEY (parent_session_id) REFERENCES ai_session (id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_ai_session_user_id ON ai_session (user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_session_resume_id ON ai_session (resume_id);
 CREATE INDEX IF NOT EXISTS idx_ai_session_parent_session_id ON ai_session (parent_session_id);
-CREATE INDEX IF NOT EXISTS idx_ai_session_user_id_updated_at ON ai_session (user_id, updated_at);
+-- 按用户读取近期会话，并匹配 last_message_at、updated_at、id 的倒序。
+CREATE INDEX IF NOT EXISTS idx_ai_session_user_activity
+    ON ai_session (user_id, last_message_at DESC, updated_at DESC, id DESC);
+-- 为 Copilot 按用户、简历和场景筛选的列表匹配最近活动排序。
+CREATE INDEX IF NOT EXISTS idx_ai_session_user_resume_scene_activity
+    ON ai_session (user_id, resume_id, scene_code, last_message_at DESC, updated_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS ai_message (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,8 +156,7 @@ CREATE TABLE IF NOT EXISTS ai_message (
     CONSTRAINT uk_ai_message_session_id_seq_no UNIQUE (session_id, seq_no)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ai_message_session_id ON ai_message (session_id);
-
+-- 唯一约束 uk_ai_message_session_id_seq_no 已覆盖 session_id 前缀和消息顺序查询。
 CREATE TABLE IF NOT EXISTS ai_agent_run (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id BIGINT NOT NULL,
@@ -160,38 +167,37 @@ CREATE TABLE IF NOT EXISTS ai_agent_run (
     current_stage VARCHAR(50) NULL,
     user_input TEXT NULL,
     job_description TEXT NULL,
-    target_section_id BIGINT NULL,
+    -- 0 表示本次 run 未绑定简历模块，例如面试 run。
+    target_section_id BIGINT NOT NULL DEFAULT 0 CHECK (target_section_id >= 0),
     selected_section_ids_json TEXT NULL,
     clarification_payload TEXT NULL,
     approval_payload TEXT NULL,
     result_summary TEXT NULL,
     error_message TEXT NULL,
-    active_flag TINYINT NULL DEFAULT 1,
+    active_flag TINYINT NOT NULL DEFAULT 1 CHECK (active_flag IN (0, 1)),
     client_request_id VARCHAR(100) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME NULL,
-    CONSTRAINT fk_ai_agent_run_session_id FOREIGN KEY (session_id) REFERENCES ai_session (id) ON DELETE CASCADE,
-    CONSTRAINT uk_ai_agent_run_user_session_client_request UNIQUE (user_id, session_id, client_request_id),
-    CONSTRAINT uk_ai_agent_run_active_target UNIQUE (user_id, session_id, scene_code, target_section_id, active_flag)
+    CONSTRAINT fk_ai_agent_run_session_id FOREIGN KEY (session_id) REFERENCES ai_session (id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_ai_agent_run_user_id ON ai_agent_run (user_id);
+-- 仅限制同一目标同时存在一个活跃 run；终态记录不参与唯一性检查。
+CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_agent_run_active_target
+    ON ai_agent_run (user_id, session_id, scene_code, target_section_id)
+    WHERE active_flag = 1;
+-- 幂等键为空时不进入唯一索引；非空键仍保持原有唯一性。
+CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_agent_run_user_session_client_request
+    ON ai_agent_run (user_id, session_id, client_request_id)
+    WHERE client_request_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_ai_agent_run_session_id ON ai_agent_run (session_id);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_run_resume_id ON ai_agent_run (resume_id);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_run_status ON ai_agent_run (status);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_run_user_id_created_at ON ai_agent_run (user_id, created_at);
-
--- 已结束的 run 标记为非活跃
-UPDATE ai_agent_run
-SET active_flag = NULL
-WHERE status IN ('SUCCESS', 'FAILED', 'CANCELLED');
-
--- 面试场景历史 run 补齐目标 sectionId
-UPDATE ai_agent_run
-SET target_section_id = 0
-WHERE scene_code = 'INTERVIEW'
-  AND target_section_id IS NULL;
+-- 当前 run 读取限定 user_id/session_id；未用于筛选的单列索引会增加状态更新写入成本。
+-- 按用户、会话、场景和优先级取 run 摘要；历史列表另按创建时间排序。
+CREATE INDEX IF NOT EXISTS idx_ai_agent_run_session_summary
+    ON ai_agent_run (user_id, session_id, scene_code, active_flag DESC, updated_at DESC, id DESC, status);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_run_user_session_created
+    ON ai_agent_run (user_id, session_id, created_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS ai_run_event (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,8 +212,7 @@ CREATE TABLE IF NOT EXISTS ai_run_event (
     CONSTRAINT uk_ai_run_event_run_seq UNIQUE (run_id, event_seq)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ai_run_event_run_id ON ai_run_event (run_id);
-CREATE INDEX IF NOT EXISTS idx_ai_run_event_run_id_created_at ON ai_run_event (run_id, created_at);
+-- 唯一约束 uk_ai_run_event_run_seq 已覆盖 run_id、event_seq 查询和顺序读取。
 
 -- ============================================================
 -- 四、面试模拟
@@ -215,10 +220,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_run_event_run_id_created_at ON ai_run_event (r
 
 CREATE TABLE IF NOT EXISTS ai_interview_round (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id BIGINT NOT NULL,
     run_id BIGINT NOT NULL,
-    session_id BIGINT NOT NULL,
-    resume_id BIGINT NOT NULL,
     round_no INT NOT NULL,
     question_text TEXT NOT NULL,
     options_json TEXT NOT NULL,
@@ -227,13 +229,15 @@ CREATE TABLE IF NOT EXISTS ai_interview_round (
     status VARCHAR(32) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uk_run_round UNIQUE (run_id, round_no)
+    CONSTRAINT fk_ai_interview_round_run_id FOREIGN KEY (run_id) REFERENCES ai_agent_run (id) ON DELETE CASCADE,
+    CONSTRAINT uk_run_round UNIQUE (run_id, round_no),
+    CONSTRAINT ck_ai_interview_round_round_no CHECK (round_no > 0)
 );
 
-CREATE INDEX IF NOT EXISTS idx_session_id ON ai_interview_round (session_id);
-CREATE INDEX IF NOT EXISTS idx_resume_id ON ai_interview_round (resume_id);
-CREATE INDEX IF NOT EXISTS idx_user_session ON ai_interview_round (user_id, session_id);
-CREATE INDEX IF NOT EXISTS idx_user_resume ON ai_interview_round (user_id, resume_id);
+-- 通过 run_id 校验归属；分页、看板过滤 status 并按 round_no 排序，计数可由窄索引覆盖。
+CREATE INDEX IF NOT EXISTS idx_ai_interview_round_run_status_round
+    ON ai_interview_round (run_id, status, round_no);
+-- user/session/resume 可从 run 派生，避免重复存储导致归属不一致。
 
 -- ============================================================
 -- 五、用户级设置（桌面端对话工作区）
@@ -304,5 +308,10 @@ CREATE TABLE IF NOT EXISTS agent_task (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_task_pending ON agent_task (stream, group_name, status, id);
-CREATE INDEX IF NOT EXISTS idx_agent_task_claimed ON agent_task (status, claimed_at);
-CREATE INDEX IF NOT EXISTS idx_agent_task_token ON agent_task (claim_token);
+-- 按流、消费组和状态定位过期认领；claimed_at 用于范围过滤。
+CREATE INDEX IF NOT EXISTS idx_agent_task_expired_claim
+    ON agent_task (stream, group_name, status, claimed_at);
+-- 只有认领中的任务有 token；排除大量 NULL 记录，缩小回读索引。
+CREATE INDEX IF NOT EXISTS idx_agent_task_token
+    ON agent_task (claim_token)
+    WHERE claim_token IS NOT NULL;

@@ -69,7 +69,7 @@ public class AiAgentRun {
      */
     private String jobDescription;
     /**
-     * 单模块调用这个字段
+     * 目标简历模块ID；0 表示未绑定模块，例如面试 run
      */
     private Long targetSectionId;
 
@@ -99,8 +99,8 @@ public class AiAgentRun {
      */
     private String errorMessage;
     /**
-     * active_flag = 1：PENDING / QUEUED / RUNNING / WAITING_USER / WAITING_CONFIRM
-     * active_flag = NULL：SUCCESS / FAILED / CANCELLED
+     * active_flag = 1：仍在处理或等待用户操作
+     * active_flag = 0：SUCCESS / FAILED / CANCELLED 等终态
      */
     private Integer activeFlag;
 

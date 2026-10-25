@@ -156,7 +156,7 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
         if (List.of(AgentRunStatus.SUCCESS.getCode(), AgentRunStatus.FAILED.getCode(), AgentRunStatus.CANCELLED.getCode()).contains(request.getStatus())) {
             // WAITING_USER / WAITING_CONFIRM 不是最终完成，只是等待用户下一步操作。
             run.setCompletedAt(LocalDateTime.now());
-            run.setActiveFlag(null);
+            run.setActiveFlag(0);
         }
         aiAgentRunMapper.updateById(run);
 

@@ -62,6 +62,16 @@ public class AgentSessionItemResponse {
     private String activeRunStatus;
 
     /**
+     * 活跃优先的 run 状态；没有活跃 run 时为最近一次 run 状态。
+     */
+    private String latestRunStatus;
+
+    /**
+     * 活跃优先的 run ID；没有活跃 run 时为最近一次 run ID。
+     */
+    private Long latestRunId;
+
+    /**
      * 最后一条消息时间，用于会话列表排序
      */
     private LocalDateTime lastMessageAt;

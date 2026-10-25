@@ -38,6 +38,9 @@ sqlite3 data/ai_resume.db < db_schema/schema.sql
 
 文件路径由 `DB_FILE` 指定（默认 `backend/java/data/ai_resume.db`），后端启动时会自动建目录。
 
+当前数据库脚本是本地测试版本的目标结构，`CREATE TABLE IF NOT EXISTS` 不会改造已有表。
+调整表结构后需使用空的 SQLite 文件重建本地数据；正式发行前再增加版本化迁移。
+
 ## 结构
 
 ```

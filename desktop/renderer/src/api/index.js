@@ -26,6 +26,7 @@ export {
   createAgentSession,
   listAgentSessions,
   getAgentSessionDetail,
+  listAgentSessionRuns,
   updateAgentSession,
   deleteAgentSession,
   listAgentMessages,

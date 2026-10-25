@@ -6,6 +6,9 @@ export function shouldUseAgentMock() {
   if (typeof window === 'undefined') {
     return false;
   }
+  if (!import.meta.env.DEV && import.meta.env.VITE_AGENT_MOCK !== 'true') {
+    return false;
+  }
   const storedValue = window.localStorage.getItem('agent_copilot_mock');
   if (storedValue === 'false') {
     return false;
@@ -13,7 +16,7 @@ export function shouldUseAgentMock() {
   if (storedValue === 'true') {
     return true;
   }
-  return import.meta.env.VITE_AGENT_MOCK !== 'false';
+  return import.meta.env.VITE_AGENT_MOCK === 'true';
 }
 
 export function setAgentMockEnabled(enabled) {

@@ -193,7 +193,7 @@ const templates = [
 
 .template-card.is-selected {
   border-color: var(--ui-accent);
-  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .template-card.is-selected .template-card__name {

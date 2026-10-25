@@ -1,6 +1,6 @@
 <template>
   <div class="app-shell">
-    <!-- 访客页（欢迎页 / 登录 / 注册）：整页铺满，不显示侧边栏与顶栏 -->
+    <!-- 访客页（欢迎页 / 登录 / 注册）：整页铺满，不显示侧边栏 -->
     <div v-if="isGuest" class="app-guest">
       <router-view />
     </div>
@@ -11,19 +11,15 @@
         <!-- 品牌标识 -->
         <div class="sidebar-brand">
           <span class="sidebar-brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 512 512" width="30" height="30" fill="none">
-              <rect x="16" y="16" width="480" height="480" rx="112" fill="var(--ui-brand-900)" />
-              <path d="M138 84h170l80 80v248a34 34 0 0 1-34 34H138a34 34 0 0 1-34-34V118a34 34 0 0 1 34-34z" fill="#ffffff" fill-opacity="0.94" />
-              <path d="M308 84l80 80h-80V84z" fill="#a8a29e" fill-opacity="0.55" />
-              <g fill="none" stroke="#16a34a" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M150 392l62-50 46 30" />
-                <path d="M258 372l74-62" />
-              </g>
-              <path d="M334 288l-2 44-44 2 46-46z" fill="#22c55e" />
-            </svg>
+            <AppIcon name="file-text" :size="22" />
           </span>
           <span class="sidebar-brand__text">AI Resume Forge</span>
         </div>
+
+        <router-link class="ui-btn ui-btn--primary ui-btn--block sidebar-create" to="/resume/create">
+          <AppIcon name="file-plus" :size="16" />
+          <span class="nav-item__label">新建简历</span>
+        </router-link>
 
         <!-- 分组导航 -->
         <nav class="sidebar-nav ui-scroll" aria-label="主导航">
@@ -73,24 +69,13 @@
         </div>
       </aside>
 
-      <!-- 顶栏 + 内容区 -->
+      <!-- 页面内容：各工作区在首屏提供自己的标题与操作栏 -->
       <div class="app-body">
-        <header class="app-header">
-          <h1 class="app-header__title">{{ pageTitle }}</h1>
-          <div class="app-header__meta">
-            <span class="header-user">
-              <span class="header-user__avatar">
-                <img v-if="avatarUrl" :src="avatarUrl" alt="用户头像" />
-                <span v-else>{{ userInitial }}</span>
-              </span>
-              <span class="header-user__name">{{ displayName }}</span>
-            </span>
-          </div>
-        </header>
-
         <main class="app-content ui-scroll">
           <div class="app-content__inner">
-            <router-view />
+            <router-view v-slot="{ Component, route: viewRoute }">
+              <component :is="Component" :key="`${viewRoute.name}:${viewRoute.params.id || ''}`" />
+            </router-view>
           </div>
         </main>
       </div>
@@ -122,31 +107,27 @@ function toggleCollapsed() {
   localStorage.setItem(COLLAPSE_STORAGE_KEY, collapsed.value ? '1' : '0');
 }
 
-// 导航分组：工作台 / 创作 / 成长 / 对话 / 设置
+// 保持多入口工作台，简历、对话和面试均可独立进入。
 // icon 字段对应 src/icons/paths.js 的键名
 const navGroups = [
   {
     title: '工作台',
-    items: [{ path: '/dashboard', label: '我的简历', icon: 'squares-four' }],
+    items: [{ path: '/dashboard', label: '总览', icon: 'squares-four' }],
   },
   {
-    title: '创作',
+    title: '独立工具',
     items: [
-      { path: '/dashboard/templates', label: '模板市场', icon: 'layout' },
-      { path: '/resume/create', label: '新建简历', icon: 'file-plus' },
-    ],
-  },
-  {
-    title: '成长',
-    items: [
-      { path: '/dashboard/profile', label: '个人档案', icon: 'user-circle' },
+      { path: '/chat', label: 'AI 对话', icon: 'chat-circle' },
       { path: '/dashboard/interview', label: '模拟面试', icon: 'microphone' },
-      { path: '/dashboard/history', label: 'Agent 会话', icon: 'clock-counter-clockwise' },
+      { path: '/dashboard/templates', label: '模板市场', icon: 'layout' },
     ],
   },
   {
-    title: '对话',
-    items: [{ path: '/chat', label: 'AI 对话', icon: 'chat-circle' }],
+    title: '账号',
+    items: [
+      { path: '/dashboard/history', label: '历史记录', icon: 'clock-counter-clockwise' },
+      { path: '/dashboard/profile', label: '个人档案', icon: 'user-circle' },
+    ],
   },
   {
     title: '设置',
@@ -154,23 +135,14 @@ const navGroups = [
   },
 ];
 
-// 路由名 → 中文页面标题
-const pageTitles = {
-  Home: '我的简历',
-  Templates: '模板市场',
-  ResumeCreate: '新建简历',
-  ResumeEditor: '简历编辑',
-  Profile: '个人档案',
-  Interview: '模拟面试',
-  History: 'Agent 会话',
-  Chat: 'AI 对话',
-  Settings: '设置',
-};
-
-const pageTitle = computed(() => pageTitles[route.name] || 'AI Resume Forge');
-
 function isActive(path) {
-  return route.path === path;
+  if (path === '/dashboard') {
+    return route.path === path;
+  }
+  if (path.endsWith('/')) {
+    return route.path.startsWith(path);
+  }
+  return route.path === path || route.path.startsWith(`${path}/`);
 }
 
 const displayName = computed(() => authStore.currentUser?.username || '用户');
@@ -192,7 +164,7 @@ function handleLogout() {
 
 <style scoped>
 /* ========================================
-   应用壳骨架：左侧栏 + 顶栏 + 独立滚动内容区
+   应用壳骨架：左侧栏 + 独立滚动内容区
    ======================================== */
 .app-shell {
   display: flex;
@@ -244,7 +216,7 @@ function handleLogout() {
 .sidebar-brand__mark {
   display: flex;
   flex-shrink: 0;
-  filter: drop-shadow(0 2px 6px rgba(22, 163, 74, 0.28));
+  color: var(--ui-fg-accent);
 }
 
 .sidebar-brand__text {
@@ -255,6 +227,11 @@ function handleLogout() {
   color: var(--ui-fg-primary);
   white-space: nowrap;
   overflow: hidden;
+}
+
+.sidebar-create {
+  margin: var(--ui-space-3) var(--ui-space-3) 0;
+  justify-content: center;
 }
 
 /* ---- 分组导航 ---- */
@@ -356,8 +333,7 @@ function handleLogout() {
   min-width: 0;
 }
 
-.sidebar-user__avatar,
-.header-user__avatar {
+.sidebar-user__avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -373,8 +349,7 @@ function handleLogout() {
   overflow: hidden;
 }
 
-.sidebar-user__avatar img,
-.header-user__avatar img {
+.sidebar-user__avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -452,7 +427,7 @@ function handleLogout() {
 }
 
 /* ========================================
-   顶栏 + 内容区
+   主内容区
    ======================================== */
 .app-body {
   flex: 1;
@@ -460,58 +435,6 @@ function handleLogout() {
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.app-header {
-  height: var(--ui-header-height);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ui-space-4);
-  padding: 0 var(--ui-space-6);
-  background: var(--ui-bg-surface);
-  background-image: var(--ui-surface-wash);
-  border-bottom: 1px solid var(--ui-border-hairline);
-}
-
-.app-header__title {
-  margin: 0;
-  font-family: var(--ui-font-display);
-  font-size: var(--ui-text-md);
-  font-weight: 620;
-  letter-spacing: var(--ui-tracking-snug);
-  color: var(--ui-fg-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-3);
-  min-width: 0;
-}
-
-.header-user {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-2);
-  padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1) var(--ui-space-1);
-  border: 1px solid var(--ui-border-hairline);
-  border-radius: var(--ui-radius-full);
-  background: var(--ui-bg-surface);
-  box-shadow: var(--ui-shadow-xs);
-  min-width: 0;
-}
-
-.header-user__name {
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .app-content {
@@ -532,8 +455,5 @@ function handleLogout() {
     padding: var(--ui-space-6);
   }
 
-  .app-header {
-    padding: 0 var(--ui-space-4);
-  }
 }
 </style>

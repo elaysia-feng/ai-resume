@@ -1,585 +1,587 @@
 <template>
   <div class="home-page">
-    <!-- 页头 -->
-    <header class="page-head">
-      <div class="page-head__text">
-        <h1 class="ui-page-title">我的简历</h1>
-        <p class="ui-page-subtitle">继续编辑已有简历，或者直接开始一次 AI 对话、模拟面试。</p>
+    <header class="home-heading">
+      <div>
+        <p class="home-eyebrow">AI RESUME FORGE</p>
+        <h1 class="ui-page-title">{{ greeting }}今天从哪里开始？</h1>
+        <p class="ui-page-subtitle">简历、AI 对话和模拟面试都可以单独开始。这里汇总最近工作，方便你接着做。</p>
       </div>
-      <div class="page-head__actions">
-        <button class="ui-btn ui-btn--primary" :disabled="creating" @click="handleCreate">
-          <AppIcon name="plus" :size="16" />
-          {{ creating ? '创建中…' : '新建简历' }}
-        </button>
-      </div>
+      <button type="button" class="ui-btn ui-btn--primary" :disabled="creatingResume" @click="createResume">
+        <AppIcon :name="creatingResume ? 'spinner-gap' : 'file-plus'" :size="16" :spin="creatingResume" />
+        {{ creatingResume ? '创建中…' : '新建简历' }}
+      </button>
     </header>
 
-    <!-- 快捷入口 -->
-    <section class="quick-grid" aria-label="快捷入口">
-      <button
-        v-for="item in quickActions"
-        :key="item.key"
-        type="button"
-        class="ui-panel ui-panel--hover quick-item"
-        @click="handleQuickAction(item)"
-      >
-        <span class="ui-icon-tile quick-item__icon" aria-hidden="true">
-          <AppIcon :name="item.icon" :size="18" />
-        </span>
-        <span class="quick-item__body">
-          <span class="quick-item__title">{{ item.title }}</span>
-          <span class="quick-item__desc">{{ item.desc }}</span>
-        </span>
-      </button>
+    <div v-if="creationNotice" class="ui-callout ui-callout--danger" role="alert">
+      <AppIcon name="warning-circle" :size="16" />
+      <span>{{ creationNotice }}</span>
+      <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="creationNotice = ''">关闭</button>
+    </div>
+
+    <section class="entry-grid ui-panel ui-panel--raised" aria-label="主要功能">
+      <article class="entry-card entry-card--resume">
+        <div class="entry-card__top">
+          <span class="ui-icon-tile"><AppIcon name="file-text" :size="18" /></span>
+          <span class="ui-badge">{{ resumeError ? '—' : resumes.length }}<span v-if="!resumeError"> 份</span></span>
+        </div>
+        <div class="entry-card__copy">
+          <h2>简历编辑</h2>
+          <p>维护经历、调整版式，查看预览并导出。</p>
+        </div>
+        <div v-if="loadingResumes && !resumes.length" class="entry-card__state" aria-live="polite">正在读取简历…</div>
+        <div v-else-if="resumeError" class="entry-card__state entry-card__state--error" role="alert">
+          <span>{{ resumeError }}</span>
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="loadResumes">重试</button>
+        </div>
+        <div v-else-if="resumes.length" class="entry-card__state">已有 {{ resumes.length }} 份简历，可在下方列表中继续编辑。</div>
+        <div v-else class="entry-card__state">还没有简历，创建一份空白简历开始整理经历。</div>
+        <footer class="entry-card__actions">
+          <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="router.push('/dashboard/templates')">浏览模板</button>
+          <button v-if="resumes.length" type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="openResumeList">查看简历</button>
+        </footer>
+      </article>
+
+      <article class="entry-card entry-card--chat">
+        <div class="entry-card__top">
+          <span class="ui-icon-tile"><AppIcon name="chat-circle-dots" :size="18" /></span>
+          <span class="ui-badge">{{ chatError ? '—' : chatSessions.length }}<span v-if="!chatError"> 条</span></span>
+        </div>
+        <div class="entry-card__copy">
+          <h2>AI 对话</h2>
+          <p>讨论简历内容，也可以让 AI 查看本地工作区文件。</p>
+        </div>
+        <div v-if="loadingChats && !chatSessions.length" class="entry-card__state" aria-live="polite">正在读取对话…</div>
+        <div v-else-if="chatError" class="entry-card__state entry-card__state--error" role="alert">
+          <span>{{ chatError }}</span>
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="loadChats">重试</button>
+        </div>
+        <div v-else-if="chatSessions.length" class="entry-card__state">已保存 {{ chatSessions.length }} 条记录；最近对话见下方列表。</div>
+        <div v-else class="entry-card__state">还没有对话记录，可以直接开启新对话。</div>
+        <footer class="entry-card__actions">
+          <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="openChat()">开始对话</button>
+        </footer>
+      </article>
+
+      <article class="entry-card entry-card--interview">
+        <div class="entry-card__top">
+          <span class="ui-icon-tile"><AppIcon name="microphone" :size="18" /></span>
+          <span class="ui-badge">{{ agentError ? '—' : interviewSessions.length }}<span v-if="!agentError"> 场</span></span>
+        </div>
+        <div class="entry-card__copy">
+          <h2>模拟面试</h2>
+          <p>选择一份简历和目标岗位，逐轮练习并查看反馈。</p>
+        </div>
+        <div v-if="loadingAgents && !interviewSessions.length" class="entry-card__state" aria-live="polite">正在读取面试…</div>
+        <div v-else-if="agentError" class="entry-card__state entry-card__state--error" role="alert">
+          <span>{{ agentError }}</span>
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="loadAgentSessions">重试</button>
+        </div>
+        <div v-else-if="interviewSessions.length" class="entry-card__state">已保存 {{ interviewSessions.length }} 场面试；最近记录见下方列表。</div>
+        <div v-else class="entry-card__state">还没有面试记录，准备好后可以从这里开始练习。</div>
+        <footer class="entry-card__actions">
+          <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" @click="openInterview()">开始面试</button>
+        </footer>
+      </article>
     </section>
 
-    <div class="home-body">
-      <!-- 简历列表 -->
-      <section class="panel">
-        <div class="ui-section-head">
-          <h2 class="ui-section-head__title">简历列表</h2>
-          <span class="ui-badge">{{ resumeStore.resumes.length }} 份</span>
-        </div>
-
-        <!-- 加载中 -->
-        <div v-if="resumeStore.loading && resumeStore.resumes.length === 0">
-          <div class="resume-grid" aria-hidden="true">
-            <div v-for="index in 3" :key="index" class="resume-skeleton ui-panel">
-              <div class="resume-skeleton__head">
-                <div class="ui-skeleton resume-skeleton__icon"></div>
-                <div class="resume-skeleton__lines">
-                  <div class="ui-skeleton resume-skeleton__title"></div>
-                  <div class="ui-skeleton resume-skeleton__time"></div>
-                </div>
-              </div>
-              <div class="ui-skeleton resume-skeleton__badge"></div>
-              <div class="ui-skeleton resume-skeleton__foot"></div>
-            </div>
+    <section class="overview-grid">
+      <article class="ui-panel overview-panel">
+        <header class="ui-section-head">
+          <div>
+            <h2 class="ui-section-head__title">最近工作</h2>
+            <p class="ui-section-head__hint">按最近活动排序，点开后回到对应功能。</p>
           </div>
-          <p class="state-text">正在加载简历…</p>
-        </div>
+          <router-link class="ui-btn ui-btn--ghost ui-btn--sm" to="/dashboard/history">全部历史</router-link>
+        </header>
 
-        <!-- 加载失败 -->
-        <div
-          v-else-if="resumeStore.error && resumeStore.resumes.length === 0"
-          class="ui-callout ui-callout--danger"
-        >
+        <div v-if="activityError" class="ui-callout ui-callout--danger" role="alert">
           <AppIcon name="warning-circle" :size="16" />
-          <div class="callout__body">
-            <strong class="callout__title">简历列表加载失败</strong>
-            <p class="callout__text">{{ resumeStore.error }}，请检查后端服务是否已启动后重试。</p>
-          </div>
-          <button class="ui-btn ui-btn--sm ui-btn--outline" @click="resumeStore.fetchResumes()">重新加载</button>
+          <span>{{ activityError }}</span>
+          <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="reloadActivity">重新加载</button>
         </div>
-
-        <!-- 空状态 -->
-        <div v-else-if="resumeStore.resumes.length === 0" class="ui-panel state-panel">
-          <div class="ui-empty">
-            <span class="ui-empty__icon" aria-hidden="true">
-              <AppIcon name="files" :size="24" />
-            </span>
-            <p class="ui-empty__title">{{ greeting }}你还没有简历</p>
-            <p class="ui-empty__hint">
-              新建一份空白简历开始写，或者让 AI 帮你从零起草；按 N 键可以快速新建。
-            </p>
-            <div class="ui-empty__actions">
-              <button class="ui-btn ui-btn--primary" :disabled="creating" @click="handleCreate">新建简历</button>
-              <router-link class="ui-btn ui-btn--outline" to="/chat">去和 AI 对话</router-link>
-            </div>
-          </div>
-        </div>
-
-        <!-- 简历卡片 -->
-        <div v-else class="resume-grid">
-          <ResumeCard
-            v-for="resume in resumeStore.resumes"
-            :key="resume.id"
-            :resume="resume"
-          />
-        </div>
-      </section>
-
-      <!-- 侧栏：概览 + 最近对话 -->
-      <aside class="side">
-        <section class="ui-panel side-card">
-          <div class="ui-section-head">
-            <h2 class="ui-section-head__title">概览</h2>
-          </div>
-
-          <div class="stat-grid">
-            <div class="ui-stat">
-              <span class="ui-stat__label">简历</span>
-              <span class="ui-stat__value">
-                {{ resumeStore.resumes.length }}<small class="stat-unit">份</small>
+        <ul v-if="recentActivity.length" class="activity-list">
+          <li v-for="item in recentActivity" :key="item.key">
+            <button type="button" class="activity-item" @click="item.open()">
+              <span class="activity-item__icon"><AppIcon :name="item.icon" :size="16" /></span>
+              <span class="activity-item__body">
+                <span class="activity-item__title">{{ item.title }}</span>
+                <span class="activity-item__meta">{{ item.kind }} · {{ formatDateTime(item.time) }}</span>
               </span>
-            </div>
-            <div class="ui-stat">
-              <span class="ui-stat__label">对话</span>
-              <span class="ui-stat__value">
-                {{ recentSessions.length }}<small class="stat-unit">条</small>
-              </span>
-            </div>
-          </div>
+              <span v-if="item.status" class="ui-badge" :class="item.statusTone">{{ item.status }}</span>
+              <AppIcon name="caret-right" :size="16" class="activity-item__arrow" />
+            </button>
+          </li>
+        </ul>
+        <div v-else-if="loadingAgents || loadingChats" class="activity-empty" aria-live="polite">正在整理最近工作…</div>
+        <div v-else-if="!activityError" class="ui-empty activity-empty">
+          <span class="ui-empty__icon"><AppIcon name="clock-counter-clockwise" :size="24" /></span>
+          <p class="ui-empty__title">这里还没有近期记录</p>
+          <p class="ui-empty__hint">开始一次简历编辑、AI 对话或模拟面试后，记录会出现在这里。</p>
+        </div>
+      </article>
 
-          <p class="side-row">
-            <span class="ui-stat__label">最近更新</span>
-            <span class="side-row__value">{{ lastUpdatedText }}</span>
-          </p>
-        </section>
+    </section>
 
-        <section class="ui-panel side-card">
-          <div class="ui-section-head">
-            <h2 class="ui-section-head__title">最近对话</h2>
-            <router-link class="ui-btn ui-btn--ghost ui-btn--sm" to="/chat">全部</router-link>
-          </div>
-
-          <div v-if="sessionsLoading" aria-hidden="true">
-            <ul class="skeleton-list">
-              <li v-for="index in 3" :key="index" class="ui-skeleton skeleton-row"></li>
-            </ul>
-            <p class="state-text state-text--left">正在加载对话…</p>
-          </div>
-
-          <div v-else-if="recentSessions.length === 0" class="ui-empty side-empty">
-            <span class="ui-empty__icon" aria-hidden="true">
-              <AppIcon name="chat-circle" :size="24" />
-            </span>
-            <p class="ui-empty__title">还没有对话记录</p>
-            <p class="ui-empty__hint">去 AI 对话说说你想投的岗位。</p>
-            <router-link class="ui-btn ui-btn--outline ui-btn--sm" to="/chat">去和 AI 对话</router-link>
-          </div>
-
-          <ul v-else class="session-list">
-            <li v-for="session in recentSessions" :key="session.id">
-              <router-link class="session-item" to="/chat" title="在 AI 对话中查看">
-                <span class="session-item__title">{{ session.title || '未命名对话' }}</span>
-                <span class="session-item__meta">
-                  <span>{{ formatDateTime(session.lastMessageAt) }}</span>
-                  <span>{{ session.messageCount ?? 0 }} 条消息</span>
-                </span>
-              </router-link>
-            </li>
-          </ul>
-        </section>
-      </aside>
-    </div>
+    <section class="ui-panel resume-library" id="resume-list">
+      <header class="ui-section-head">
+        <div>
+          <h2 class="ui-section-head__title">我的简历</h2>
+          <p class="ui-section-head__hint">每份简历可以独立编辑、保存版本和导出。</p>
+        </div>
+        <span class="ui-badge">{{ resumeError ? '—' : resumes.length }}<span v-if="!resumeError"> 份</span></span>
+      </header>
+      <div v-if="resumes.length" class="resume-library__grid">
+        <ResumeCard v-for="resume in resumes" :key="resume.id" :resume="resume" />
+      </div>
+      <div v-else-if="!loadingResumes && !resumeError" class="ui-empty resume-library__empty">
+        <span class="ui-empty__icon"><AppIcon name="files" :size="24" /></span>
+        <p class="ui-empty__title">还没有简历</p>
+        <p class="ui-empty__hint">新建空白简历后，可以按自己的经历逐步补充内容。</p>
+        <button type="button" class="ui-btn ui-btn--primary" :disabled="creatingResume" @click="createResume">新建简历</button>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../components/common/AppIcon.vue';
-import { useResumeStore } from '../store/resumeStore.js';
-import { useAuthStore } from '../store/authStore.js';
+import { createResume as createResumeApi, getResumes } from '../api/resumes.js';
 import { listChatSessions } from '../api/chat.js';
+import { listAgentSessions } from '../api/agentSessions.js';
+import { useAuthStore } from '../store/authStore.js';
 import { formatDateTime } from '../utils/resume.js';
+import { extractApiMessage } from '../api/request.js';
 import ResumeCard from '../components/ResumeCard.vue';
 
-const resumeStore = useResumeStore();
-const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
+const resumes = ref([]);
+const chatSessions = ref([]);
+const agentSessions = ref([]);
+const loadingResumes = ref(false);
+const loadingChats = ref(false);
+const loadingAgents = ref(false);
+const creatingResume = ref(false);
+const resumeError = ref('');
+const chatError = ref('');
+const agentError = ref('');
+const creationNotice = ref('');
 
-const creating = ref(false);
-const sessionsLoading = ref(false);
-const recentSessions = ref([]);
-
-// 快捷入口：新建简历走当前页的创建流程，其余直接跳转
-const quickActions = [
-  { key: 'create', icon: 'file-plus', title: '新建简历', desc: '从空白简历开始，边写边存' },
-  { key: 'chat', icon: 'chat-circle', title: 'AI 对话', desc: '让 AI 帮你起草或改写简历', to: '/chat' },
-  { key: 'templates', icon: 'layout', title: '模板市场', desc: '挑一套版式，套用后导出 PDF', to: '/dashboard/templates' },
-  { key: 'interview', icon: 'microphone', title: '模拟面试', desc: '按目标岗位出题并逐轮点评', to: '/dashboard/interview' },
-];
+watch(() => route.query.resumeCreateError, (code) => {
+  if (!code) {
+    return;
+  }
+  creationNotice.value = code === 'missing-id'
+    ? '创建简历失败：后端没有返回简历编号。'
+    : '创建简历失败，请检查后端服务后重试。';
+  router.replace({ query: { ...route.query, resumeCreateError: undefined } });
+}, { immediate: true });
 
 const greeting = computed(() => {
   const name = authStore.currentUser?.username;
   return name ? `${name}，` : '';
 });
 
-// 最近一次简历更新时间
-const lastUpdatedText = computed(() => {
-  const times = resumeStore.resumes
-    .map((resume) => new Date(resume.updatedAt || 0).getTime())
-    .filter((time) => !Number.isNaN(time) && time > 0);
-  if (!times.length) {
-    return '暂无';
-  }
-  return new Date(Math.max(...times)).toLocaleDateString('zh-CN');
+const interviewSessions = computed(() =>
+  agentSessions.value.filter((session) => String(session.sceneCode || '').toUpperCase() === 'INTERVIEW')
+);
+
+const recentActivity = computed(() => {
+  const chats = chatSessions.value.slice(0, 4).map((session) => ({
+    key: `chat-${session.id}`,
+    title: session.title || `对话 #${session.id}`,
+    kind: 'AI 对话',
+    time: session.lastMessageAt || session.updatedAt,
+    icon: 'chat-circle',
+    open: () => openChat(session.id),
+  }));
+  const agents = agentSessions.value.slice(0, 6).map((session) => {
+    const isInterview = String(session.sceneCode || '').toUpperCase() === 'INTERVIEW';
+    const runStatus = session.activeRunStatus || session.latestRunStatus;
+    return {
+      key: `agent-${session.id}`,
+      title: session.sessionTitle || (isInterview ? `面试 #${session.id}` : `简历任务 #${session.id}`),
+      kind: isInterview ? '模拟面试' : '简历 AI',
+      time: session.lastMessageAt || session.updatedAt || session.createdAt,
+      icon: isInterview ? 'microphone' : 'sparkle',
+      status: runStatus ? runStatusLabel(runStatus) : '',
+      statusTone: runStatusTone(runStatus),
+      open: () => isInterview ? openInterview(session.id) : openAgentSession(session),
+    };
+  });
+  return [...chats, ...agents]
+    .sort((left, right) => new Date(right.time || 0).getTime() - new Date(left.time || 0).getTime())
+    .slice(0, 6);
 });
+
+const activityError = computed(() => [chatError.value, agentError.value].filter(Boolean).join('；'));
 
 onMounted(() => {
-  resumeStore.fetchResumes();
-  loadRecentSessions();
-  window.addEventListener('keydown', handleKeydown);
+  loadResumes();
+  loadChats();
+  loadAgentSessions();
 });
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
-
-function handleKeydown(e) {
-  if (e.key !== 'n' && e.key !== 'N') {
-    return;
-  }
-  // 正在输入框里打字时不触发快捷键
-  const tag = e.target?.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) {
-    return;
-  }
-  handleCreate();
-}
-
-function handleQuickAction(item) {
-  if (item.to) {
-    router.push(item.to);
-    return;
-  }
-  handleCreate();
-}
-
-async function handleCreate() {
-  if (creating.value) {
-    return;
-  }
-  creating.value = true;
+async function loadResumes() {
+  loadingResumes.value = true;
+  resumeError.value = '';
   try {
-    const created = await resumeStore.createResume({ title: 'Untitled Resume' });
-    const id = created?.id || created?._id;
-    if (id) {
-      router.push(`/editor/${id}`);
-    }
-  } catch {
-    // error is set on the store
+    resumes.value = await getResumes();
+  } catch (error) {
+    resumeError.value = extractApiMessage(error, '简历读取失败，请检查后端服务后重试。');
   } finally {
-    creating.value = false;
+    loadingResumes.value = false;
   }
 }
 
-async function loadRecentSessions() {
-  sessionsLoading.value = true;
+async function loadChats() {
+  loadingChats.value = true;
+  chatError.value = '';
   try {
     const list = await listChatSessions();
-    recentSessions.value = (Array.isArray(list) ? list : []).slice(0, 4);
-  } catch {
-    // 概览信息拿不到不影响主流程，静默留空
-    recentSessions.value = [];
+    chatSessions.value = Array.isArray(list) ? list : [];
+  } catch (error) {
+    chatError.value = extractApiMessage(error, '对话记录读取失败。');
   } finally {
-    sessionsLoading.value = false;
+    loadingChats.value = false;
   }
+}
+
+async function loadAgentSessions() {
+  loadingAgents.value = true;
+  agentError.value = '';
+  try {
+    const list = await listAgentSessions();
+    agentSessions.value = Array.isArray(list) ? list : [];
+  } catch (error) {
+    agentError.value = extractApiMessage(error, 'AI 任务和面试记录读取失败。');
+  } finally {
+    loadingAgents.value = false;
+  }
+}
+
+async function createResume() {
+  if (creatingResume.value) {
+    return;
+  }
+  creatingResume.value = true;
+  try {
+    const created = await createResumeRequest();
+    const id = created?.resumeId ?? created?.id ?? created?._id;
+    if (id) {
+      await router.push(`/editor/${id}`);
+    } else {
+      creationNotice.value = '简历已创建，但没有拿到简历编号。请到「我的简历」中重新打开。';
+    }
+  } catch (error) {
+    resumeError.value = extractApiMessage(error, '简历创建失败，请重试。');
+  } finally {
+    creatingResume.value = false;
+  }
+}
+
+async function createResumeRequest() {
+  return createResumeApi({ title: '新建简历' });
+}
+
+function openResumeList() {
+  document.querySelector('#resume-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openChat(sessionId) {
+  const query = sessionId ? { sessionId: String(sessionId) } : {};
+  router.push({ name: 'Chat', query });
+}
+
+function openInterview(sessionId) {
+  const query = sessionId ? { sessionId: String(sessionId) } : {};
+  router.push({ name: 'Interview', query });
+}
+
+function openAgentSession(session) {
+  if (session.resumeId && String(session.sceneCode || '').toUpperCase() === 'JD_CUSTOMIZE') {
+    router.push({ name: 'ResumeEditor', params: { id: session.resumeId }, query: { sessionId: String(session.id) } });
+    return;
+  }
+  router.push({ name: 'History', query: { sessionId: String(session.id), source: 'AGENT' } });
+}
+
+function runStatusLabel(status) {
+  const labels = {
+    QUEUED: '排队中',
+    RUNNING: '进行中',
+    WAITING_USER: '待补充',
+    WAITING_CONFIRM: '待确认',
+    FAILED: '执行失败',
+    CANCELLED: '已取消',
+    SUCCESS: '已完成',
+  };
+  return labels[status] || status;
+}
+
+function runStatusTone(status) {
+  if (status === 'FAILED') {
+    return 'ui-badge--danger';
+  }
+  if (status === 'WAITING_USER' || status === 'WAITING_CONFIRM') {
+    return 'ui-badge--warning';
+  }
+  if (status === 'SUCCESS') {
+    return 'ui-badge--success';
+  }
+  return 'ui-badge--accent';
+}
+
+function reloadActivity() {
+  loadChats();
+  loadAgentSessions();
 }
 </script>
 
 <style scoped>
-/* ========================================
-   工作台首页：页头 + 快捷入口 + 简历列表 + 侧栏概览
-   ======================================== */
 .home-page {
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-6);
+  max-width: var(--ui-content-max);
+  margin: 0 auto;
 }
 
-/* ---------- 页头 ---------- */
-.page-head {
+.home-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: var(--ui-space-4);
+  gap: var(--ui-space-5);
 }
 
-.page-head__actions {
+.home-eyebrow {
+  margin: 0 0 var(--ui-space-2);
+  color: var(--ui-fg-accent);
+  font-size: var(--ui-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.home-heading .ui-page-subtitle {
+  margin-top: var(--ui-space-2);
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  padding: var(--ui-space-2);
+}
+
+.entry-card {
   display: flex;
-  flex-shrink: 0;
+  min-width: 0;
+  min-height: 176px;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-5);
+}
+
+.entry-card + .entry-card {
+  border-left: 1px solid var(--ui-border-subtle);
+}
+
+.entry-card__top,
+.entry-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--ui-space-2);
 }
 
-/* ---------- 快捷入口 ---------- */
-.quick-grid {
+.entry-card__copy h2 {
+  margin: 0;
+  font-size: var(--ui-text-lg);
+  letter-spacing: var(--ui-tracking-snug);
+}
+
+.entry-card__copy p {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
+}
+
+.entry-card__actions button:focus-visible,
+.activity-item:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-ring);
+}
+
+.entry-card__state {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--ui-space-3);
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
+}
+
+.entry-card__state--error {
+  color: var(--ui-danger);
+}
+
+.entry-card__actions {
+  min-height: 32px;
+  justify-content: flex-start;
+  margin-top: auto;
+}
+
+.overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.overview-panel {
+  min-width: 0;
+  padding: var(--ui-space-5);
+}
+
+.resume-library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-5);
+  scroll-margin-top: var(--ui-space-5);
+}
+
+.resume-library__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-3);
+}
+
+.resume-library__empty {
+  min-height: 190px;
+}
+
+.overview-panel {
+  display: flex;
+  flex-direction: column;
   gap: var(--ui-space-4);
 }
 
-.quick-item {
+.activity-list {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
   gap: var(--ui-space-3);
-  padding: var(--ui-space-4);
-  font-family: inherit;
+  padding: var(--ui-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: transparent;
   color: var(--ui-fg-primary);
+  font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.quick-item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
-}
-
-.quick-item__icon {
-  flex-shrink: 0;
-}
-
-.quick-item__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-1);
-  min-width: 0;
-}
-
-.quick-item__title {
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  letter-spacing: var(--ui-tracking-snug);
-  color: var(--ui-fg-primary);
-}
-
-.quick-item__desc {
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-secondary);
-  line-height: var(--ui-line-normal);
-}
-
-/* ---------- 主体两栏 ---------- */
-.home-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: var(--ui-space-5);
-  align-items: start;
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-4);
-  min-width: 0;
-}
-
-.resume-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--ui-space-4);
-}
-
-/* ---------- 状态块 ---------- */
-.state-panel {
-  padding: var(--ui-space-2);
-}
-
-.state-text {
-  margin: var(--ui-space-4) 0 0;
-  text-align: center;
-  font-size: var(--ui-text-sm);
-  color: var(--ui-fg-muted);
-}
-
-.state-text--left {
-  margin: 0;
-  text-align: left;
-}
-
-.ui-empty__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ui-space-2);
-  justify-content: center;
-}
-
-/* 提示条里的文字块：标题 + 说明 */
-.callout__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.callout__title {
-  font-weight: 600;
-}
-
-.callout__text {
-  margin: 0;
-  line-height: var(--ui-line-normal);
-  word-break: break-word;
-}
-
-/* 骨架卡片：形状贴近最终简历卡片（图标 + 标题 + 时间 + 状态 + 操作区） */
-.resume-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-3);
-  padding: var(--ui-space-4) var(--ui-space-5) var(--ui-space-3);
-}
-
-.resume-skeleton__head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ui-space-3);
-}
-
-.resume-skeleton__icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: var(--ui-radius-md);
-}
-
-.resume-skeleton__lines {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-2);
-  flex: 1;
-  min-width: 0;
-}
-
-.resume-skeleton__title {
-  height: 14px;
-  width: 62%;
-}
-
-.resume-skeleton__time {
-  height: 10px;
-  width: 40%;
-}
-
-.resume-skeleton__badge {
-  height: 18px;
-  width: 72px;
-  border-radius: var(--ui-radius-full);
-}
-
-.resume-skeleton__foot {
-  height: 12px;
-  width: 100%;
-  margin-top: var(--ui-space-2);
-}
-
-/* ---------- 侧栏 ---------- */
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-4);
-  min-width: 0;
-}
-
-.side-card {
-  padding: var(--ui-space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-3);
-}
-
-.side-empty {
-  padding: var(--ui-space-6) var(--ui-space-2);
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--ui-space-4);
-}
-
-.stat-unit {
-  margin-left: 2px;
-  font-size: var(--ui-text-xs);
-  font-weight: 500;
-  color: var(--ui-fg-muted);
-}
-
-.side-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--ui-space-3);
-  margin: 0;
-  padding-top: var(--ui-space-3);
-  border-top: 1px solid var(--ui-border-subtle);
-}
-
-.side-row__value {
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-  color: var(--ui-fg-primary);
-  text-align: right;
-}
-
-/* ---------- 最近对话 ---------- */
-.session-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.skeleton-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.skeleton-row {
-  height: 44px;
-  border-radius: var(--ui-radius-md);
-}
-
-.session-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border-radius: var(--ui-radius-md);
-  transition: background var(--ui-duration-fast) var(--ui-ease-in-out);
-}
-
-.session-item:hover {
+.activity-item:hover {
+  border-color: var(--ui-border-subtle);
   background: var(--ui-bg-hover);
 }
 
-.session-item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
+.activity-item__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  color: var(--ui-fg-accent);
 }
 
-.session-item__title {
+.activity-item__body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-item__title {
+  overflow: hidden;
   font-size: var(--ui-text-sm);
   font-weight: 600;
-  color: var(--ui-fg-primary);
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.session-item__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-3);
-  font-size: var(--ui-text-xs);
+.activity-item__meta {
   color: var(--ui-fg-muted);
-  overflow: hidden;
+  font-size: var(--ui-text-xs);
 }
 
-.session-item__meta span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.activity-item__arrow {
+  flex: 0 0 auto;
+  color: var(--ui-fg-muted);
 }
 
-/* ---------- 窄窗口 ---------- */
-@media (max-width: 1100px) {
-  .home-body {
-    grid-template-columns: 1fr;
+.activity-empty {
+  min-height: 166px;
+}
+
+@media (max-width: 1200px) {
+  .entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .page-head {
+  .entry-card--interview {
+    grid-column: span 2;
+    border-top: 1px solid var(--ui-border-subtle);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .resume-library__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .home-heading {
+    align-items: flex-start;
     flex-direction: column;
-    align-items: stretch;
+  }
+
+  .entry-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .entry-card--interview {
+    grid-column: auto;
+    border-top: 1px solid var(--ui-border-subtle);
+  }
+
+  .entry-card + .entry-card {
+    border-left: 0;
+  }
+
+  .entry-card--chat {
+    border-top: 1px solid var(--ui-border-subtle);
   }
 }
 </style>

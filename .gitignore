@@ -45,9 +45,10 @@ backend/python/data/
 # pytest 建的临时目录（空目录，删不掉，忽略掉）
 pytest-cache-files-*/
 
-# Markdown - allow only README.md
+# Markdown - allow project entry documents and design context
 *.md
 !README.md
+!PRODUCT.md
 # 架构说明是单体化后的交付物，README 会链接它，必须入库
 !ARCHITECTURE.md
 # 桌面端改造的接口契约是代码级交付物，必须入库

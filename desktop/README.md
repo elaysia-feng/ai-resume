@@ -125,5 +125,5 @@ AI_RESUME_JWT=<登录后的 JWT> node scripts/verify-production.mjs
 ```
 
 脚本会起 Electron 生产模式（`file://`），通过 CDP 检查：渲染层加载、router-view 非空白、
-hash 路由生效、`window.desktop` 齐全、后端探活在线、注入登录态后 `#/chat` 能渲染出 chat-first 界面。
+hash 路由生效、`window.desktop` 齐全、后端探活在线、注入登录态后 `#/dashboard` 能渲染多入口工作台。
 

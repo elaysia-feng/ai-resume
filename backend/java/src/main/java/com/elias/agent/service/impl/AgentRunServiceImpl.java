@@ -25,9 +25,11 @@ import com.elias.agent.service.AgentRunJobProducer;
 import com.elias.agent.service.AgentRunService;
 import com.elias.resume.service.ResumePatchService;
 import com.elias.resume.service.ResumeService;
+import com.elias.resume.dto.request.ResumeVersionSaveRequest;
 import com.elias.agent.dto.run.response.AgentApproveResponse;
 import com.elias.agent.dto.run.response.AgentEventResponse;
 import com.elias.agent.dto.run.response.AgentRunDetailResponse;
+import com.elias.agent.dto.run.response.AgentRunHistoryItemResponse;
 import com.elias.agent.dto.run.response.AgentRunQueueResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -45,6 +47,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -181,7 +184,7 @@ public class AgentRunServiceImpl implements AgentRunService {
     }
 
 
-    // TODO 或许可以考虑新建个service去写这个事件
+    // TODO(to be confirmed): 将事件写入逻辑移到专门服务后，再迁移当前入口。
     @Override
     public SseEmitter startRunStream(Long sessionId, AgentRunStartRequest request) {
         AgentRunQueueResponse response = transactionTemplate.execute(
@@ -242,9 +245,11 @@ public class AgentRunServiceImpl implements AgentRunService {
         return streamRunEvents(response.getRunId(), 0);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public AgentApproveResponse approveRun(Long runId, AgentApproveRequest request) {
+        // 1. 读取 Java 保存的审批结果，并限制为用户勾选的 patch。
         Long userId = UserContext.verifyGetUserId();
         AiAgentRun run = getOwnedRun(userId, runId);
         if (run.getApprovalPayload() == null || run.getApprovalPayload().isBlank()) {
@@ -261,10 +266,16 @@ public class AgentRunServiceImpl implements AgentRunService {
             throw BusinessException.badRequest("没有选中可应用的 patch");
         }
 
-        // 写库前由 ResumePatchService 做 section 归属和 schema 校验。
+        // 2. 在同一事务中保存应用前快照并应用 patch；冲突或校验失败会一起回滚。
+        ResumeVersionSaveRequest backupRequest = new ResumeVersionSaveRequest("AI 修改前备份", "AUTO");
+        resumeService.saveResume(backupRequest, run.getResumeId());
+
+        // ResumePatchService 会再次校验 section 归属、内容冲突和 schema。
         ResumePatchApplyResponse applyResponse = resumePatchService.applyPatch(run.getResumeId(), new ResumePatchApplyRequest(runId, patches));
+
+        // 3. 标记 run 完成并返回本次实际应用的 patch 数量。
         run.setStatus(AgentRunStatus.SUCCESS.getCode());
-        run.setActiveFlag(null);
+        run.setActiveFlag(0);
         run.setCompletedAt(LocalDateTime.now());
         run.setResultSummary(String.valueOf(approvalPayload.getOrDefault("summary", "已应用当前模块修改")));
         aiAgentRunMapper.updateById(run);
@@ -284,7 +295,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         Long userId = UserContext.verifyGetUserId();
         AiAgentRun run = getOwnedRun(userId, runId);
         run.setStatus(AgentRunStatus.CANCELLED.getCode());
-        run.setActiveFlag(null);
+        run.setActiveFlag(0);
         run.setCompletedAt(LocalDateTime.now());
         aiAgentRunMapper.updateById(run);
     }
@@ -308,6 +319,53 @@ public class AgentRunServiceImpl implements AgentRunService {
                 .updatedAt(run.getUpdatedAt())
                 .completedAt(run.getCompletedAt())
                 .build();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<AgentRunHistoryItemResponse> listSessionRuns(Long sessionId, String sceneCode, Integer limit) {
+        // 1. 校验会话归属，避免通过会话 ID 读取其他用户的任务。
+        Long userId = UserContext.verifyGetUserId();
+        getOwnedSession(userId, sessionId);
+
+        // 2. 只读取响应摘要字段；可选场景和条数用于避免消费者下载整段历史。
+        LambdaQueryWrapper<AiAgentRun> queryWrapper = new LambdaQueryWrapper<AiAgentRun>()
+                .select(
+                        AiAgentRun::getId,
+                        AiAgentRun::getSessionId,
+                        AiAgentRun::getResumeId,
+                        AiAgentRun::getSceneCode,
+                        AiAgentRun::getStatus,
+                        AiAgentRun::getCurrentStage,
+                        AiAgentRun::getResultSummary,
+                        AiAgentRun::getCreatedAt,
+                        AiAgentRun::getUpdatedAt,
+                        AiAgentRun::getCompletedAt)
+                        .eq(AiAgentRun::getUserId, userId)
+                        .eq(AiAgentRun::getSessionId, sessionId)
+                .orderByDesc(AiAgentRun::getCreatedAt, AiAgentRun::getId);
+        if (sceneCode != null && !sceneCode.isBlank()) {
+            queryWrapper.eq(AiAgentRun::getSceneCode, sceneCode.trim().toUpperCase(Locale.ROOT));
+        }
+        if (limit != null && limit > 0) {
+            queryWrapper.last("limit " + Math.min(limit, 100));
+        }
+
+        return aiAgentRunMapper.selectList(queryWrapper)
+                .stream()
+                .map(run -> AgentRunHistoryItemResponse.builder()
+                        .runId(run.getId())
+                        .sessionId(run.getSessionId())
+                        .resumeId(run.getResumeId())
+                        .sceneCode(run.getSceneCode())
+                        .status(run.getStatus())
+                        .currentStage(run.getCurrentStage())
+                        .resultSummary(run.getResultSummary())
+                        .createdAt(run.getCreatedAt())
+                        .updatedAt(run.getUpdatedAt())
+                        .completedAt(run.getCompletedAt())
+                        .build())
+                .toList();
     }
 
     @Override
@@ -488,7 +546,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         if (run != null) {
             run.setStatus(AgentRunStatus.FAILED.getCode());
             run.setErrorMessage(message);
-            run.setActiveFlag(null);
+            run.setActiveFlag(0);
             run.setCompletedAt(LocalDateTime.now());
             aiAgentRunMapper.updateById(run);
         }

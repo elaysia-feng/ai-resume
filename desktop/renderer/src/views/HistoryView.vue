@@ -92,6 +92,12 @@
         </p>
       </section>
 
+      <div v-if="loadWarnings.length" class="ui-callout ui-callout--danger history-warning" role="alert">
+        <AppIcon name="warning-circle" :size="16" />
+        <span>{{ loadWarnings.join('；') }}</span>
+        <button class="ui-btn ui-btn--sm ui-btn--outline" @click="loadSessions">重试</button>
+      </div>
+
       <!-- 加载中 -->
       <div v-if="loading">
         <ul class="skeleton-list" aria-hidden="true">
@@ -153,9 +159,9 @@
               <tbody>
                 <tr
                   v-for="session in filteredSessions"
-                  :key="session.id"
+                  :key="session.historyKey"
                   class="history-row"
-                  :class="{ 'is-active': selectedId === session.id }"
+                  :class="{ 'is-active': selectedId === session.historyKey }"
                   tabindex="0"
                   @click="selectSession(session)"
                   @keydown.enter="selectSession(session)"
@@ -177,10 +183,10 @@
             <div v-else class="history-list">
               <button
                 v-for="session in filteredSessions"
-                :key="session.id"
+                :key="session.historyKey"
                 type="button"
                 class="history-item"
-                :class="{ 'is-active': selectedId === session.id }"
+                :class="{ 'is-active': selectedId === session.historyKey }"
                 @click="selectSession(session)"
               >
                 <span class="history-item__head">
@@ -253,6 +259,17 @@
               <dd class="detail-item__value detail-item__value--pre">{{ sessionDetail.jobDescription }}</dd>
             </div>
           </dl>
+          <div v-if="sessionDetail" class="detail-actions">
+            <button v-if="sessionDetail.historySource === 'CHAT'" class="ui-btn ui-btn--primary" @click="openChatDetail">
+              <AppIcon name="chat-circle" :size="15" />继续对话
+            </button>
+            <button v-else-if="sessionDetail.sceneCode === 'INTERVIEW'" class="ui-btn ui-btn--primary" @click="openInterviewDetail">
+              <AppIcon name="microphone" :size="15" />打开面试记录
+            </button>
+            <button v-else-if="sessionDetail.resumeId" class="ui-btn ui-btn--primary" @click="openResumeTask">
+              <AppIcon name="file-text" :size="15" />{{ sessionDetail.sceneCode === 'JD_CUSTOMIZE' ? '打开简历与 AI 任务' : '打开关联简历' }}
+            </button>
+          </div>
         </aside>
       </div>
     </template>
@@ -265,11 +282,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../components/common/AppIcon.vue';
 import AgentSessionManager from '../components/AgentSessionManager.vue';
 import { getAgentSessionDetail, listAgentSessions } from '../api/agentSessions.js';
+import { listChatSessions } from '../api/chat.js';
 import { getResumes } from '../api/resumes.js';
 import { extractApiMessage } from '../api/request.js';
 import { formatDateTime } from '../utils/resume.js';
@@ -285,10 +303,12 @@ const TYPE_LABELS = {
 };
 
 const router = useRouter();
+const route = useRoute();
 
 const view = ref('overview');
 const loading = ref(false);
 const loadError = ref('');
+const loadWarnings = ref([]);
 const sessions = ref([]);
 const resumeTitles = ref({});
 const selectedId = ref(null);
@@ -305,40 +325,93 @@ onMounted(() => {
   loadSessions();
 });
 
+watch(() => [route.query.sessionId, route.query.source], async () => {
+  if (!sessions.value.length) {
+    await loadSessions();
+    return;
+  }
+  const requestedSession = findRequestedSession();
+  if (requestedSession) {
+    await selectSession(requestedSession);
+  }
+});
+
 async function loadSessions() {
   loading.value = true;
   loadError.value = '';
-  try {
-    const [sessionList, resumeList] = await Promise.all([
-      listAgentSessions(),
-      getResumes().catch(() => []),
-    ]);
-    sessions.value = Array.isArray(sessionList) ? sessionList : [];
-    resumeTitles.value = Array.isArray(resumeList)
-      ? resumeList.reduce((acc, resume) => ({ ...acc, [resume.id]: resume.title || '未命名简历' }), {})
-      : {};
+  loadWarnings.value = [];
+  const [agentResult, chatResult, resumeResult] = await Promise.allSettled([
+    listAgentSessions(),
+    listChatSessions(),
+    getResumes(),
+  ]);
+  const agentSessions = agentResult.status === 'fulfilled' && Array.isArray(agentResult.value)
+    ? agentResult.value.map((session) => ({ ...session, historySource: 'AGENT', historyKey: `agent-${session.id}` }))
+    : [];
+  const chatSessions = chatResult.status === 'fulfilled' && Array.isArray(chatResult.value)
+    ? chatResult.value.map((session) => ({
+        ...session,
+        sessionTitle: session.title || `对话 #${session.id}`,
+        sceneCode: 'CHAT',
+        status: 'ACTIVE',
+        historySource: 'CHAT',
+        historyKey: `chat-${session.id}`,
+      }))
+    : [];
+  sessions.value = [...agentSessions, ...chatSessions];
+  if (resumeResult.status === 'fulfilled' && Array.isArray(resumeResult.value)) {
+    resumeTitles.value = resumeResult.value.reduce((acc, resume) => ({
+      ...acc,
+      [resume.id]: resume.title || '未命名简历',
+    }), {});
+  } else {
+    resumeTitles.value = {};
+    loadWarnings.value.push('简历名称读取失败，部分历史记录无法显示关联简历。');
+  }
+  if (agentResult.status === 'rejected') {
+    loadWarnings.value.push(extractApiMessage(agentResult.reason, 'AI 任务记录读取失败。'));
+  }
+  if (chatResult.status === 'rejected') {
+    loadWarnings.value.push(extractApiMessage(chatResult.reason, 'AI 对话记录读取失败。'));
+  }
+  if (agentResult.status === 'rejected' && chatResult.status === 'rejected') {
+    loadError.value = '会话服务暂不可用。';
+  }
 
-    if (selectedId.value && !sessions.value.some((item) => item.id === selectedId.value)) {
+  if (selectedId.value && !sessions.value.some((item) => item.historyKey === selectedId.value)) {
+    selectedId.value = null;
+    sessionDetail.value = null;
+  }
+  if (route.query.sessionId) {
+    const requestedSession = findRequestedSession();
+    if (requestedSession) {
+      await selectSession(requestedSession);
+    } else {
       selectedId.value = null;
       sessionDetail.value = null;
+      detailError.value = '找不到这条会话记录。它可能已删除，请返回工作台重新选择。';
     }
-    if (!selectedId.value && sessions.value.length) {
-      await selectSession(sessions.value[0]);
-    }
-  } catch (err) {
-    sessions.value = [];
-    loadError.value = extractApiMessage(err, '加载历史记录失败');
-  } finally {
-    loading.value = false;
+  } else if (!selectedId.value && sessions.value.length) {
+    const latestSession = [...sessions.value].sort((left, right) => sessionTime(right) - sessionTime(left))[0];
+    await selectSession(latestSession);
   }
+  loading.value = false;
 }
 
 async function selectSession(session) {
-  selectedId.value = session.id;
+  selectedId.value = session.historyKey;
   detailLoading.value = true;
   detailError.value = '';
   try {
-    sessionDetail.value = await getAgentSessionDetail(session.id);
+    if (session.historySource === 'CHAT') {
+      sessionDetail.value = { ...session, summary: 'AI 对话内容可在对话工作区继续查看。' };
+    } else {
+      sessionDetail.value = {
+        ...await getAgentSessionDetail(session.id),
+        historySource: 'AGENT',
+        historyKey: session.historyKey,
+      };
+    }
   } catch (err) {
     sessionDetail.value = null;
     detailError.value = extractApiMessage(err, '加载会话详情失败');
@@ -348,7 +421,7 @@ async function selectSession(session) {
 }
 
 async function reloadDetail() {
-  const current = sessions.value.find((item) => item.id === selectedId.value);
+  const current = sessions.value.find((item) => item.historyKey === selectedId.value);
   if (current) {
     await selectSession(current);
   }
@@ -388,6 +461,9 @@ const filteredSessions = computed(() => {
 });
 
 const messageCount = computed(() => {
+  if (sessionDetail.value?.historySource === 'CHAT') {
+    return Number(sessionDetail.value.messageCount) || 0;
+  }
   const messages = sessionDetail.value?.messages;
   return Array.isArray(messages) ? messages.length : 0;
 });
@@ -411,7 +487,7 @@ function typeLabel(sceneCode) {
 }
 
 function sessionTitle(session) {
-  return session?.sessionTitle || `会话 #${session?.id}`;
+  return session?.sessionTitle || session?.title || `会话 #${session?.id}`;
 }
 
 function sessionTime(session) {
@@ -437,12 +513,21 @@ function sessionContext(session) {
   if (resumeTitle) {
     return `关联简历：${resumeTitle}`;
   }
+  if (session?.historySource === 'CHAT') {
+    return '独立 AI 对话';
+  }
   return '未关联岗位 JD 与简历';
 }
 
 function statusBadge(session) {
-  const runStatus = session?.activeRunStatus;
+  if (session?.historySource === 'CHAT') {
+    return { label: '可继续', tone: 'ui-badge--accent' };
+  }
+  const runStatus = session?.activeRunStatus || session?.latestRunStatus;
   if (runStatus) {
+    if (runStatus === 'QUEUED' || runStatus === 'RUNNING') {
+      return { label: '进行中', tone: 'ui-badge--accent' };
+    }
     if (runStatus === 'SUCCESS') {
       return { label: '已完成', tone: 'ui-badge--success' };
     }
@@ -452,7 +537,13 @@ function statusBadge(session) {
     if (runStatus === 'WAITING_USER') {
       return { label: '等待输入', tone: 'ui-badge--warning' };
     }
-    return { label: runStatus, tone: 'ui-badge--accent' };
+    if (runStatus === 'WAITING_CONFIRM') {
+      return { label: '等待确认', tone: 'ui-badge--warning' };
+    }
+    if (runStatus === 'CANCELLED') {
+      return { label: '已取消', tone: '' };
+    }
+    return { label: runStatus, tone: '' };
   }
   if (session?.status === 'ARCHIVED') {
     return { label: '已归档', tone: '' };
@@ -460,7 +551,7 @@ function statusBadge(session) {
   if (session?.status === 'DELETED') {
     return { label: '已删除', tone: 'ui-badge--danger' };
   }
-  return { label: '活跃', tone: 'ui-badge--accent' };
+  return { label: '可继续', tone: 'ui-badge--accent' };
 }
 
 function goChat() {
@@ -469,6 +560,39 @@ function goChat() {
 
 function goInterview() {
   router.push('/dashboard/interview');
+}
+
+function findRequestedSession() {
+  const requestedId = String(route.query.sessionId || '');
+  const requestedSource = String(route.query.source || 'AGENT').toUpperCase();
+  return sessions.value.find((session) =>
+    String(session.id) === requestedId && session.historySource === requestedSource
+  );
+}
+
+function openChatDetail() {
+  if (sessionDetail.value?.id) {
+    router.push({ name: 'Chat', query: { sessionId: String(sessionDetail.value.id) } });
+  }
+}
+
+function openInterviewDetail() {
+  if (sessionDetail.value?.id) {
+    router.push({ name: 'Interview', query: { sessionId: String(sessionDetail.value.id) } });
+  }
+}
+
+function openResumeTask() {
+  if (sessionDetail.value?.resumeId) {
+    const query = sessionDetail.value.sceneCode === 'JD_CUSTOMIZE'
+      ? { sessionId: String(sessionDetail.value.id) }
+      : {};
+    router.push({
+      name: 'ResumeEditor',
+      params: { id: sessionDetail.value.resumeId },
+      query,
+    });
+  }
 }
 </script>
 
@@ -480,6 +604,10 @@ function goInterview() {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0;
+}
+
+.history-warning {
+  align-items: flex-start;
 }
 
 /* ---------- 页头 ---------- */
@@ -752,6 +880,13 @@ function goInterview() {
   padding: var(--ui-space-5);
   position: sticky;
   top: 0;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-4);
 }
 
 .detail-list {

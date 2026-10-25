@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../store/authStore.js';
+import { createResume } from '../api/resumes.js';
 
 const routes = [
   {
@@ -80,8 +81,19 @@ const routes = [
   {
     path: '/resume/create',
     name: 'ResumeCreate',
-    component: () => import('../views/ResumeEditorView.vue'),
     meta: { requiresAuth: true },
+    beforeEnter: async (to) => {
+      try {
+        const created = await createResume({ title: '新建简历' });
+        const resumeId = created?.resumeId ?? created?.id ?? created?._id;
+        if (resumeId) {
+          return { name: 'ResumeEditor', params: { id: resumeId }, query: to.query };
+        }
+      } catch {
+        return { name: 'Home', query: { resumeCreateError: 'failed' } };
+      }
+      return { name: 'Home', query: { resumeCreateError: 'missing-id' } };
+    },
   },
 ];
 

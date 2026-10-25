@@ -4,19 +4,20 @@
     <header class="page-head">
       <div class="page-head__text">
         <h1 class="ui-page-title">模板市场</h1>
-        <p class="ui-page-subtitle">按分类、求职阶段和目标方向筛选，挑中版式后套用即可开始写简历。</p>
+        <p class="ui-page-subtitle">选择一份已有简历来更换版式，或用选中的模板新建一份空白简历。</p>
       </div>
 
       <div class="page-head__actions">
-        <span class="ui-badge ui-badge--accent">
-          <AppIcon name="check-circle" :size="14" />
-          当前使用：{{ currentTemplate ? currentTemplate.name : '暂无简历' }}
-        </span>
-        <span class="ui-badge">
-          <AppIcon name="check" :size="14" />
-          已选：{{ selectedTemplateName }}
-        </span>
-        <span class="ui-badge">共 {{ templates.length }} 套模板</span>
+        <label class="tpl-resume-target">
+          <span class="ui-label">应用到简历</span>
+          <select v-model="selectedResumeId" class="ui-input ui-select" aria-label="选择要应用模板的简历">
+            <option value="">新建一份简历</option>
+            <option v-for="resume in resumeStore.resumes" :key="resume.id" :value="String(resume.id)">
+              {{ resume.title || '未命名简历' }}
+            </option>
+          </select>
+        </label>
+        <span class="ui-badge">{{ visibleTemplates.length }} 套模板</span>
       </div>
     </header>
 
@@ -246,7 +247,7 @@
               >
                 <AppIcon v-if="creatingId === tpl.id" name="spinner-gap" :size="14" spin />
                 <AppIcon v-else name="file-plus" :size="14" />
-                {{ creatingId === tpl.id ? '正在创建…' : '使用该模板' }}
+                {{ creatingId === tpl.id ? '正在应用…' : selectedResumeId ? '应用到此简历' : '用此模板新建' }}
               </button>
             </div>
           </article>
@@ -371,29 +372,14 @@ const activeStage = ref('')
 const activeTrack = ref('')
 const activeSort = ref('recommended')
 const selectedId = ref('')
+const selectedResumeId = ref('')
 
 const nameCollator = new Intl.Collator('zh-Hans-CN')
 
-// 「当前使用」= 最近更新的那份简历所用的模板
+// 当前使用的模板来自用户选中的简历，不使用“最近更新”的简历代替选择。
 const currentTemplateId = computed(() => {
-  const list = resumeStore.resumes
-  if (!list.length) {
-    return ''
-  }
-
-  const latest = [...list].sort((left, right) => {
-    return new Date(right?.updatedAt || 0).getTime() - new Date(left?.updatedAt || 0).getTime()
-  })[0]
-
-  return latest?.template || ''
-})
-
-const currentTemplate = computed(() => {
-  return templates.find((item) => item.id === currentTemplateId.value) || null
-})
-
-const selectedTemplateName = computed(() => {
-  return templates.find((item) => item.id === selectedId.value)?.name || '未选择'
+  const resume = resumeStore.resumes.find((item) => String(item.id) === String(selectedResumeId.value))
+  return resume?.template || ''
 })
 
 function matchCategory(tpl) {
@@ -495,16 +481,21 @@ async function handleUse(tpl) {
   errorMessage.value = ''
 
   try {
-    const created = await resumeStore.createResume({ title: 'Untitled Resume', template: tpl.id })
-    const id = created?.id || created?._id
-    if (!id) {
-      errorMessage.value = '简历已创建，但没有拿到简历编号，请到「我的简历」列表里打开它。'
-      return
+    let id = selectedResumeId.value
+    if (id) {
+      await resumeStore.saveResume(id, { template: tpl.id })
+    } else {
+      const created = await resumeStore.createResume({ title: '新建简历', template: tpl.id })
+      id = created?.id || created?._id
+      if (!id) {
+        errorMessage.value = '简历已创建，但没有拿到简历编号，请回到工作台查看。'
+        return
+      }
     }
     selectedId.value = tpl.id
     router.push({ path: `/editor/${id}`, query: { template: tpl.id } })
   } catch {
-    errorMessage.value = '创建简历失败，请确认后端服务已启动，然后重试一次。'
+    errorMessage.value = '模板应用失败，请确认后端服务已启动，然后重试一次。'
   } finally {
     creatingId.value = ''
   }
@@ -531,6 +522,16 @@ onMounted(async () => {
   gap: var(--ui-space-6);
   color: var(--ui-fg-primary);
   font-family: var(--ui-font-sans);
+}
+
+.tpl-resume-target {
+  display: grid;
+  min-width: 210px;
+  gap: var(--ui-space-1);
+}
+
+.tpl-resume-target .ui-label {
+  margin: 0;
 }
 
 /* ---------- 页头 ---------- */
@@ -709,7 +710,7 @@ onMounted(async () => {
 
 .tpl-card.is-selected {
   border-color: var(--ui-accent-border);
-  box-shadow: var(--ui-shadow-md), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-md);
 }
 
 .tpl-card.is-current {

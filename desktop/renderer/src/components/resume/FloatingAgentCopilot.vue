@@ -31,7 +31,7 @@
 
     <div v-if="!minimized" class="floating-copilot__body">
       <div class="floating-copilot__row">
-        <select v-model="sessionId" class="ui-input ui-select" aria-label="选择会话" @change="loadSessionDetail">
+        <select v-model="sessionId" class="ui-input ui-select" aria-label="选择简历 AI 会话" @change="onSessionChange">
           <option :value="null">选择会话</option>
           <option v-for="session in sessions" :key="session.id" :value="session.id">
             {{ session.sessionTitle || `Session ${session.id}` }}
@@ -63,7 +63,7 @@
       </div>
 
       <div class="floating-copilot__actions">
-        <label class="switch">
+        <label v-if="isDevelopment" class="switch">
           <input type="checkbox" class="switch__input" :checked="useMock" @change="toggleMock" />
           <span class="switch__track" aria-hidden="true"></span>
           <span class="switch__text">Mock</span>
@@ -110,14 +110,36 @@
 
       <div v-if="approvalPayload" class="floating-copilot__box">
         <strong class="floating-copilot__block-title">{{ approvalPayload.summary || '待确认修改' }}</strong>
-        <div v-for="patch in approvalPayload.patches || []" :key="patch.patchId" class="floating-copilot__patch">
-          <span class="floating-copilot__patch-title">{{ patch.sectionTitle || sectionTitle }}</span>
-          <p class="floating-copilot__patch-summary">{{ patch.changeSummary || patch.reason }}</p>
-          <pre class="floating-copilot__code">{{ formatJson(patch.afterJson) }}</pre>
+        <p class="floating-copilot__review-hint">逐条查看差异，只勾选你确认要应用的内容。</p>
+        <div class="floating-copilot__selection-actions">
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="selectAllPatches">全部勾选</button>
+          <button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" @click="clearSelectedPatches">清空勾选</button>
         </div>
-        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="approving" @click="approveRun">
+        <label v-for="patch in approvalPayload.patches || []" :key="patch.patchId" class="floating-copilot__patch">
+          <span class="floating-copilot__patch-select">
+            <input v-model="selectedPatchIds" type="checkbox" :value="patch.patchId" />
+            <span class="floating-copilot__patch-title">{{ patch.sectionTitle || sectionTitle }}</span>
+            <span class="ui-badge" :class="riskBadgeClass(patch.riskLevel)">{{ riskLevelLabel(patch.riskLevel) }}</span>
+          </span>
+          <span class="floating-copilot__patch-summary">{{ patch.changeSummary || patch.reason || 'AI 提供了内容调整建议。' }}</span>
+          <details class="floating-copilot__diff">
+            <summary>查看修改前后</summary>
+            <span class="floating-copilot__diff-grid">
+              <span class="floating-copilot__diff-side">
+                <strong>修改前</strong>
+                <pre class="floating-copilot__code">{{ formatJson(patch.beforeJson) }}</pre>
+              </span>
+              <span class="floating-copilot__diff-side">
+                <strong>建议内容</strong>
+                <pre class="floating-copilot__code">{{ formatJson(patch.afterJson) }}</pre>
+              </span>
+            </span>
+          </details>
+        </label>
+        <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" :disabled="approving || !selectedPatchIds.length" @click="approveRun">
           {{ approving ? '应用中…' : '确认应用' }}
         </button>
+        <p class="floating-copilot__review-hint">{{ selectedPatchIds.length }} 项将写入简历；未勾选的内容会保留原样。</p>
       </div>
     </div>
   </section>
@@ -130,11 +152,14 @@ import {
   approveAgentRun,
   continueAgentRun,
   createAgentSession,
+  getAgentRun,
+  getAgentRunEvents,
   getAgentSessionDetail,
   listAgentSessions,
   setAgentMockEnabled,
   shouldUseAgentMock,
   streamAgentRun,
+  streamAgentRunEvents,
   updateAgentSession,
 } from '../../api/index.js';
 import { extractApiMessage } from '../../api/request.js';
@@ -142,7 +167,11 @@ import { extractApiMessage } from '../../api/request.js';
 const props = defineProps({
   resumeId: { type: Number, default: null },
   section: { type: Object, default: null },
+  sessionId: { type: [Number, String], default: null },
+  beforeApprove: { type: Function, default: null },
 });
+
+const isDevelopment = import.meta.env.DEV;
 
 const emit = defineEmits(['approved']);
 
@@ -163,8 +192,10 @@ const events = ref([]);
 const approvalPayload = ref(null);
 const clarificationPayload = ref(null);
 const clarificationAnswers = ref({});
+const selectedPatchIds = ref([]);
 const error = ref('');
 const statusText = ref('');
+let runStreamGeneration = 0;
 
 const sectionTitle = computed(() => props.section?.sectionTitle || '未选择模块');
 const canStart = computed(() => Boolean(props.resumeId && props.section?.id));
@@ -172,12 +203,19 @@ const panelStyle = computed(() => ({
   transform: `translate(${Math.max(12, position.value.x)}px, ${Math.max(12, position.value.y)}px)`,
 }));
 
-watch(() => props.resumeId, refreshSessions, { immediate: true });
-watch(() => props.section?.id, () => {
+watch(() => [props.resumeId, props.sessionId], () => {
+  runStreamGeneration += 1;
+  sessionId.value = null;
+  messages.value = [];
+  events.value = [];
   approvalPayload.value = null;
   clarificationPayload.value = null;
+  selectedPatchIds.value = [];
+  running.value = false;
+  error.value = '';
   statusText.value = '';
-});
+  refreshSessions(props.sessionId);
+}, { immediate: true });
 
 onMounted(() => {
   window.addEventListener('mousemove', onDrag);
@@ -189,20 +227,113 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', stopDrag);
 });
 
-async function refreshSessions() {
-  if (!props.resumeId || useMock.value) return;
-  sessions.value = await listAgentSessions({ resumeId: props.resumeId, sceneCode: 'JD_CUSTOMIZE' });
-  if (!sessionId.value && sessions.value.length) {
-    sessionId.value = sessions.value[0].id;
-    await loadSessionDetail();
+async function refreshSessions(preferredSessionId = null) {
+  if (!props.resumeId) {
+    return;
+  }
+  if (useMock.value) {
+    if (preferredSessionId) {
+      sessionId.value = preferredSessionId;
+      open.value = true;
+    }
+    return;
+  }
+  try {
+    sessions.value = await listAgentSessions({ resumeId: props.resumeId, sceneCode: 'JD_CUSTOMIZE' });
+    if (preferredSessionId) {
+      const requestedSession = sessions.value.find((session) => String(session.id) === String(preferredSessionId));
+      if (!requestedSession) {
+        sessionId.value = null;
+        messages.value = [];
+        approvalPayload.value = null;
+        clarificationPayload.value = null;
+        error.value = '找不到这条简历 AI 会话，请从历史记录重新打开。';
+        return;
+      }
+      sessionId.value = requestedSession.id;
+      open.value = true;
+      await loadSessionDetail();
+      return;
+    }
+    if (!sessionId.value && sessions.value.length) {
+      sessionId.value = sessions.value[0].id;
+      await loadSessionDetail();
+    }
+  } catch (err) {
+    error.value = extractApiMessage(err, '加载简历 AI 会话失败');
   }
 }
 
 async function loadSessionDetail() {
   if (!sessionId.value || useMock.value) return;
-  const detail = await getAgentSessionDetail(sessionId.value);
-  jobDescription.value = detail?.jobDescription || '';
-  messages.value = detail?.messages || [];
+  const sessionIdAtStart = sessionId.value;
+  const generation = ++runStreamGeneration;
+  error.value = '';
+  statusText.value = '';
+  try {
+    const detail = await getAgentSessionDetail(sessionIdAtStart);
+    if (!isCurrentSession(sessionIdAtStart, generation)) {
+      return;
+    }
+    const session = sessions.value.find((item) => String(item.id) === String(sessionIdAtStart));
+    jobDescription.value = detail?.jobDescription || '';
+    messages.value = detail?.messages || [];
+    approvalPayload.value = null;
+    clarificationPayload.value = null;
+    selectedPatchIds.value = [];
+    events.value = [];
+    if (session?.activeRunId) {
+      await restoreRun(session.activeRunId, sessionIdAtStart, generation);
+    }
+  } catch (err) {
+    if (isCurrentSession(sessionIdAtStart, generation)) {
+      error.value = extractApiMessage(err, '加载会话详情失败');
+    }
+  }
+}
+
+function onSessionChange() {
+  runStreamGeneration += 1;
+  running.value = false;
+  error.value = '';
+  loadSessionDetail();
+}
+
+async function restoreRun(runId, sessionIdAtStart, generation) {
+  try {
+    const [run, eventList] = await Promise.all([
+      getAgentRun(runId),
+      getAgentRunEvents(runId, { page: 1, pageSize: 200 }),
+    ]);
+    if (!isCurrentSession(sessionIdAtStart, generation)) {
+      return;
+    }
+    events.value = Array.isArray(eventList) ? eventList : [];
+    approvalPayload.value = run?.approvalPayload || null;
+    clarificationPayload.value = run?.clarificationPayload || null;
+    selectedPatchIds.value = [];
+    statusText.value = runStatusText(run?.status);
+    if (['QUEUED', 'RUNNING'].includes(run?.status)) {
+      running.value = true;
+      const afterSeq = Math.max(0, ...events.value.map((event) => Number(event.eventSeq) || 0));
+      streamAgentRunEvents(runId, createRunHandlers(sessionIdAtStart, generation), { afterSeq })
+        .catch((err) => {
+          if (isCurrentSession(sessionIdAtStart, generation)) {
+            error.value = extractApiMessage(err, '恢复运行状态失败');
+          }
+        })
+        .finally(() => {
+          if (isCurrentSession(sessionIdAtStart, generation)) {
+            running.value = false;
+          }
+          refreshSessions();
+        });
+    }
+  } catch (err) {
+    if (isCurrentSession(sessionIdAtStart, generation)) {
+      error.value = extractApiMessage(err, '恢复待处理任务失败');
+    }
+  }
 }
 
 async function newSession() {
@@ -221,6 +352,7 @@ async function newSession() {
     jobDescription: sourceSessionId ? null : jobDescription.value,
   });
   sessionId.value = session.id;
+  runStreamGeneration += 1;
   await refreshSessions();
   await loadSessionDetail();
 }
@@ -238,8 +370,10 @@ async function startRun() {
   approvalPayload.value = null;
   clarificationPayload.value = null;
   events.value = [];
+  let generation = runStreamGeneration;
   try {
     const currentSessionId = await ensureSession();
+    generation = ++runStreamGeneration;
     if (!useMock.value) {
       await updateAgentSession(currentSessionId, { jobDescription: jobDescription.value });
     }
@@ -249,80 +383,158 @@ async function startRun() {
       targetSectionId: props.section.id,
       userInput: userInput.value,
       jobDescription: jobDescription.value,
-    }, {
-      onQueued: () => {
-        statusText.value = '已进入队列';
-      },
-      onEvent: handleEvent,
-      onApproval: (payload) => {
-        approvalPayload.value = payload;
-        statusText.value = '等待确认应用';
-      },
-      onClarification: (payload) => {
-        clarificationPayload.value = payload;
-        statusText.value = '等待补充信息';
-      },
-    }, { mock: useMock.value });
+    }, createRunHandlers(currentSessionId, generation), { mock: useMock.value });
   } catch (err) {
-    error.value = extractApiMessage(err, 'Agent 运行失败');
+    if (generation === runStreamGeneration) {
+      error.value = extractApiMessage(err, 'Agent 运行失败');
+    }
   } finally {
-    running.value = false;
+    if (generation === runStreamGeneration) {
+      running.value = false;
+    }
   }
 }
 
 async function continueRun() {
   if (!clarificationPayload.value?.runId) return;
   running.value = true;
+  const currentSessionId = sessionId.value;
+  const generation = ++runStreamGeneration;
   try {
     const answers = Object.entries(clarificationAnswers.value)
       .filter(([, value]) => String(value || '').trim())
       .map(([fieldKey, value]) => ({ fieldKey, value }));
-    await continueAgentRun(clarificationPayload.value.runId, { answers }, {
-      onQueued: () => {
-        statusText.value = '已重新进入队列';
-      },
-      onEvent: handleEvent,
-      onApproval: (payload) => {
-        approvalPayload.value = payload;
-        statusText.value = '等待确认应用';
-      },
-      onClarification: (payload) => {
-        clarificationPayload.value = payload;
-        statusText.value = '等待补充信息';
-      },
-    }, { mock: useMock.value });
+    await continueAgentRun(
+      clarificationPayload.value.runId,
+      { answers },
+      createRunHandlers(currentSessionId, generation),
+      { mock: useMock.value },
+    );
   } catch (err) {
-    error.value = extractApiMessage(err, '继续运行失败');
+    if (isCurrentSession(currentSessionId, generation)) {
+      error.value = extractApiMessage(err, '继续运行失败');
+    }
   } finally {
-    running.value = false;
+    if (isCurrentSession(currentSessionId, generation)) {
+      running.value = false;
+    }
   }
 }
 
 async function approveRun() {
-  if (!approvalPayload.value?.runId) return;
+  if (!approvalPayload.value?.runId) {
+    return;
+  }
+  const runId = approvalPayload.value.runId;
+  const sessionIdAtStart = sessionId.value;
+  const generation = runStreamGeneration;
   approving.value = true;
+  error.value = '';
   try {
-    const patches = approvalPayload.value.patches || [];
+    const approvedPatchIds = [...selectedPatchIds.value];
+    if (!approvedPatchIds.length) {
+      error.value = '至少勾选一项修改后再应用。';
+      return;
+    }
+    await props.beforeApprove?.();
+    if (!isCurrentSession(sessionIdAtStart, generation)) {
+      return;
+    }
     const response = await approveAgentRun(
-      approvalPayload.value.runId,
+      runId,
       {
         resumeId: props.resumeId,
-        approvedPatchIds: patches.map((patch) => patch.patchId),
+        approvedPatchIds,
       },
       { mock: useMock.value },
     );
-    statusText.value = '已确认应用';
-    await loadSessionDetail();
+    if (isCurrentSession(sessionIdAtStart, generation)) {
+      statusText.value = `已应用 ${response?.appliedPatchCount ?? approvedPatchIds.length} 项，未勾选内容保持原样`;
+      await loadSessionDetail();
+    }
     emit('approved', response);
   } catch (err) {
-    error.value = extractApiMessage(err, '确认应用失败');
+    if (isCurrentSession(sessionIdAtStart, generation)) {
+      error.value = extractApiMessage(err, '确认应用失败');
+    }
   } finally {
     approving.value = false;
   }
 }
 
-function handleEvent(event) {
-  events.value.push(event);
+function isCurrentSession(sessionIdAtStart, generation) {
+  return generation === runStreamGeneration && String(sessionId.value) === String(sessionIdAtStart);
+}
+
+function createRunHandlers(sessionIdAtStart = sessionId.value, generation = runStreamGeneration) {
+  const isCurrent = () => isCurrentSession(sessionIdAtStart, generation);
+  return {
+    onQueued: () => {
+      if (isCurrent()) {
+        statusText.value = '已进入队列';
+      }
+    },
+    onEvent: (event) => {
+      if (isCurrent()) {
+        events.value.push(event);
+      }
+    },
+    onApproval: (payload) => {
+      if (!isCurrent()) {
+        return;
+      }
+      approvalPayload.value = payload;
+      selectedPatchIds.value = [];
+      clarificationPayload.value = null;
+      statusText.value = '等待确认应用';
+    },
+    onClarification: (payload) => {
+      if (!isCurrent()) {
+        return;
+      }
+      clarificationPayload.value = payload;
+      approvalPayload.value = null;
+      selectedPatchIds.value = [];
+      statusText.value = '等待补充信息';
+    },
+  };
+}
+
+function selectAllPatches() {
+  selectedPatchIds.value = (approvalPayload.value?.patches || []).map((patch) => patch.patchId);
+}
+
+function clearSelectedPatches() {
+  selectedPatchIds.value = [];
+}
+
+function riskBadgeClass(riskLevel) {
+  const level = String(riskLevel || '').toUpperCase();
+  if (level === 'HIGH') {
+    return 'ui-badge--danger';
+  }
+  if (level === 'MEDIUM') {
+    return 'ui-badge--warning';
+  }
+  return 'ui-badge--success';
+}
+
+function riskLevelLabel(riskLevel) {
+  const labels = { LOW: '低风险', MEDIUM: '中风险', HIGH: '高风险' };
+  return labels[String(riskLevel || '').toUpperCase()] || '待审阅';
+}
+
+function runStatusText(status) {
+  const labels = {
+    QUEUED: '已进入队列，正在等待处理',
+    RUNNING: '任务处理中，状态会自动恢复',
+    WAITING_USER: '需要补充信息后继续',
+    WAITING_CONFIRM: '修改建议已生成，等待你确认',
+    SUCCESS: '任务已完成',
+    FAILED: '任务执行失败，可重新尝试',
+    CANCELLED: '任务已取消',
+  };
+  return labels[status] || '';
 }
 
 function toggleMock(event) {
@@ -525,6 +737,13 @@ function formatJson(value) {
   color: var(--ui-fg-primary);
 }
 
+.floating-copilot__review-hint {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: var(--ui-text-xs);
+  line-height: var(--ui-line-normal);
+}
+
 .floating-copilot__history p,
 .floating-copilot__events p {
   margin: 0;
@@ -571,6 +790,20 @@ function formatJson(value) {
   background: var(--ui-bg-surface);
 }
 
+.floating-copilot__patch-select {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.floating-copilot__patch-select input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ui-accent);
+}
+
 .floating-copilot__patch-title {
   font-size: var(--ui-text-xs);
   font-weight: 600;
@@ -581,6 +814,32 @@ function formatJson(value) {
   margin: 0;
   font-size: var(--ui-text-sm);
   color: var(--ui-fg-primary);
+}
+
+.floating-copilot__diff summary {
+  width: fit-content;
+  color: var(--ui-fg-accent);
+  font-size: var(--ui-text-xs);
+  cursor: pointer;
+}
+
+.floating-copilot__diff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+}
+
+.floating-copilot__diff-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.floating-copilot__diff-side strong {
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-xs);
 }
 
 .floating-copilot__code {
@@ -594,6 +853,14 @@ function formatJson(value) {
   font-family: var(--ui-font-mono);
   font-size: var(--ui-text-xs);
   line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .floating-copilot__diff-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ---------- 开关 ---------- */

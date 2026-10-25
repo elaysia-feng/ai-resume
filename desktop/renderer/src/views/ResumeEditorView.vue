@@ -335,6 +335,8 @@
     <FloatingAgentCopilot
       :resume-id="editorResumeId"
       :section="activeSection"
+      :session-id="route.query.sessionId || null"
+      :before-approve="saveResumeBeforeAgentApproval"
       @approved="onAgentApproved"
     />
   </div>
@@ -382,9 +384,9 @@ import '../styles/resume-editor.css';
 const route = useRoute();
 const resumeStore = useResumeStore();
 
-const resumeId = route.params.id || null;
+const resumeId = computed(() => route.params.id || null);
 const editorResumeId = computed(() => {
-  const parsedValue = Number(resumeId);
+  const parsedValue = Number(resumeId.value);
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
 });
 const locale = ref('zh');
@@ -514,7 +516,7 @@ function buildSectionCreatePayload(block) {
 }
 
 function scheduleAutoSave() {
-  if (!resumeId) return;
+  if (!resumeId.value) return;
   pendingData.value = buildResumePayload();
   saveStatus.value = 'pending';
 
@@ -523,7 +525,7 @@ function scheduleAutoSave() {
     if (pendingData.value === null) return;
     saveStatus.value = 'saving';
     try {
-      await resumeStore.saveResume(resumeId, pendingData.value);
+      await resumeStore.saveResume(resumeId.value, pendingData.value);
       saveStatus.value = 'saved';
       pendingData.value = null;
       // Reset to idle after a brief moment
@@ -535,7 +537,7 @@ function scheduleAutoSave() {
 }
 
 async function onMainSave() {
-  if (!resumeId) return;
+  if (!resumeId.value) return;
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -543,12 +545,31 @@ async function onMainSave() {
   saveStatus.value = 'saving';
   try {
     const data = buildResumePayload();
-    await resumeStore.saveResume(resumeId, data);
+    await resumeStore.saveResume(resumeId.value, data);
     pendingData.value = null;
     saveStatus.value = 'saved';
     setTimeout(() => { saveStatus.value = 'idle'; }, 2000);
   } catch {
     saveStatus.value = 'error';
+  }
+}
+
+async function saveResumeBeforeAgentApproval() {
+  if (!resumeId.value) {
+    throw new Error('当前简历还没有保存，无法应用 AI 修改。');
+  }
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  saveStatus.value = 'saving';
+  try {
+    await resumeStore.saveResume(resumeId.value, buildResumePayload());
+    pendingData.value = null;
+    saveStatus.value = 'saved';
+  } catch (error) {
+    saveStatus.value = 'error';
+    throw new Error(extractApiMessage(error, '简历保存失败，AI 修改尚未应用。'));
   }
 }
 
@@ -614,9 +635,9 @@ onMounted(async () => {
   observePreview();
   updateNarrowState();
 
-  if (resumeId) {
+  if (resumeId.value) {
     try {
-      await resumeStore.fetchResume(resumeId);
+      await resumeStore.fetchResume(resumeId.value);
       // Apply template from query param (e.g. from template market)
       const queryTemplate = route.query.template;
       if (queryTemplate && ['classic', 'modern', 'creative', 'compact', 'academic', 'dual-creative'].includes(queryTemplate)) {
@@ -625,7 +646,7 @@ onMounted(async () => {
       // New resume (no sections yet): auto-fill all system modules
       if (sections.length === 0) {
         for (const block of DEFAULT_SECTIONS) {
-          await resumeStore.addSectionToApi(resumeId, buildSectionCreatePayload(block));
+          await resumeStore.addSectionToApi(resumeId.value, buildSectionCreatePayload(block));
         }
       }
     } catch (error) {
@@ -636,8 +657,11 @@ onMounted(async () => {
 
   pageLoading.value = false;
 
-  // 打开即进入第一个模块，避免首屏空白
-  if (!activeId.value && sections.length) {
+  // 恢复工作台入口指定的模块；没有指定时进入第一个模块。
+  const requestedSectionId = Number(route.query.sectionId);
+  if (requestedSectionId && sections.some((section) => Number(section.id) === requestedSectionId)) {
+    activeId.value = requestedSectionId;
+  } else if (!activeId.value && sections.length) {
     activeId.value = sections[0].id;
   }
 
@@ -665,77 +689,77 @@ onBeforeRouteLeave(() => {
   return window.confirm('简历还有未保存的修改，确定要离开吗？');
 });
 
-// Default sections pre-filled for brand-new resumes
+// Blank section structures keep a new resume free of fabricated personal details.
 const DEFAULT_SECTIONS = [
   {
     sectionType: 'SYSTEM',
     sectionCode: 'BASIC',
     sectionTitle: '基本信息',
     schemaType: 'TEXT',
-    contentJson: { name: '张三', title: 'Java 后端开发工程师', email: 'zhangsan@example.com', phone: '138-0013-8000', location: '北京市朝阳区', wechat: 'zhangsan_dev', github: 'github.com/zhangsan', website: 'zhangsan.com' },
+    contentJson: {},
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'JOB_INTENT',
     sectionTitle: '求职意向',
     schemaType: 'TEXT',
-    contentJson: { desiredPosition: 'Java 后端开发工程师', desiredCity: '北京', salaryRange: '25K-35K', employmentType: '全职', jobStatus: '随时可入职' },
+    contentJson: {},
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'EDUCATION',
     sectionTitle: '教育背景',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: '北京理工大学 · 计算机科学与技术 · 硕士 · 2019.09 - 2022.06' }, { text: '天津大学 · 软件工程 · 本科 · 2015.09 - 2019.06' }] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'EXPERIENCE',
     sectionTitle: '工作经验',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: '字节跳动 · 后端开发工程师 · 2022.07 - 至今\n• 负责抖音评论服务设计与开发，日均处理请求量超过 5000 万\n• 优化缓存架构，采用 Redis Cluster 集群方案，接口响应时间降低 40%\n• 主导技术选型，推动 Spring Boot + gRPC 框架落地，提升团队开发效率 30%' }, { text: '阿里巴巴 · Java 开发实习生 · 2021.03 - 2021.09\n• 参与电商订单系统开发，完成订单履约流程模块设计与实现\n• 基于 Kafka 实现订单状态异步通知，日均消息吞吐量达百万级' }] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'CAMPUS',
     sectionTitle: '校园经历',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: '校ACM竞赛团队 · 队长 · 2017.09 - 2019.06\n• 带领团队获省级ACM程序设计竞赛银奖\n• 组织校内算法竞赛，累计参与人数超过 500 人' }, { text: '计算机学院学生会 · 副主席 · 2016.09 - 2018.06\n• 策划并执行学院科技文化节，参与人数达 2000+ 人' }] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'SKILLS',
     sectionTitle: '技能特长',
     schemaType: 'TAGS',
-    contentJson: { items: ['Java', 'Spring Boot', 'MySQL', 'Redis', 'Kafka', 'Docker', 'Kubernetes', 'Git', 'Linux'] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'CERTIFICATES',
     sectionTitle: '荣誉证书',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: 'Oracle Certified Professional, Java SE 8 Programmer (OCP)' }, { text: 'ACM-ICPC 省级银奖' }, { text: '校级优秀毕业生' }, { text: '研究生国家奖学金' }] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'SELF_EVALUATION',
     sectionTitle: '自我评价',
     schemaType: 'TEXT',
-    contentJson: { text: '拥有扎实的 Java 基础和良好的面向对象设计能力，熟悉微服务架构设计。具备独立负责业务模块的能力，善于与产品、测试团队高效沟通。热爱技术，持续关注新技术发展，具有较强的学习能力和问题解决能力。' },
+    contentJson: { text: '' },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'PROJECTS',
     sectionTitle: '项目经历',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: '分布式任务调度平台 · 2023.03 - 2023.08\n• 采用 XXL-JOB 二次开发，支持集群部署与任务分片\n• 实现了可视化任务配置、任务依赖管理及失败告警\n• 日均调度任务量达 10 万+，系统可用性 99.99%' }, { text: '实时数据同步中间件 · 2022.10 - 2023.02\n• 基于 Canal + Flink 实现 MySQL 到 Elasticsearch 实时数据同步\n• 支持全量与增量同步，平均延迟控制在 1 秒以内\n• 支撑搜索业务场景，日均处理数据量超 5000 万条' }] },
+    contentJson: { items: [] },
   },
   {
     sectionType: 'SYSTEM',
     sectionCode: 'INTERNSHIP',
     sectionTitle: '实习经历',
     schemaType: 'LIST',
-    contentJson: { items: [{ text: '阿里巴巴 · Java开发实习生 · 2021.03 - 2021.09\n• 参与电商订单系统开发，完成订单履约流程模块设计与实现\n• 基于 Kafka 实现订单状态异步通知，日均消息吞吐量达百万级' }] },
+    contentJson: { items: [] },
   },
 ];
 
@@ -873,14 +897,9 @@ async function onBlockAdded(blockData) {
 }
 
 async function onAgentApproved() {
-  if (!resumeId) return;
-  pendingData.value = null;
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-    saveTimeout = null;
-  }
+  if (!resumeId.value) return;
   try {
-    await resumeStore.fetchResume(resumeId);
+    await resumeStore.fetchResume(resumeId.value);
     saveStatus.value = 'saved';
     setTimeout(() => { saveStatus.value = 'idle'; }, 2000);
   } catch {

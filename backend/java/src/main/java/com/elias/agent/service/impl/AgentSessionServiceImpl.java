@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Agent会话服务实现
@@ -92,8 +94,32 @@ public class AgentSessionServiceImpl implements AgentSessionService {
             queryWrapper.eq(AgentSession::getSceneCode, normalizeSceneCode(sceneCode));
         }
 
-        return agentSessionMapper.selectList(queryWrapper).stream()
-                .map(this::buildSessionItemResponse)
+        // 1. 先按用户和可选条件读取会话；空结果时无需访问 run 表。
+        List<AgentSession> sessions = agentSessionMapper.selectList(queryWrapper);
+        if (sessions.isEmpty()) {
+            return List.of();
+        }
+
+        // 2. 批量 top-1 查询只取场景与会话一致的优先 run，避免读取完整任务历史。
+        List<Long> sessionIds = sessions.stream().map(AgentSession::getId).toList();
+        List<AiAgentRun> runs = aiAgentRunMapper.selectPreferredSessionRuns(userId, sessionIds);
+
+        // 3. 每个会话只保留一个优先展示的摘要，避免将完整 run 历史读入内存。
+        Map<Long, AiAgentRun> preferredRuns = new HashMap<>();
+        for (AiAgentRun run : runs) {
+            preferredRuns.put(run.getSessionId(), run);
+        }
+
+        // 4. 将会话与优先 run 摘要映射为列表响应。
+        return sessions.stream()
+                .map(session -> {
+                    AiAgentRun preferredRun = preferredRuns.get(session.getId());
+                    AiAgentRun activeRun = preferredRun != null
+                            && Integer.valueOf(1).equals(preferredRun.getActiveFlag())
+                            ? preferredRun
+                            : null;
+                    return buildSessionItemResponse(session, activeRun, preferredRun);
+                })
                 .toList();
     }
 
@@ -250,18 +276,17 @@ public class AgentSessionServiceImpl implements AgentSessionService {
     }
 
     /**
-     * 构建会话列表响应
+     * 构建包含活跃优先 run 摘要的会话列表响应。
      *
      * @param agentSession 会话实体
-     * @return 列表项响应
+     * @param activeRun   最新活跃 run；不存在时为空
+     * @param preferredRun 活跃优先的 run；不存在时为空
+     * @return 会话列表项响应
      */
-    private AgentSessionItemResponse buildSessionItemResponse(AgentSession agentSession) {
-        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
-                .eq(AiAgentRun::getSessionId, agentSession.getId())
-                .eq(AiAgentRun::getSceneCode, agentSession.getSceneCode())
-                .eq(AiAgentRun::getActiveFlag, 1)
-                .orderByDesc(AiAgentRun::getUpdatedAt, AiAgentRun::getId)
-                .last("limit 1"));
+    private AgentSessionItemResponse buildSessionItemResponse(
+            AgentSession agentSession,
+            AiAgentRun activeRun,
+            AiAgentRun preferredRun) {
         return AgentSessionItemResponse.builder()
                 .id(agentSession.getId())
                 .resumeId(agentSession.getResumeId())
@@ -272,6 +297,8 @@ public class AgentSessionServiceImpl implements AgentSessionService {
                 .status(agentSession.getStatus())
                 .activeRunId(activeRun == null ? null : activeRun.getId())
                 .activeRunStatus(activeRun == null ? null : activeRun.getStatus())
+                .latestRunId(preferredRun == null ? null : preferredRun.getId())
+                .latestRunStatus(preferredRun == null ? null : preferredRun.getStatus())
                 .lastMessageAt(agentSession.getLastMessageAt())
                 .createdAt(agentSession.getCreatedAt())
                 .updatedAt(agentSession.getUpdatedAt())

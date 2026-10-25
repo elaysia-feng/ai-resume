@@ -1,6 +1,7 @@
 package com.elias.chat.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.elias.agent.entity.AgentMessage;
 import com.elias.agent.entity.AgentSession;
 import com.elias.agent.mapper.AgentMessageMapper;
@@ -37,6 +38,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,15 +153,42 @@ public class ChatServiceImpl implements ChatService {
         return ChatSessionCreateResponse.builder().sessionId(session.getId()).build();
     }
 
+    /**
+     * 查询当前用户的聊天会话，并批量汇总每个会话的消息数。
+     *
+     * @return 按最近活动排序的聊天会话列表
+     */
     @Override
     public List<ChatSessionItemResponse> listSessions() {
         Long userId = UserContext.verifyGetUserId();
+        // 1. 按当前用户和 CHAT 场景读取会话，并保持最近活动顺序。
         List<AgentSession> sessions = agentSessionMapper.selectList(new LambdaQueryWrapper<AgentSession>()
                 .eq(AgentSession::getUserId, userId)
                 .eq(AgentSession::getSceneCode, SCENE_CODE)
                 .ne(AgentSession::getStatus, SESSION_STATUS_DELETED)
                 .orderByDesc(AgentSession::getLastMessageAt, AgentSession::getUpdatedAt, AgentSession::getId));
-        return sessions.stream().map(this::toSessionItem).toList();
+        if (sessions.isEmpty()) {
+            return List.of();
+        }
+
+        // 2. 收集本次列表的会话 ID，使用一次分组查询统计消息数。
+        List<Long> sessionIds = sessions.stream().map(AgentSession::getId).toList();
+        List<Map<String, Object>> countRows = agentMessageMapper.selectMaps(
+                new QueryWrapper<AgentMessage>()
+                        .select("session_id", "COUNT(*) AS message_count")
+                        .in("session_id", sessionIds)
+                        .groupBy("session_id"));
+        Map<Long, Long> messageCounts = new HashMap<>();
+        for (Map<String, Object> countRow : countRows) {
+            Long sessionId = ((Number) countRow.get("session_id")).longValue();
+            Long messageCount = ((Number) countRow.get("message_count")).longValue();
+            messageCounts.put(sessionId, messageCount);
+        }
+
+        // 3. 将会话与消息数合并为响应；没有消息的会话计数为 0。
+        return sessions.stream()
+                .map(session -> toSessionItem(session, messageCounts.getOrDefault(session.getId(), 0L)))
+                .toList();
     }
 
     @Override
@@ -302,11 +331,12 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 组装发给模型的消息：系统提示词 + 会话历史
+     * 组装发给模型的消息：保留完整会话历史，只读取协议转换需要的字段。
      */
     private List<MiniMaxMessage> buildModelMessages(Long sessionId) {
         List<MiniMaxMessage> messages = new ArrayList<>();
         List<AgentMessage> history = agentMessageMapper.selectList(new LambdaQueryWrapper<AgentMessage>()
+                .select(AgentMessage::getRole, AgentMessage::getContent, AgentMessage::getContentType)
                 .eq(AgentMessage::getSessionId, sessionId)
                 .orderByAsc(AgentMessage::getSeqNo, AgentMessage::getId));
         for (AgentMessage message : history) {
@@ -535,11 +565,13 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 会话列表项
+     * 构造带消息数的聊天会话列表项。
+     *
+     * @param session      会话记录
+     * @param messageCount 会话消息数量
+     * @return 聊天会话列表项
      */
-    private ChatSessionItemResponse toSessionItem(AgentSession session) {
-        Long messageCount = agentMessageMapper.selectCount(new LambdaQueryWrapper<AgentMessage>()
-                .eq(AgentMessage::getSessionId, session.getId()));
+    private ChatSessionItemResponse toSessionItem(AgentSession session, Long messageCount) {
         return ChatSessionItemResponse.builder()
                 .id(session.getId())
                 .title(session.getSessionTitle())

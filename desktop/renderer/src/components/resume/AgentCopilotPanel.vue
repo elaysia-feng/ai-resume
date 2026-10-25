@@ -317,7 +317,7 @@ function formatJson(value) {
   background: var(--ui-bg-surface);
   background-image: var(--ui-surface-wash);
   color: var(--ui-fg-primary);
-  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .agent-copilot__header {

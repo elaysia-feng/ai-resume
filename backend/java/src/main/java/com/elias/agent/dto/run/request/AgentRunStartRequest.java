@@ -1,5 +1,6 @@
 package com.elias.agent.dto.run.request;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,7 @@ public class AgentRunStartRequest {
      * 本次只允许 Agent 处理的目标简历模块ID
      */
     @NotNull(message = "targetSectionId 不能为空")
+    @Min(value = 1, message = "targetSectionId 必须是有效的简历模块ID")
     private Long targetSectionId;
 
     /**

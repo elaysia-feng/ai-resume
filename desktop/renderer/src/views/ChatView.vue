@@ -26,7 +26,7 @@
           </span>
           <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goBack">
             <AppIcon name="arrow-left" :size="16" />
-            返回简历
+            返回工作台
           </button>
         </div>
       </header>
@@ -51,8 +51,8 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import ChatSidebar from '../components/chat/ChatSidebar.vue';
 import ChatMessageList from '../components/chat/ChatMessageList.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
@@ -70,6 +70,7 @@ import { extractApiMessage } from '../api/request.js';
 import '../styles/chat.css';
 
 const router = useRouter();
+const route = useRoute();
 
 const sessions = ref([]);
 const currentSessionId = ref(null);
@@ -104,11 +105,15 @@ const messageCountLabel = computed(() =>
 
 onMounted(async () => {
   await loadSessions();
-  // 默认选中最近一个会话，首次进入没有会话时发消息会自动创建
-  if (!currentSessionId.value && sessions.value.length > 0) {
-    await selectSession(sessions.value[0].id);
-  }
+  await selectRequestedOrRecentSession();
   await loadWorkspace();
+});
+
+watch(() => route.query.sessionId, async () => {
+  if (!sessions.value.length) {
+    await loadSessions();
+  }
+  await selectRequestedOrRecentSession();
 });
 
 onBeforeUnmount(() => {
@@ -131,11 +136,36 @@ async function loadSessions(options = {}) {
   }
 }
 
+async function selectRequestedOrRecentSession() {
+  const requestedId = route.query.sessionId;
+  if (requestedId) {
+    const requestedSession = sessions.value.find((session) => String(session.id) === String(requestedId));
+    if (!requestedSession) {
+      currentSessionId.value = null;
+      messages.value = [];
+      errorMessage.value = '找不到这条对话记录。它可能已删除，请从工作台重新选择。';
+      return;
+    }
+    if (String(currentSessionId.value) !== String(requestedSession.id)) {
+      await selectSession(requestedSession.id);
+    }
+    return;
+  }
+
+  // 未指定记录时回到最近会话；首次进入没有会话则等待用户发起对话。
+  if (!currentSessionId.value && sessions.value.length > 0) {
+    await selectSession(sessions.value[0].id);
+  }
+}
+
 async function selectSession(sessionId) {
   if (streaming.value) {
     return;
   }
   currentSessionId.value = sessionId;
+  if (String(route.query.sessionId || '') !== String(sessionId)) {
+    router.replace({ query: { ...route.query, sessionId: String(sessionId) } });
+  }
   messages.value = [];
   errorMessage.value = '';
   loadingMessages.value = true;
@@ -164,6 +194,7 @@ async function createSession() {
     currentSessionId.value = sessionId;
     messages.value = [];
     errorMessage.value = '';
+    router.replace({ query: { ...route.query, sessionId: String(sessionId) } });
     return sessionId;
   } catch (error) {
     errorMessage.value = `创建会话失败：${describeError(error)}`;
@@ -174,11 +205,16 @@ async function createSession() {
 async function deleteSession(sessionId) {
   try {
     await deleteChatSession(sessionId);
-    if (currentSessionId.value === sessionId) {
+    const removedCurrentSession = String(currentSessionId.value) === String(sessionId);
+    if (removedCurrentSession) {
       currentSessionId.value = null;
       messages.value = [];
+      await router.replace({ query: { ...route.query, sessionId: undefined } });
     }
     await loadSessions();
+    if (removedCurrentSession && sessions.value.length) {
+      await selectSession(sessions.value[0].id);
+    }
   } catch (error) {
     errorMessage.value = `删除会话失败：${describeError(error)}`;
   }

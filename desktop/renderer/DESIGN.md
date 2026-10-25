@@ -11,19 +11,20 @@
 - **不要做营销页**：不要 hero 大标题、不要「立即免费试用」CTA、不要滚动叙事、
   不要装饰性大插画、不要大段副标题。
 - **要做工作台**：信息密度适中、导航常驻、每个页面第一屏就能开始干活。
-- 桌面端可能**完全离线**，不能用 Google Fonts CDN、不能用在线图标库。
-  字体一律用系统字体栈；图标用内置的 Phosphor 路径表（见第 4 节）。
+- 桌面端的编辑界面必须离线可读，不能用 Google Fonts CDN、不能用在线图标库。
+  AI 调用需要访问配置的模型服务；界面字体用系统栈，图标用内置 Phosphor 路径表（见第 4 节）。
 - 目标气质：**克制、精确、有厚度**。像 Linear / Arc 这类桌面工具，
   不是 SaaS 落地页。判断标准是「信息是否清晰、控件是否好点」，
   不是「有没有大标题和渐变」。
 
 ## 0.5 这一轮的设计升级（2026-10）
 
-本轮统一升级三件事，各页面改造时**必须**用上：
+本轮采用“石墨与矿物纸”的精密编辑工作台方向：保留松绿品牌识别、暖灰纸面和离线字体；用排版层级、留白与边界建立质感。普通内容面板保持平整，只有浮层和少数主区域使用轻阴影。
+
+页面改造时必须遵守：
 
 1. **图标全部换成 `<AppIcon>`**。禁止再手写 `<svg>` 路径（见第 4 节）。
-2. **卡片/面板用 `.ui-panel`**，不要用裸 `.ui-card`（`.ui-panel` 带微渐变 +
-   顶部反光 + 分层阴影，这是「有厚度」的来源）。
+2. 普通卡片/面板用 `.ui-panel`，不要给所有区域叠阴影和渐变；需要突出层级时用 `.ui-panel--raised`，hover 态只做轻微边界和位移反馈。
 3. **页面标题用 `.ui-page-title` + `.ui-page-subtitle`**，
    分区标题用 `.ui-section-head`（左标题右操作）。
    不要自己再写一套 h1/h2 样式。
@@ -35,7 +36,7 @@
 
 ```
 ┌──────────┬──────────────────────────────────────┐
-│          │  顶栏 56px：页面标题 / 主操作 / 状态   │
+│          │  页面自己的标题 / 操作栏               │
 │ 侧边栏    ├──────────────────────────────────────┤
 │ 232px    │                                      │
 │          │  内容区（各自滚动）                    │
@@ -45,19 +46,20 @@
 ```
 
 - 侧边栏宽度 `--ui-sidebar-width: 232px`，收起态 `--ui-sidebar-width-collapsed: 64px`。
-- 顶栏高度 `--ui-header-height: 56px`。
+- 全局壳层不再额外重复页面顶栏；聊天和简历编辑器使用自己的工具栏，其他页面在内容区显示标题和操作。
 - 内容区最大宽度 `--ui-content-max: 1440px`，居中；表单类页面用 720–880px 更合适。
-- 侧边栏、顶栏固定，内容区独立滚动（`overflow-y: auto` + `.ui-scroll`）。
+- 侧边栏固定，内容区独立滚动（`overflow-y: auto` + `.ui-scroll`）；页面工具栏留在各自工作区。
 - 页面必须能撑满窗口，**不要出现整页横向滚动条**。
 
 ### 路由对应的导航分组
 
 | 分组 | 路由 | 说明 |
 |---|---|---|
-| 工作台 | `/dashboard`（Home） | 简历列表、快捷入口 |
-| 创作 | `/dashboard/templates` `/editor/:id` `/resume/create` | 模板市场、简历编辑 |
-| 成长 | `/dashboard/profile` `/dashboard/interview` `/dashboard/history` | 档案、模拟面试、历史 |
-| 对话 | `/chat` | AI 对话 |
+| 工作台 | `/dashboard`（Home） | 独立功能入口、近期活动和简历列表 |
+| 简历 | `/editor/:id` `/resume/create` `/dashboard/templates` | 编辑、新建、选择或更换模板 |
+| AI 对话 | `/chat` | 独立对话与本地工作区工具 |
+| 模拟面试 | `/dashboard/interview` | 独立面试入口、进行中任务和历史结果 |
+| 历史与账号 | `/dashboard/history` `/dashboard/profile` | 汇总对话、Agent 任务、面试和个人资料 |
 | 设置 | `/settings` | 模型与后端配置 |
 
 `src/App.vue` 是**应用壳**，由「壳 + 认证」那组负责；其余页面按上表分组，
@@ -79,8 +81,8 @@
 
 品牌色阶 `--ui-brand-50..900`，中性色阶 `--ui-neutral-0..950`。
 
-**暗色模式**已内置：跟随系统 `prefers-color-scheme`，也可
-`document.documentElement.dataset.theme = 'dark'` 强制。写样式时不要假设亮色。
+**暗色模式**已内置：默认跟随系统，也可通过 `localStorage` 的 `resume_forge_theme`
+或 `document.documentElement.dataset.theme = 'dark'` 固定主题。写样式时不要假设亮色。
 
 ## 3. 字体与排版
 
@@ -88,7 +90,7 @@
 - `--ui-font-display`：界面标题（与 sans 同族，只靠字重和字距拉开层级）
 - `--ui-font-mono`：路径、代码、版本号
 
-字号用 `--ui-text-xs .. --ui-text-4xl`（12 / 13 / 14 / 16 / 18 / 20 / 24 / 30 / 36px）。
+字号用 `--ui-text-xs .. --ui-text-4xl`（12 / 13 / 15 / 16 / 18 / 20 / 24 / 30 / 36px）。
 
 **字距**（本轮新增，高级感的关键）：
 - 大字号标题用 `--ui-tracking-tight`（-0.02em）
@@ -152,8 +154,9 @@ import AppIcon from '../components/common/AppIcon.vue';
 `design-system.css` 已提供，**优先用它们，别再各写各的按钮和输入框**：
 
 基础类：
-- `.ui-card` 面板/卡片（无渐变）
-- `.ui-panel` **抬升面板**（微渐变 + 顶部反光 + 分层阴影），加 `--hover` 出悬浮态
+- `.ui-card` 面板/卡片（平面底色与细边界）
+- `.ui-panel` 内容面板，加 `--hover` 出轻悬浮态
+- `.ui-panel--raised` 仅用于菜单、重要摘要和短暂浮层等少数需要抬升的区域
 - `.ui-panel--flat` 无阴影 / `--flat` 变体
 - `.ui-btn` + `--primary` / `--outline` / `--ghost` / `--subtle` / `--danger` / `--sm` / `--lg` / `--block`
 - `.ui-input` 输入框/文本域/下拉，配 `.ui-textarea` 多行
@@ -183,7 +186,7 @@ import AppIcon from '../components/common/AppIcon.vue';
   （圆角刻度只有一套，别自造）
 - 阴影只用 `--ui-shadow-xs/sm/md/lg/xl/float/accent`，
   不要自定义 rgba 阴影。阴影**必须带底色染色**，禁止纯黑投影。
-- 顶面反光 `--ui-highlight-top`：抬升面板上那道内高光，`.ui-panel` 已带
+- 抬升层级 `--ui-shadow-xs/sm`：只用于少数需要从纸面浮起的工作区或浮层
 - 表面材质 `--ui-surface-wash` / `--ui-bg-app-wash` / `--ui-accent-gradient`
 - 动效用 `--ui-duration-fast/normal/slow` + `--ui-ease-out/in-out`
 - 按下反馈：可点元素 `:active` 时 `translateY(1px)`（`.ui-btn` 已带）

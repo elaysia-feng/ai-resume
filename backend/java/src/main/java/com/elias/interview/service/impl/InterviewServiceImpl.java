@@ -96,7 +96,6 @@ public class InterviewServiceImpl implements InterviewService {
         AiInterviewRound currentRound = aiInterviewRoundMapper.selectOne(
                 new LambdaQueryWrapper<AiInterviewRound>()
                         .eq(AiInterviewRound::getRunId, runId)
-                        .eq(AiInterviewRound::getUserId, userId)
                         .eq(AiInterviewRound::getStatus, "WAITING_ANSWER")
                         .orderByDesc(AiInterviewRound::getRoundNo)
                         .last("limit 1"));
@@ -127,7 +126,7 @@ public class InterviewServiceImpl implements InterviewService {
     public InternalInterviewQuestionCreateResponse createQuestionRound(
             Long runId,
             InternalInterviewQuestionCreateRequest request) throws JsonProcessingException {
-        InternalAgentRunDetailResponse run = getRunDetail(runId);
+        getRunDetail(runId);
 
         AiInterviewRound lastRound = aiInterviewRoundMapper.selectOne(
                 new LambdaQueryWrapper<AiInterviewRound>()
@@ -137,10 +136,7 @@ public class InterviewServiceImpl implements InterviewService {
         int roundNo = lastRound == null ? 1 : lastRound.getRoundNo() + 1;
 
         AiInterviewRound round = AiInterviewRound.builder()
-                .userId(run.getUserId())
                 .runId(runId)
-                .sessionId(run.getSessionId())
-                .resumeId(run.getResumeId())
                 .roundNo(roundNo)
                 .questionText(request.getQuestionText())
                 .optionsJson(objectMapper.writeValueAsString(request.getOptions()))
@@ -193,10 +189,10 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewAnswerResponse submitAnswer(Long roundId, InterviewQuestionRoundAnswerRequest request) {
         Long userId = UserContext.verifyGetUserId();
         AiInterviewRound round = getRound(roundId);
-        if (!userId.equals(round.getUserId())) {
+        InternalAgentRunDetailResponse run = getRunDetail(round.getRunId());
+        if (!userId.equals(run.getUserId())) {
             throw BusinessException.notFound("没找到与当前用户匹配的面试题目");
         }
-        getOwnedRun(userId, round.getRunId());
         if (!"WAITING_ANSWER".equals(round.getStatus())) {
             throw BusinessException.badRequest("当前题目不是待回答状态");
         }
@@ -214,8 +210,8 @@ public class InterviewServiceImpl implements InterviewService {
         sendToMq(InterviewAgentRunJobMessage.builder()
                 .jobType("CONTINUE")
                 .runId(round.getRunId())
-                .sessionId(round.getSessionId())
-                .resumeId(round.getResumeId())
+                .sessionId(run.getSessionId())
+                .resumeId(run.getResumeId())
                 .sceneCode(AgentSceneCode.INTERVIEW)
                 .build());
 
@@ -229,17 +225,27 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewQuestionRoundPageResponse pageQuestionRounds(
             Long runId,
             InterviewQuestionRoundPageRequest request) {
+        // 1. 先校验 run 所属用户，避免跨用户读取面试历史。
         Long userId = UserContext.verifyGetUserId();
         getOwnedRun(userId, runId);
 
+        // 2. 复合索引覆盖分页过滤和 round_no 升序；uk_run_round 继续负责轮次唯一性。
         Page<AiInterviewRound> page = new Page<>(request.getPageNum(), request.getPageSize());
         Page<AiInterviewRound> roundPage = aiInterviewRoundMapper.selectPage(page,
                 new LambdaQueryWrapper<AiInterviewRound>()
+                        .select(
+                                AiInterviewRound::getId,
+                                AiInterviewRound::getRoundNo,
+                                AiInterviewRound::getQuestionText,
+                                AiInterviewRound::getOptionsJson,
+                                AiInterviewRound::getUserAnswer,
+                                AiInterviewRound::getAnalysisJson,
+                                AiInterviewRound::getStatus)
                         .eq(AiInterviewRound::getRunId, runId)
-                        .eq(AiInterviewRound::getUserId, userId)
                         .eq(AiInterviewRound::getStatus, "ANSWERED")
                         .orderByAsc(AiInterviewRound::getRoundNo));
 
+        // 3. 转换本页记录并保留 MyBatis-Plus 统计出的总数。
         List<InterviewQuestionRoundResponse> records = roundPage.getRecords().stream()
                 .map(round -> InterviewQuestionRoundResponse.builder()
                         .roundId(round.getId())

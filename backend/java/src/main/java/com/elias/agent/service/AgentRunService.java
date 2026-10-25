@@ -7,6 +7,7 @@ import com.elias.agent.dto.run.request.AgentRunStartRequest;
 import com.elias.agent.dto.run.response.AgentApproveResponse;
 import com.elias.agent.dto.run.response.AgentEventResponse;
 import com.elias.agent.dto.run.response.AgentRunDetailResponse;
+import com.elias.agent.dto.run.response.AgentRunHistoryItemResponse;
 import com.elias.agent.dto.run.response.AgentRunQueueResponse;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -92,6 +93,16 @@ public interface AgentRunService {
      * @return run 详情
      */
     AgentRunDetailResponse getRunDetail(Long runId);
+
+    /**
+     * 查询会话下的历史 run。
+     *
+     * @param sessionId Agent 会话 ID
+     * @param sceneCode 可选场景编码
+     * @param limit     可选最大返回条数
+     * @return 按创建时间倒序排列的任务摘要
+     */
+    List<AgentRunHistoryItemResponse> listSessionRuns(Long sessionId, String sceneCode, Integer limit);
 
     /**
      * 查询 run 事件列表

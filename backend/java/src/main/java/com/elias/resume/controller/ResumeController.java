@@ -10,6 +10,7 @@ import com.elias.resume.dto.request.SectionReorderRequest;
 import com.elias.common.dto.response.ResumeDetailResponse;
 import com.elias.resume.service.ResumeService;
 import com.elias.resume.dto.response.ResumeAvatarUploadResponse;
+import com.elias.resume.dto.response.ResumeCreateResponse;
 import com.elias.resume.dto.response.ResumeListResponse;
 import com.elias.resume.dto.response.ResumeVersionDetailResponse;
 import com.elias.resume.dto.response.ResumeVersionItemResponse;
@@ -28,12 +29,15 @@ public class ResumeController {
     /**
      * 创建空白简历
      * @param resumeCreateRequest
-     * @return
+     * @return 包含规范字段 resumeId 和兼容字段 id 的创建结果
      */
     @PostMapping
-    public ApiResponse<Void> createResume(@Valid @RequestBody ResumeCreateRequest resumeCreateRequest) {
-        resumeService.createResume(resumeCreateRequest);
-        return ApiResponse.ok();
+    public ApiResponse<ResumeCreateResponse> createResume(@Valid @RequestBody ResumeCreateRequest resumeCreateRequest) {
+        Long resumeId = resumeService.createResume(resumeCreateRequest);
+        return ApiResponse.ok(ResumeCreateResponse.builder()
+                .resumeId(resumeId)
+                .id(resumeId)
+                .build());
     }
 
     /**

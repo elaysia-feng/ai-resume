@@ -12,7 +12,7 @@
 
         <p class="auth-brand__title ui-page-title">三步开通你的工作台</p>
         <p class="auth-brand__desc ui-page-subtitle">
-          验证邮箱、设置密码即可开始。账号只保存在本机，简历与面试记录不会上传到外部服务。
+          验证邮箱、设置密码后即可使用。简历与历史记录保存在本机；启用 AI 时，当前任务所需内容会发送到你配置的模型服务。
         </p>
 
         <ul class="auth-brand__points ui-panel ui-panel--flat">
@@ -22,7 +22,7 @@
           </li>
           <li class="auth-brand__point">
             <AppIcon name="layout" :size="18" />
-            <span>注册后直接进入模板市场</span>
+            <span>注册后进入工作台总览</span>
           </li>
           <li class="auth-brand__point">
             <AppIcon name="microphone" :size="18" />
@@ -514,7 +514,7 @@ function startCountdown(seconds) {
   max-width: 420px;
   padding: var(--ui-space-8);
   border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-lg);
 }
 
 .auth-card__head {

@@ -21,8 +21,8 @@ import java.util.List;
  */
 public interface ResumeService {
 
-    // 创建空白简历
-    void createResume(ResumeCreateRequest resumeCreateRequest);
+    // 创建空白简历并返回简历 ID
+    Long createResume(ResumeCreateRequest resumeCreateRequest);
     // 列出当前用户的简历
     List<ResumeListResponse> getResume();
 

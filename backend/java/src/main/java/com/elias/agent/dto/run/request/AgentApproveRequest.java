@@ -15,7 +15,7 @@ import java.util.List;
 public class AgentApproveRequest {
 
     /**
-     * 用户确认应用的 patchId 列表；为空时可由 service 解释为全部应用
+     * 用户确认应用的 patchId 列表；null 或空列表沿用旧客户端语义并应用全部
      */
     private List<String> approvedPatchIds;
 

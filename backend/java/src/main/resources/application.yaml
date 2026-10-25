@@ -6,6 +6,10 @@
 server:
   port: 8080
 
+mybatis-plus:
+  # Agent run 摘要窗口查询所在的 Mapper XML。
+  mapper-locations: classpath*:/mapper/**/*.xml
+
 spring:
   application:
     name: ai-resume-forge

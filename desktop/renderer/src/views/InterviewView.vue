@@ -10,6 +10,10 @@
           <AppIcon :name="runBadge.icon" :size="12" :spin="runBadge.spin" />
           {{ runBadge.label }}
         </span>
+        <button v-if="selectedRunId" type="button" class="ui-btn ui-btn--primary ui-btn--sm" @click="showSetup = !showSetup">
+          <AppIcon :name="showSetup ? 'x' : 'plus'" :size="15" />
+          {{ showSetup ? '收起新面试' : '开始新面试' }}
+        </button>
         <button class="ui-btn ui-btn--outline" :disabled="loadingSessions" @click="loadInterviewSessions">
           <AppIcon name="arrows-clockwise" :size="16" :spin="loadingSessions" />
           {{ loadingSessions ? '刷新中…' : '刷新会话' }}
@@ -18,18 +22,18 @@
     </header>
 
     <!-- 新建面试 -->
-    <section class="ui-panel setup">
+    <section v-if="showSetup || !selectedRunId" class="ui-panel setup">
       <header class="ui-section-head setup__head">
         <div>
           <h2 class="ui-section-head__title">开始新的模拟面试</h2>
-          <p class="ui-section-head__hint">选择简历并补充岗位 JD 后启动，题目会逐轮下发。</p>
+          <p class="ui-section-head__hint">选择一份简历开始。岗位 JD 可选，用来让题目更贴近目标方向。</p>
         </div>
       </header>
       <div class="setup__grid">
         <div class="field">
           <label class="ui-label" for="setup-resume">选择简历</label>
-          <select id="setup-resume" v-model="createForm.resumeId" class="ui-input ui-select">
-            <option value="">不关联简历</option>
+          <select id="setup-resume" v-model="createForm.resumeId" class="ui-input ui-select" required>
+            <option value="">请选择简历</option>
             <option v-for="resume in resumes" :key="resume.id" :value="resume.id">{{ resume.title }}</option>
           </select>
         </div>
@@ -51,12 +55,16 @@
             v-model="createForm.jobDescription"
             class="ui-input ui-textarea"
             rows="3"
-            placeholder="填写岗位要求，留空也可以启动"
+            placeholder="可粘贴目标岗位要求；不填写时会按简历内容出题"
           ></textarea>
         </div>
       </div>
       <div class="setup__actions">
-        <button class="ui-btn ui-btn--primary" :disabled="creating" @click="handleCreateAndStart">
+        <p v-if="!loadingSessions && !resumes.length" class="ui-callout ui-callout--accent" role="status">
+          先创建一份简历，面试才能结合你的经历生成问题。
+          <router-link class="ui-btn ui-btn--outline ui-btn--sm" to="/resume/create">新建简历</router-link>
+        </p>
+        <button class="ui-btn ui-btn--primary" :disabled="creating || !createForm.resumeId" @click="handleCreateAndStart">
           <AppIcon name="play" :size="16" />
           {{ creating ? '启动中…' : '新建并开始面试' }}
         </button>
@@ -128,7 +136,7 @@
         <template v-else>
           <header class="ui-panel board-head">
             <div class="board-head__text">
-              <h2 class="board-head__title">Run #{{ selectedRunId }}</h2>
+              <h2 class="board-head__title">{{ selectedSessionTitle || '模拟面试记录' }}</h2>
               <p class="board-head__meta">状态：{{ board?.status || '未加载' }}</p>
               <span v-if="loadingBoard" class="board-head__loading">
                 <AppIcon name="spinner-gap" :size="12" spin />
@@ -298,13 +306,15 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import {
   createAgentSession,
   extractApiMessage,
   getInterviewBoard,
   getInterviewQuestionRounds,
   getResumes,
+  listAgentSessionRuns,
   listAgentSessions,
   startInterviewRun,
   submitInterviewAnswer,
@@ -313,6 +323,7 @@ import { formatDateTime } from '../utils/resume.js';
 import AppIcon from '../components/common/AppIcon.vue';
 
 const POLL_INTERVAL_MS = 2500;
+const route = useRoute();
 
 // run / 会话 / 轮次的状态文案与徽标色调（icon 用于界面上的状态标识）
 const RUN_STATUS_VIEW = {
@@ -344,6 +355,8 @@ const error = ref('');
 const resumes = ref([]);
 const sessions = ref([]);
 const selectedRunId = ref(null);
+const selectedSessionTitle = ref('');
+const showSetup = ref(true);
 const board = ref(null);
 const rounds = ref([]);
 const activeRoundId = ref(null);
@@ -352,13 +365,30 @@ let pollTimer = null;
 
 const createForm = reactive({
   resumeId: '',
-  sessionTitle: '',
+  sessionTitle: '模拟面试',
   jobDescription: '',
 });
 
 const answerForm = reactive({
   selectedOption: '',
   supplementText: '',
+});
+
+watch(() => route.query.sessionId, async (sessionId) => {
+  if (!sessionId) {
+    return;
+  }
+  const loaded = await loadInterviewSessions();
+  if (!loaded) {
+    return;
+  }
+  const requestedSession = sessions.value.find((session) => String(session.id) === String(sessionId));
+  if (requestedSession) {
+    await selectSession(requestedSession);
+    return;
+  }
+  clearSelectedSession();
+  setStatus('', '找不到这条面试记录。它可能已删除，请从会话列表重新选择。');
 });
 
 const currentQuestion = computed(() => board.value?.currentQuestion || null);
@@ -423,7 +453,28 @@ const summaryView = computed(() => {
 });
 
 onMounted(async () => {
-  await Promise.all([loadResumes(), loadInterviewSessions()]);
+  const [, sessionsLoaded] = await Promise.all([loadResumes(), loadInterviewSessions()]);
+  const requestedSessionId = String(route.query.sessionId || '');
+  const requestedSession = sessions.value.find((session) => String(session.id) === requestedSessionId);
+  if (requestedSession) {
+    createForm.resumeId = requestedSession.resumeId ? String(requestedSession.resumeId) : createForm.resumeId;
+    createForm.sessionTitle = requestedSession.sessionTitle ? `${requestedSession.sessionTitle} · 新一轮练习` : createForm.sessionTitle;
+    createForm.jobDescription = requestedSession.jobDescription || createForm.jobDescription;
+    await selectSession(requestedSession);
+  } else if (requestedSessionId && sessionsLoaded) {
+    clearSelectedSession();
+    setStatus('', '找不到这条面试记录。它可能已删除，请从会话列表重新选择。');
+  } else {
+    if (route.query.resumeId) {
+      createForm.resumeId = String(route.query.resumeId);
+    }
+    if (route.query.sessionTitle) {
+      createForm.sessionTitle = String(route.query.sessionTitle);
+    }
+    if (route.query.jobDescription) {
+      createForm.jobDescription = String(route.query.jobDescription);
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -438,6 +489,11 @@ function setStatus(successMessage = '', errorMessage = '') {
 async function loadResumes() {
   try {
     resumes.value = await getResumes();
+    if (route.query.resumeId) {
+      createForm.resumeId = String(route.query.resumeId);
+    } else if (!createForm.resumeId && resumes.value.length) {
+      createForm.resumeId = String(resumes.value[0].id);
+    }
   } catch (err) {
     setStatus('', extractApiMessage(err, '加载简历列表失败'));
   }
@@ -447,31 +503,47 @@ async function loadInterviewSessions() {
   loadingSessions.value = true;
   try {
     sessions.value = await listAgentSessions({ sceneCode: 'INTERVIEW' });
-    if (!selectedRunId.value) {
-      const activeSession = sessions.value.find((session) => session.activeRunId);
-      if (activeSession) {
-        await selectSession(activeSession);
-      }
+    if (!route.query.sessionId && !selectedRunId.value && sessions.value.length) {
+      const firstSession = sessions.value.find((session) => session.activeRunId) || sessions.value[0];
+      await selectSession(firstSession);
     }
+    return true;
   } catch (err) {
     setStatus('', extractApiMessage(err, '加载面试会话失败'));
+    return false;
   } finally {
     loadingSessions.value = false;
   }
 }
 
+function clearSelectedSession() {
+  stopPolling();
+  selectedRunId.value = null;
+  selectedSessionTitle.value = '';
+  board.value = null;
+  rounds.value = [];
+  activeRoundId.value = null;
+  showSetup.value = true;
+}
+
 async function handleCreateAndStart() {
+  if (!createForm.resumeId) {
+    setStatus('', '请选择一份简历后再开始面试。');
+    return;
+  }
   creating.value = true;
   setStatus();
   try {
     const session = await createAgentSession({
-      resumeId: createForm.resumeId || null,
+      resumeId: Number(createForm.resumeId),
       sceneCode: 'INTERVIEW',
       sessionTitle: createForm.sessionTitle || '模拟面试',
       jobDescription: createForm.jobDescription || null,
     });
     const runId = await startInterviewRun({ sessionId: session.id });
     selectedRunId.value = runId;
+    selectedSessionTitle.value = createForm.sessionTitle || '模拟面试';
+    showSetup.value = false;
     createForm.resumeId = '';
     createForm.sessionTitle = '';
     createForm.jobDescription = '';
@@ -488,20 +560,37 @@ async function handleCreateAndStart() {
 }
 
 async function selectSession(session) {
-  if (!session.activeRunId) {
+  stopPolling();
+  setStatus();
+  selectedSessionTitle.value = session.sessionTitle || `面试会话 #${session.id}`;
+  try {
+    // 活跃 run 已由会话列表批量返回；否则只取最新一条面试历史。
+    let runId = session.activeRunId;
+    if (!runId) {
+      const runs = await listAgentSessionRuns(session.id, { sceneCode: 'INTERVIEW', limit: 1 });
+      runId = Array.isArray(runs) ? runs[0]?.runId : null;
+    }
+    if (!runId) {
+      selectedRunId.value = null;
+      board.value = null;
+      rounds.value = [];
+      showSetup.value = true;
+      setStatus('', '这条会话还没有面试记录，可以使用上方表单开始练习。');
+      return;
+    }
+    selectedRunId.value = runId;
+    showSetup.value = false;
+    await refreshBoard();
+    await loadRounds();
+    if (shouldKeepPolling(board.value?.status)) {
+      startPolling();
+    }
+  } catch (err) {
     selectedRunId.value = null;
     board.value = null;
     rounds.value = [];
-    stopPolling();
-    setStatus('', '该会话暂无进行中的面试');
-    return;
-  }
-  selectedRunId.value = session.activeRunId;
-  setStatus();
-  await refreshBoard();
-  await loadRounds();
-  if (shouldKeepPolling(board.value?.status)) {
-    startPolling();
+    showSetup.value = true;
+    setStatus('', extractApiMessage(err, '加载面试历史失败'));
   }
 }
 
@@ -638,7 +727,7 @@ function sessionBadge(session) {
   if (session.status === 'ARCHIVED') {
     return { label: '已归档', tone: '', icon: 'note-blank', spin: false };
   }
-  return { label: '未开始', tone: '', icon: 'clock', spin: false };
+  return { label: '打开记录', tone: '', icon: 'clock', spin: false };
 }
 
 function roundBadge(round) {

@@ -163,7 +163,7 @@ defineExpose({ focus });
   background: var(--ui-bg-surface);
   border: 1px solid var(--ui-border-strong);
   border-radius: var(--ui-radius-lg);
-  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-sm);
   transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
     box-shadow var(--ui-duration-fast) var(--ui-ease-out);
 }

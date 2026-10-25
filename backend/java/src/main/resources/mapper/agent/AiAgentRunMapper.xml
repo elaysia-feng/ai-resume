@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.elias.agent.mapper.AiAgentRunMapper">
+
+  <resultMap id="preferredSessionRunMap" type="com.elias.agent.entity.AiAgentRun">
+    <id property="id" column="id" />
+    <result property="sessionId" column="session_id" />
+    <result property="sceneCode" column="scene_code" />
+    <result property="status" column="status" />
+    <result property="activeFlag" column="active_flag" />
+    <result property="updatedAt" column="updated_at" />
+  </resultMap>
+
+  <!-- 每个会话用复合索引做一次 top-1 查找；活跃项优先，其次按更新时间与 ID 倒序。 -->
+  <select id="selectPreferredSessionRuns" resultMap="preferredSessionRunMap">
+    WITH requested_session_ids(id) AS (
+      VALUES
+      <foreach collection="sessionIds" item="sessionId" separator=",">
+        (#{sessionId})
+      </foreach>
+    ),
+    target_sessions AS (
+      SELECT session.id, session.scene_code
+      FROM requested_session_ids requested
+      INNER JOIN ai_session session ON session.id = requested.id
+      WHERE session.user_id = #{userId}
+    )
+    SELECT
+      run.id,
+      run.session_id,
+      run.scene_code,
+      run.status,
+      run.active_flag,
+      run.updated_at
+    FROM target_sessions session
+    INNER JOIN ai_agent_run run
+      ON run.id = (
+        SELECT candidate.id
+        FROM ai_agent_run candidate
+        WHERE candidate.user_id = #{userId}
+          AND candidate.session_id = session.id
+          AND candidate.scene_code = session.scene_code
+        ORDER BY candidate.active_flag DESC, candidate.updated_at DESC, candidate.id DESC
+        LIMIT 1
+      )
+  </select>
+</mapper>

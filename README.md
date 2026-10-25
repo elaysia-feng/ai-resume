@@ -1,6 +1,6 @@
 # AI Resume Forge
 
-围绕简历编辑、岗位要求分析和 AI 修改建议构建的全栈应用。用户维护简历内容，结合目标岗位生成修改方案，并在界面中审阅后应用。
+本地运行的求职准备桌面工作台，提供独立的简历编辑、AI 对话、模板导出和模拟面试入口。首页汇总近期记录，用户可以按需要选择功能，不必遵循单一线性流程。
 
 ## 仓库组成
 
@@ -23,17 +23,26 @@ Python 侧是独立的 AI 运行时，与 Java 之间通过内部 HTTP 接口和
 
 ## 能力与调用关系
 
-渲染层负责简历编辑和建议预览；Java 侧负责用户、简历和业务接口；Python 侧处理岗位分析、改写与审核等 AI 流程。Python 服务的具体入口、配置和运行方式见 [后端说明](backend/python/README.md)。
+渲染层负责各功能页面、简历编辑和建议预览；Java 侧负责用户、简历和业务接口；Python 侧处理岗位分析、改写与审核等 AI 流程。AI 修改先由用户审阅，再应用到简历。Python 服务的具体入口、配置和运行方式见 [后端说明](backend/python/README.md)。
 
-模块存在不代表所有外部服务已配置完成。运行相关流程还需要对应的模型服务（MiniMax API Key）；
-数据与任务队列都落在本地 SQLite 文件上，**不需要再装 MySQL / Redis**。
+模块存在不代表所有外部服务已配置完成。运行 AI 对话和 Agent 流程需要设置中配置的模型服务；当前任务所需的简历或对话内容会发送到该服务。简历、会话和任务队列保存在本机 SQLite，**不需要再装 MySQL / Redis**。
 
 ## 本地开发
 
 渲染层可独立启动，完整业务需要后端配合：
 
 ```sh
-cd frontend
+cd desktop/renderer
+npm install
+npm run dev
+```
+
+Electron 桌面端开发需要分别安装渲染层和主进程依赖：
+
+```sh
+cd desktop/renderer
+npm install
+cd ../
 npm install
 npm run dev
 ```

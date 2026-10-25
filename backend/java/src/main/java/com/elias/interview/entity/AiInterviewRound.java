@@ -30,25 +30,9 @@ public class AiInterviewRound {
     private Long id;
 
     /**
-     * 所属用户ID
-     */
-    private Long userId;
-
-
-    /**
      * 本场面试模拟任务的 run ID
      */
     private Long runId;
-
-    /**
-     * 所属 Agent 会话ID
-     */
-    private Long sessionId;
-
-    /**
-     * 关联简历ID
-     */
-    private Long resumeId;
 
     /**
      * 第几轮问题，从1开始

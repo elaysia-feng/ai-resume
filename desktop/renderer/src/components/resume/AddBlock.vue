@@ -238,17 +238,7 @@ const blocks = [
     sectionCode: 'BASIC',
     sectionTitle: '基本信息',
     schemaType: 'TEXT',
-    contentJson: {
-      name: '张三',
-      title: 'Java 后端开发工程师',
-      email: 'zhangsan@example.com',
-      phone: '138-0013-8000',
-      location: '北京市朝阳区',
-      wechat: 'zhangsan_dev',
-      github: 'github.com/zhangsan',
-      website: 'zhangsan.com',
-      avatar: '',
-    },
+    contentJson: {},
   },
   {
     id: 'JOB_INTENT',
@@ -259,13 +249,7 @@ const blocks = [
     sectionCode: 'JOB_INTENT',
     sectionTitle: '求职意向',
     schemaType: 'TEXT',
-    contentJson: {
-      desiredPosition: 'Java 后端开发工程师',
-      desiredCity: '北京',
-      salaryRange: '25K-35K',
-      employmentType: '全职',
-      jobStatus: '随时可入职',
-    },
+    contentJson: {},
   },
   {
     id: 'EDUCATION',
@@ -276,12 +260,7 @@ const blocks = [
     sectionCode: 'EDUCATION',
     sectionTitle: '教育背景',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { school: '北京理工大学', degree: '硕士', major: '计算机科学与技术', gpa: '', startDate: '2019.09', endDate: '2022.06', description: '' },
-        { school: '天津大学', degree: '本科', major: '软件工程', gpa: '', startDate: '2015.09', endDate: '2019.06', description: '' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'EXPERIENCE',
@@ -292,12 +271,7 @@ const blocks = [
     sectionCode: 'EXPERIENCE',
     sectionTitle: '工作经验',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { company: '字节跳动', position: '后端开发工程师', startDate: '2022.07', endDate: '', current: true, description: '负责抖音评论服务设计与开发，优化缓存架构并推动 Spring Boot + gRPC 框架落地。' },
-        { company: '阿里巴巴', position: 'Java 开发实习生', startDate: '2021.03', endDate: '2021.09', current: false, description: '参与电商订单系统开发，完成订单履约流程模块设计与实现。' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'INTERNSHIP',
@@ -308,11 +282,7 @@ const blocks = [
     sectionCode: 'INTERNSHIP',
     sectionTitle: '实习经历',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { company: '阿里巴巴', position: 'Java 开发实习生', startDate: '2021.03', endDate: '2021.09', description: '参与电商订单系统开发，完成订单履约流程模块设计与实现。' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'PROJECTS',
@@ -323,12 +293,7 @@ const blocks = [
     sectionCode: 'PROJECTS',
     sectionTitle: '项目经历',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { name: '分布式任务调度平台', role: '后端开发', startDate: '2023.03', endDate: '2023.08', description: '采用 XXL-JOB 二次开发，支持集群部署与任务分片，并实现可视化任务配置与失败告警。', techStack: 'Java, Spring Boot, XXL-JOB, MySQL, Redis' },
-        { name: '实时数据同步中间件', role: '后端开发', startDate: '2022.10', endDate: '2023.02', description: '基于 Canal + Flink 实现 MySQL 到 Elasticsearch 实时数据同步，支持全量与增量同步。', techStack: 'Java, Flink, Canal, Elasticsearch, MySQL' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'CAMPUS',
@@ -339,12 +304,7 @@ const blocks = [
     sectionCode: 'CAMPUS',
     sectionTitle: '校园经历',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { organization: '校ACM竞赛团队', role: '队长', startDate: '2017.09', endDate: '2019.06', description: '带领团队获省级 ACM 程序设计竞赛银奖，并组织校内算法竞赛。' },
-        { organization: '计算机学院学生会', role: '副主席', startDate: '2016.09', endDate: '2018.06', description: '策划并执行学院科技文化节，参与人数达 2000+。' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'SKILLS',
@@ -355,9 +315,7 @@ const blocks = [
     sectionCode: 'SKILLS',
     sectionTitle: '技能特长',
     schemaType: 'TAGS',
-    contentJson: {
-      items: [{ name: 'Java', proficiency: '精通' }, { name: 'Spring Boot', proficiency: '掌握' }, { name: 'MySQL', proficiency: '掌握' }, { name: 'Redis', proficiency: '熟悉' }, { name: 'Kafka', proficiency: '熟悉' }, { name: 'Docker', proficiency: '掌握' }],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'CERTIFICATES',
@@ -368,13 +326,7 @@ const blocks = [
     sectionCode: 'CERTIFICATES',
     sectionTitle: '荣誉证书',
     schemaType: 'LIST',
-    contentJson: {
-      items: [
-        { name: 'Oracle Certified Professional, Java SE 8 Programmer', level: '其他', date: '', issuer: 'Oracle', description: '' },
-        { name: 'ACM-ICPC 省级银奖', level: '二等奖', date: '', issuer: '', description: '' },
-        { name: '校级优秀毕业生', level: '其他', date: '', issuer: '学校', description: '' },
-      ],
-    },
+    contentJson: { items: [] },
   },
   {
     id: 'SELF_EVALUATION',
@@ -385,9 +337,7 @@ const blocks = [
     sectionCode: 'SELF_EVALUATION',
     sectionTitle: '自我评价',
     schemaType: 'TEXT',
-    contentJson: {
-      text: '拥有扎实的 Java 基础和良好的面向对象设计能力，熟悉微服务架构设计。具备独立负责业务模块的能力，善于与产品、测试团队高效沟通。热爱技术，持续关注新技术发展，具有较强的学习能力和问题解决能力。',
-    },
+    contentJson: { text: '' },
   },
 ]
 
@@ -511,7 +461,7 @@ function handleAdd(id) {
   color: var(--ui-fg-primary);
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--ui-shadow-sm), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-sm);
   transition: border-color var(--ui-duration-fast) var(--ui-ease-out),
     background var(--ui-duration-fast) var(--ui-ease-out),
     box-shadow var(--ui-duration-fast) var(--ui-ease-out);

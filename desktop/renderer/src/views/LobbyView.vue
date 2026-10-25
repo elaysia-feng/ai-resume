@@ -12,10 +12,9 @@
         <span class="lobby__name">AI Resume Forge</span>
       </div>
 
-      <h1 class="ui-page-title lobby__title">本地运行的简历与面试工作台</h1>
+      <h1 class="ui-page-title lobby__title">本地简历与求职准备工作台</h1>
       <p class="ui-page-subtitle lobby__desc">
-        用 AI 对话起草简历、套用模板、练习面试，再用 5star 法则体检每一段经历。
-        所有内容都在你自己的电脑上完成，简历数据不出本机。
+        简历编辑、AI 对话、模板导出和模拟面试可以分别开始。简历与历史记录保存在本机；使用 AI 时，当前任务所需内容会发送到设置中配置的模型服务。
       </p>
 
       <div class="lobby__actions">

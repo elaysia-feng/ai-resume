@@ -69,10 +69,11 @@ public class ResumeServiceImpl implements ResumeService {
     /**
      * 创建空白简历
      * @param resumeCreateRequest
+     * @return 新建简历 ID
      */
     @Override
     @Transactional
-    public void createResume(ResumeCreateRequest resumeCreateRequest) {
+    public Long createResume(ResumeCreateRequest resumeCreateRequest) {
         Long userId = UserContext.verifyGetUserId();
         Long count = resumeMapper.selectCount(
                 new LambdaQueryWrapper<Resume>()
@@ -89,6 +90,7 @@ public class ResumeServiceImpl implements ResumeService {
                 .template(resumeCreateRequest.getTemplate() != null ? resumeCreateRequest.getTemplate() : "classic")
                 .build();
         resumeMapper.insert(resume);
+        return resume.getId();
     }
 
     /**
@@ -112,24 +114,27 @@ public class ResumeServiceImpl implements ResumeService {
 
     /**
      * 查询简历的详细信息
-     * @param resumeId
-     * @return
+     * @param resumeId 简历标识
+     * @return 当前用户的简历详情及模块列表
      */
     @Override
     public ResumeDetailResponse getDetailedResume(Long resumeId) {
         Long userId = UserContext.verifyGetUserId();
 
+        // 1. 查询简历并校验当前用户的归属。
         Resume resume = resumeMapper.selectById(resumeId);
         if (resume == null || !resume.getUserId().equals(userId)) {
             throw BusinessException.notFound("简历不存在或无权限访问");
         }
 
+        // 2. 按 sort_order 和 id 读取模块，保持编辑器展示顺序稳定。
         List<ResumeSection> resumeSections = resumeSectionMapper.selectList(
                 new LambdaQueryWrapper<ResumeSection>()
                         .eq(ResumeSection::getResumeId, resumeId)
-                        .orderByAsc(ResumeSection::getSortOrder)
+                        .orderByAsc(ResumeSection::getSortOrder, ResumeSection::getId)
         );
 
+        // 3. 组装简历详情响应。
         List<SectionResponse> sectionResponses = resumeSections.stream()
                 .map(resumeSection -> SectionResponse.builder()
                         .id(resumeSection.getId())

@@ -9,6 +9,7 @@ import com.elias.agent.service.AgentRunService;
 import com.elias.agent.dto.run.response.AgentApproveResponse;
 import com.elias.agent.dto.run.response.AgentEventResponse;
 import com.elias.agent.dto.run.response.AgentRunDetailResponse;
+import com.elias.agent.dto.run.response.AgentRunHistoryItemResponse;
 import com.elias.agent.dto.run.response.AgentRunQueueResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -148,6 +149,22 @@ public class AgentRunController {
     @GetMapping("/runs/{runId}")
     public ApiResponse<AgentRunDetailResponse> getRunDetail(@PathVariable Long runId) {
         return ApiResponse.ok(agentRunService.getRunDetail(runId));
+    }
+
+    /**
+     * 查询会话下的历史任务，供面试和简历工作区恢复已完成结果。
+     *
+     * @param sessionId 会话 ID
+     * @param sceneCode 可选场景编码
+     * @param limit     可选最大返回条数
+     * @return run 历史摘要
+     */
+    @GetMapping("/sessions/{sessionId}/runs")
+    public ApiResponse<List<AgentRunHistoryItemResponse>> listSessionRuns(
+            @PathVariable Long sessionId,
+            @RequestParam(required = false) String sceneCode,
+            @RequestParam(required = false) Integer limit) {
+        return ApiResponse.ok(agentRunService.listSessionRuns(sessionId, sceneCode, limit));
     }
 
     /**

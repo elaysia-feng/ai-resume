@@ -15,6 +15,11 @@ export async function getAgentSessionDetail(sessionId) {
   return unwrapApiData(res);
 }
 
+export async function listAgentSessionRuns(sessionId, params = {}) {
+  const res = await apiClient.get(`/api/agent/sessions/${sessionId}/runs`, { params });
+  return unwrapApiData(res) || [];
+}
+
 export async function updateAgentSession(sessionId, data) {
   const res = await apiClient.put(`/api/agent/sessions/${sessionId}`, data);
   return unwrapApiData(res);

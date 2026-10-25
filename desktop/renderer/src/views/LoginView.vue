@@ -10,9 +10,9 @@
           <span class="auth-brand__name">AI Resume Forge</span>
         </div>
 
-        <p class="auth-brand__title ui-page-title">本地简历与面试工作台</p>
+        <p class="auth-brand__title ui-page-title">本地求职准备工作台</p>
         <p class="auth-brand__desc ui-page-subtitle">
-          简历撰写、模板套用、模拟面试与 AI 对话都在你自己的机器上完成，数据不出本机。
+          简历与历史记录保存在本机。启用 AI 功能时，当前任务所需内容会发送到设置中配置的模型服务。
         </p>
 
         <ul class="auth-brand__points ui-panel ui-panel--flat">
@@ -391,7 +391,7 @@ function startCountdown(seconds) {
   max-width: 420px;
   padding: var(--ui-space-8);
   border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-lg);
 }
 
 .auth-card__head {

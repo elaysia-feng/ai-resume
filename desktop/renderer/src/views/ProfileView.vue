@@ -81,12 +81,12 @@
             </div>
             <div class="stat-grid">
               <div class="ui-stat stat-item">
-                <span class="ui-stat__value">{{ resumes.length }}</span>
+                <span class="ui-stat__value">{{ resumeError ? '—' : resumes.length }}</span>
                 <span class="ui-stat__label">简历数量</span>
                 <span class="stat-item__desc">当前账号下所有简历</span>
               </div>
               <div class="ui-stat stat-item">
-                <span class="ui-stat__value">{{ sessions.length }}</span>
+                <span class="ui-stat__value">{{ sessionsError ? '—' : sessions.length }}</span>
                 <span class="ui-stat__label">Agent 会话</span>
                 <span class="stat-item__desc">已创建的 AI 会话历史</span>
               </div>
@@ -177,7 +177,7 @@
           <dl class="info-grid">
             <div class="info-item">
               <dt class="info-item__label">简历数量</dt>
-              <dd class="info-item__value">{{ resumes.length }} 份</dd>
+              <dd class="info-item__value">{{ resumeError ? '暂不可用' : resumes.length }}<span v-if="!resumeError"> 份</span></dd>
             </div>
           </dl>
           <div class="ui-callout ui-callout--accent identity-note">
@@ -195,6 +195,11 @@
             </div>
             <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goDashboard">全部简历</button>
           </div>
+          <div v-if="resumeError" class="ui-callout ui-callout--danger" role="alert">
+            <AppIcon name="warning-circle" :size="16" />
+            <span>{{ resumeError }}</span>
+            <button class="ui-btn ui-btn--outline ui-btn--sm" :disabled="loading" @click="loadResumes">重试</button>
+          </div>
           <div v-if="recentResumes.length" class="list-block">
             <button v-for="resume in recentResumes" :key="resume.id" type="button" class="list-item" @click="openResume(resume.id)">
               <span class="list-item__main">
@@ -204,7 +209,7 @@
               <span class="list-item__time">{{ formatDateTime(resume.updatedAt || resume.createdAt) }}</span>
             </button>
           </div>
-          <div v-else class="ui-empty">
+          <div v-else-if="!resumeError" class="ui-empty">
             <span class="ui-empty__icon" aria-hidden="true">
               <AppIcon name="files" :size="24" />
             </span>
@@ -223,8 +228,13 @@
             </div>
             <button class="ui-btn ui-btn--ghost ui-btn--sm" @click="goHistory">全部会话</button>
           </div>
+          <div v-if="sessionsError" class="ui-callout ui-callout--danger" role="alert">
+            <AppIcon name="warning-circle" :size="16" />
+            <span>{{ sessionsError }}</span>
+            <button class="ui-btn ui-btn--outline ui-btn--sm" :disabled="loading" @click="loadSessions">重试</button>
+          </div>
           <div v-if="recentSessions.length" class="list-block">
-            <button v-for="session in recentSessions" :key="session.id" type="button" class="list-item" @click="goHistory">
+            <button v-for="session in recentSessions" :key="session.id" type="button" class="list-item" @click="goHistory(session.id)">
               <span class="list-item__main">
                 <strong class="list-item__title">{{ session.sessionTitle || '未命名会话' }}</strong>
                 <span class="list-item__desc">{{ sceneLabel(session.sceneCode) }}</span>
@@ -232,7 +242,7 @@
               <span class="list-item__time">{{ formatDateTime(session.lastMessageAt || session.updatedAt || session.createdAt) }}</span>
             </button>
           </div>
-          <div v-else class="ui-empty">
+          <div v-else-if="!sessionsError" class="ui-empty">
             <span class="ui-empty__icon" aria-hidden="true">
               <AppIcon name="chat-circle-dots" :size="24" />
             </span>
@@ -326,6 +336,8 @@ const avatarStatus = ref('')
 const copyStatus = ref('')
 const resumes = ref([])
 const sessions = ref([])
+const resumeError = ref('')
+const sessionsError = ref('')
 const activeSection = ref('overview')
 
 const userInitials = computed(() => {
@@ -365,11 +377,17 @@ const recentSessions = computed(() =>
 )
 
 const lastResumeUpdateText = computed(() => {
+  if (resumeError.value) {
+    return '暂不可用'
+  }
   const latest = recentResumes.value[0]
   return latest ? formatDateTime(latest.updatedAt || latest.createdAt) : '暂无'
 })
 
 const lastSessionUpdateText = computed(() => {
+  if (sessionsError.value) {
+    return '暂不可用'
+  }
   const latest = recentSessions.value[0]
   return latest ? formatDateTime(latest.lastMessageAt || latest.updatedAt || latest.createdAt) : '暂无'
 })
@@ -387,10 +405,10 @@ function sectionMeta(sectionId) {
     return accountTypeText.value
   }
   if (sectionId === 'resumes') {
-    return `${resumes.value.length} 份简历`
+    return resumeError.value ? '读取失败' : `${resumes.value.length} 份简历`
   }
   if (sectionId === 'sessions') {
-    return `${sessions.value.length} 条会话`
+    return sessionsError.value ? '读取失败' : `${sessions.value.length} 条会话`
   }
   return '常用入口'
 }
@@ -410,18 +428,27 @@ async function refreshAll() {
     // 资料获取失败时保持本地兜底
   }
 
+  await Promise.all([loadResumes(), loadSessions()])
+  loading.value = false
+}
+
+async function loadResumes() {
+  resumeError.value = ''
   try {
-    const [resumeList, sessionList] = await Promise.all([
-      getResumes(),
-      listAgentSessions(),
-    ])
+    const resumeList = await getResumes()
     resumes.value = Array.isArray(resumeList) ? resumeList : []
+  } catch (error) {
+    resumeError.value = extractApiMessage(error, '简历列表加载失败，请重试。')
+  }
+}
+
+async function loadSessions() {
+  sessionsError.value = ''
+  try {
+    const sessionList = await listAgentSessions()
     sessions.value = Array.isArray(sessionList) ? sessionList : []
-  } catch {
-    resumes.value = []
-    sessions.value = []
-  } finally {
-    loading.value = false
+  } catch (error) {
+    sessionsError.value = extractApiMessage(error, '会话列表加载失败，请重试。')
   }
 }
 
@@ -496,8 +523,8 @@ function goDashboard() {
   router.push('/dashboard')
 }
 
-function goHistory() {
-  router.push('/dashboard/history')
+function goHistory(sessionId = null) {
+  router.push({ name: 'History', query: sessionId ? { sessionId: String(sessionId), source: 'AGENT' } : {} })
 }
 
 function goChat() {

@@ -16,7 +16,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--ui-header-height) - var(--editor-shell-pad) * 2);
+  height: calc(100vh - var(--editor-shell-pad) * 2);
   max-height: 100%;
   min-height: 0;
   overflow: hidden;

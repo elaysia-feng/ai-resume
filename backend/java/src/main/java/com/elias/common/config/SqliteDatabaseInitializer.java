@@ -15,6 +15,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * SQLite 数据目录与建表脚本的初始化。
@@ -32,7 +36,7 @@ import java.sql.Connection;
  * 建目录 + 执行建表脚本。这早于任何依赖 DataSource 的业务 bean，时序上够安全。</p>
  *
  * <p>建表脚本打进 jar 的 db_schema/schema.sql（见 pom.xml 的 resources 配置），
- * 全部是 CREATE TABLE IF NOT EXISTS，重复执行安全。</p>
+ * 负责本地测试版本的表和索引初始化；正式发行时再引入版本化迁移。</p>
  */
 @Slf4j
 @Component
@@ -93,10 +97,69 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
             return;
         }
         try (Connection connection = dataSource.getConnection()) {
+            validateLocalSchema(connection);
             ScriptUtils.executeSqlScript(connection, resource);
             log.info("建表脚本执行完成: {}", SCHEMA_RESOURCE);
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("执行建表脚本失败: " + SCHEMA_RESOURCE, e);
+        }
+    }
+
+    /**
+     * 表结构调整期间不自动迁移本地测试库；发现旧表时在执行任何 DDL 前提示重置数据库。
+     */
+    private void validateLocalSchema(Connection connection) throws SQLException {
+        if (tableExists(connection, "ai_interview_round")
+                && (hasColumn(connection, "ai_interview_round", "user_id")
+                        || hasColumn(connection, "ai_interview_round", "session_id")
+                        || hasColumn(connection, "ai_interview_round", "resume_id"))) {
+            throw outdatedLocalDatabase();
+        }
+        if (tableExists(connection, "ai_agent_run")
+                && (!isNotNull(connection, "ai_agent_run", "target_section_id")
+                        || !isNotNull(connection, "ai_agent_run", "active_flag"))) {
+            throw outdatedLocalDatabase();
+        }
+    }
+
+    private IllegalStateException outdatedLocalDatabase() {
+        return new IllegalStateException(
+                "检测到旧版本地 SQLite 表结构；测试版本不执行迁移，请清空 DB_FILE 指向的本地数据库后重启");
+    }
+
+    private boolean tableExists(Connection connection, String tableName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        }
+    }
+
+    private boolean hasColumn(Connection connection, String tableName, String columnName) throws SQLException {
+        try (Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (resultSet.next()) {
+                if (columnName.equals(resultSet.getString("name"))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private boolean isNotNull(Connection connection, String tableName, String columnName) throws SQLException {
+        try (Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (resultSet.next()) {
+                if (columnName.equals(resultSet.getString("name"))) {
+                    return resultSet.getInt("notnull") == 1;
+                }
+            }
+            return false;
         }
     }
 }

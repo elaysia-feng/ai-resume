@@ -305,7 +305,7 @@ onBeforeUnmount(() => {
   max-width: 520px;
   padding: var(--ui-space-8);
   border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg), var(--ui-highlight-top);
+  box-shadow: var(--ui-shadow-lg);
 }
 
 /* ---- 标题区 ---- */
