@@ -14,17 +14,17 @@
 
 import os
 import sys
+from pathlib import Path
 
-# 打包成 exe 后 sys.path 里没有源码目录，要先把项目根加进去，
-# 否则 `from src.app...` 会 ModuleNotFoundError。
-if getattr(sys, "frozen", False):
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(sys.executable)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+# 开发模式直接运行脚本时，也能从任意工作目录导入 src/app 包。
+project_root = Path(__file__).resolve().parents[1]
+source_root = project_root / "src"
+if not getattr(sys, "frozen", False) and str(source_root) not in sys.path:
+    sys.path.insert(0, str(source_root))
 
 import uvicorn  # noqa: E402
 
-from src.app.main import app  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 def main() -> None:

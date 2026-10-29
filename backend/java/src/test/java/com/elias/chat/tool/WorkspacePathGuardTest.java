@@ -1,5 +1,6 @@
 package com.elias.chat.tool;
 
+import com.elias.chat.tool.impl.WorkspacePathGuardImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class WorkspacePathGuardTest {
 
     @BeforeEach
     void setUp() {
-        pathGuard = new WorkspacePathGuard();
+        pathGuard = new WorkspacePathGuardImpl();
     }
 
     @Test

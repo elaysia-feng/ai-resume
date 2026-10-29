@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from src.app.config.settings import get_settings
+from app.core.config import get_settings
 
 # 消息体字段名，必须和 Java 侧 AgentStreamClient 保持一致。
 FIELD_PAYLOAD = "payload"
@@ -178,3 +178,37 @@ def republish(client: sqlite3.Connection, message_id: str, retry_count: int) -> 
         " claimed_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (STATUS_PENDING, retry_count, int(message_id)),
     )
+
+
+def reclaim_stale(
+    client: sqlite3.Connection,
+    stream: str,
+    group: str,
+    *,
+    timeout_seconds: int,
+) -> int:
+    """回收认领后长时间未完成的消息（worker 崩溃残留）。
+
+    worker 进程被杀或崩溃时，消息会永远停留在 CLAIMED，没有任何自然路径回到
+    PENDING——没有这个回收，这些任务就永久卡死。只回收 claimed_at 早于
+    timeout_seconds 的消息，避免误伤正在执行的长任务；重复执行兜底由 Java 侧
+    claim_run（QUEUED -> RUNNING）状态机挡住。
+
+    Args:
+        client: SQLite 连接。
+        stream: 任务流名。
+        group: 消费组名。
+        timeout_seconds: 认领超时秒数。
+
+    Returns:
+        本次回收的消息条数。
+    """
+    cursor = client.execute(
+        "UPDATE agent_task SET status = ?, claim_token = NULL, consumer = NULL,"
+        " claimed_at = NULL, updated_at = CURRENT_TIMESTAMP"
+        " WHERE stream = ? AND group_name = ? AND status = ?"
+        " AND claimed_at IS NOT NULL"
+        " AND (julianday('now') - julianday(claimed_at)) * 86400.0 > ?",
+        (STATUS_PENDING, stream, group, STATUS_CLAIMED, timeout_seconds),
+    )
+    return cursor.rowcount or 0

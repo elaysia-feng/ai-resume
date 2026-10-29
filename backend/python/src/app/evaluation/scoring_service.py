@@ -6,17 +6,17 @@ FLAG 条件：编造 / 改动过大 / 结构变化 / 低价值 / 分数低于阈
 """
 from __future__ import annotations
 
-from src.app.agent.types import ResumeSectionPatch
-from src.app.config.settings import get_settings
-from src.app.evaluation import rules
-from src.app.evaluation.rubric import (
+from app.core.config import get_settings
+from app.evaluation import rules
+from app.evaluation.rubric import (
     DIMENSION_WEIGHTS,
     DIMENSIONS,
     FACT_FIDELITY_CAP,
     FLAG_KEYS,
     PASS_THRESHOLD,
 )
-from src.app.evaluation.types import PatchQuality, RunResult
+from app.evaluation.types import PatchQuality, RunResult
+from app.graphs.resume_agent.types import ResumeSectionPatch
 
 
 def _clamp_dimension(value: object, default: int = 3) -> int:
@@ -73,7 +73,7 @@ async def score_patch(
     llm_dimensions: dict[str, int] = {}
     if use_llm and get_settings().agent_quality_llm_scoring:
         try:
-            from src.app.evaluation.llm_scorer import llm_score_patch
+            from app.evaluation.llm_scorer import llm_score_patch
 
             verdict = await llm_score_patch(patch, job_description, gap_report)
             llm_review = verdict.reason

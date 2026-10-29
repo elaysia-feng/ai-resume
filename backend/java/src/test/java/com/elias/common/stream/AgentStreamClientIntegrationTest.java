@@ -1,6 +1,7 @@
 package com.elias.common.stream;
 
-import com.elias.agent.dto.run.request.AgentRunJobMessage;
+import com.elias.dto.agent.run.request.AgentRunJobMessage;
+import com.elias.common.stream.impl.AgentStreamClientImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,7 +53,7 @@ class AgentStreamClientIntegrationTest {
         }
 
         objectMapper = new ObjectMapper();
-        client = new AgentStreamClient(jdbcTemplate, objectMapper, new AgentStreamProperties());
+        client = new AgentStreamClientImpl(jdbcTemplate, objectMapper, new AgentStreamProperties());
     }
 
     @AfterAll
@@ -158,7 +159,7 @@ class AgentStreamClientIntegrationTest {
 
     @Test
     void javaDtoFieldNamesMatchPythonContract() throws Exception {
-        // Python 侧 src/app/worker/agent_run_worker.py 的 AgentRunJobMessage alias 必须完全一致，
+        // Python 侧 src/app/workers/agent_run_worker.py 的 AgentRunJobMessage alias 必须完全一致，
         // 字段名一变 Python 会校验失败、消息被静默丢进死信流。
         String json = objectMapper.writeValueAsString(AgentRunJobMessage.builder()
                 .jobType("START")

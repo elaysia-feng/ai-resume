@@ -11,9 +11,9 @@ import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from src.app.agent.types import ResumeSectionPatch
-from src.app.evaluation.rubric import DIMENSIONS
-from src.app.service.agent_factory import agent_factory
+from app.core.llm import agent_factory
+from app.evaluation.rubric import DIMENSIONS
+from app.graphs.resume_agent.types import ResumeSectionPatch
 
 
 class LlmQualityVerdict(BaseModel):

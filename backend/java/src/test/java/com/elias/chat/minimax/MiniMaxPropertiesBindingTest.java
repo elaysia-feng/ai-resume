@@ -1,6 +1,6 @@
 package com.elias.chat.minimax;
 
-import com.elias.common.minimax.MiniMaxProperties;
+import com.elias.chat.minimax.MiniMaxProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.ConfigurationProperties;

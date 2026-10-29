@@ -5,7 +5,7 @@
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-from src.app.config.settings import get_settings
+from app.core.config import get_settings
 
 
 def main() -> None:

@@ -28,16 +28,17 @@ from pathlib import Path
 import dotenv
 from langgraph.checkpoint.memory import MemorySaver
 
-# 保证 scripts/ 下运行时也能 import src（cwd 不一定是 backend/python）。
+# 保证 scripts/ 下运行时也能导入应用包（cwd 不一定是 backend/python）。
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SOURCE_ROOT = ROOT / "src"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
-from src.app.agent.graph import build_graph  # noqa: E402
-from src.app.agent.types import ResumeSectionPatch  # noqa: E402
-from src.app.evaluation.rubric import DIMENSION_LABELS, DIMENSIONS  # noqa: E402
-from src.app.evaluation.scoring_service import score_run  # noqa: E402
-from src.app.evaluation.types import AuditReport, RunResult  # noqa: E402
+from app.evaluation.rubric import DIMENSION_LABELS, DIMENSIONS  # noqa: E402
+from app.evaluation.scoring_service import score_run  # noqa: E402
+from app.evaluation.types import AuditReport, RunResult  # noqa: E402
+from app.graphs.resume_agent.graph import build_graph  # noqa: E402
+from app.graphs.resume_agent.types import ResumeSectionPatch  # noqa: E402
 
 DEFAULT_CASES = ROOT / "eval_cases" / "cases.json"
 DEFAULT_OUT = ROOT / "eval_reports" / "quality_audit_report"

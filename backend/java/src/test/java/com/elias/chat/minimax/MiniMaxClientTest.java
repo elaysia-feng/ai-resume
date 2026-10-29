@@ -1,13 +1,14 @@
 package com.elias.chat.minimax;
 
-import com.elias.common.minimax.MiniMaxClient;
-import com.elias.common.minimax.MiniMaxException;
-import com.elias.common.minimax.MiniMaxMessage;
-import com.elias.common.minimax.MiniMaxProperties;
-import com.elias.common.minimax.MiniMaxResponse;
-import com.elias.common.minimax.MiniMaxStreamListener;
-import com.elias.common.minimax.MiniMaxTool;
-import com.elias.common.minimax.MiniMaxToolUse;
+import com.elias.chat.minimax.MiniMaxClient;
+import com.elias.chat.minimax.impl.MiniMaxClientImpl;
+import com.elias.chat.minimax.MiniMaxException;
+import com.elias.chat.minimax.MiniMaxMessage;
+import com.elias.chat.minimax.MiniMaxProperties;
+import com.elias.chat.minimax.MiniMaxResponse;
+import com.elias.chat.minimax.MiniMaxStreamListener;
+import com.elias.chat.minimax.MiniMaxTool;
+import com.elias.chat.minimax.MiniMaxToolUse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,7 @@ class MiniMaxClientTest {
         properties.setAnthropicApiKey("test-token");
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new MiniMaxClient(properties, new ObjectMapper(), builder);
+        client = new MiniMaxClientImpl(properties, new ObjectMapper(), builder);
     }
 
     @Test

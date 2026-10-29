@@ -1,6 +1,7 @@
 package com.elias.common.stream;
 
-import com.elias.agent.dto.run.request.AgentRunJobMessage;
+import com.elias.dto.agent.run.request.AgentRunJobMessage;
+import com.elias.common.stream.impl.AgentStreamClientImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,7 +78,7 @@ class AgentStreamCrossLanguageTest {
         try (Connection conn = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(conn, new FileSystemResource("db_schema/schema.sql"));
         }
-        client = new AgentStreamClient(jdbcTemplate, new ObjectMapper(), new AgentStreamProperties());
+        client = new AgentStreamClientImpl(jdbcTemplate, new ObjectMapper(), new AgentStreamProperties());
     }
 
     @AfterAll

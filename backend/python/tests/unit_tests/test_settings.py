@@ -12,7 +12,7 @@ pydantic 会在构造 Settings 时直接抛 ValidationError。
 """
 import os
 
-from src.app.config.settings import Settings
+from app.core.config import Settings
 
 
 def test_settings_loads_without_any_api_key(monkeypatch):

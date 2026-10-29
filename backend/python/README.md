@@ -8,7 +8,7 @@
 ## 双入口
 
 - `langgraph dev`：加载 `langgraph.json`，用于 LangGraph Studio 图形化调试。
-- `uvicorn src.app.main:app --reload`：保留 FastAPI，给 Java 后端调用。
+- `uv run uvicorn app.main:app --reload`：保留 FastAPI，给 Java 后端调用。
 
 ## 目录分层
 
@@ -20,28 +20,31 @@ backend/python/
 │   ├── agent/                  # 标准 LangGraph 包入口，保持薄封装
 │   │   └── graph.py            # 导出 graph，给 langgraph.json 使用
 │   └── app/
-│       ├── agent/              # Agent 真实业务实现
-│       │   ├── graph.py        # LangGraph 编排和 FastAPI SSE 适配
-│       │   ├── state.py        # Input / Output / State
-│       │   ├── nodes/          # 业务节点
-│       │   ├── tools/          # Agent 工具适配
-│       │   └── prompts/        # Prompt 分层
-│       ├── service/            # 基础服务：Java 网关、LLM、事件落库
-│       ├── internal_controller/# Java 内部调用入口
-│       ├── internal_dto/       # Java/Python 内部契约
-│       ├── controller/         # 健康检查等轻量 HTTP 入口
-│       ├── dto/                # 通用 DTO
+│       ├── api/                # HTTP 路由与 Java 内部接口
+│       ├── core/               # 配置与共享 LLM 构造
+│       ├── graphs/             # resume_agent 与 interview 两个图及其节点
+│       ├── schemas/            # 公共与 Java/Python 内部 Pydantic 契约
+│       ├── services/           # Java 网关、事件、校验和 patch 能力
+│       ├── stream/             # SQLite 任务队列
+│       ├── workers/            # 简历与面试任务 worker
+│       ├── evaluation/         # 质量评分与评测规则
 │       └── main.py             # FastAPI 应用入口
 └── tests/
     └── unit_tests/             # 单元测试
 ```
 
+`uv_build` 从 `src/` 安装 `app` 与 LangGraph 入口 `agent`；应用代码统一使用 `app.*` 导入，不把 `src` 当作 Python 包名。`uv sync` 后可从不同工作目录启动应用。
+
 ## LangGraph Studio
 
-```bash
+```powershell
 cd backend/python
+$projectEnv = (Join-Path (Get-Location).Path '.venv')
+$env:UV_PROJECT_ENVIRONMENT = $projectEnv
+$env:VIRTUAL_ENV = $projectEnv
+$env:UV_PYTHON = (Join-Path $projectEnv 'Scripts/python.exe')
 uv sync --extra dev
-langgraph dev --no-browser --port 2024
+uv run langgraph dev --no-browser --port 2024
 ```
 
 Studio 加载的图：
@@ -56,9 +59,13 @@ Studio 的 `Input` 面板只保留最小运行输入，完整中间状态仍在 
 
 ## FastAPI
 
-```bash
+```powershell
 cd backend/python
-uvicorn src.app.main:app --reload --port 8000
+$projectEnv = (Join-Path (Get-Location).Path '.venv')
+$env:UV_PROJECT_ENVIRONMENT = $projectEnv
+$env:VIRTUAL_ENV = $projectEnv
+$env:UV_PYTHON = (Join-Path $projectEnv 'Scripts/python.exe')
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 内部 Agent 接口：
@@ -73,7 +80,7 @@ Agent 等待态 checkpoint 存在本地 SQLite 文件里（不再用 Redis）：
 
 - 默认路径：`./data/checkpoints.db`，可用 `CHECKPOINT_DB_PATH` 覆盖。
 - 用途：保存 `WAITING_USER` / `WAITING_CONFIRM` 状态，支持 continue 恢复。
-- 实现：`langgraph-checkpoint-sqlite` + `src/app/agent/sqlite_checkpoint.py`。
+- 实现：`langgraph-checkpoint-sqlite` + `src/app/graphs/resume_agent/sqlite_checkpoint.py`。
 
 ## 记忆摘要
 
@@ -88,9 +95,9 @@ Agent 等待态 checkpoint 存在本地 SQLite 文件里（不再用 Redis）：
 
 简历业务域 MCP Server 入口：
 
-```bash
+```powershell
 cd backend/python
-python -m src.app.agent.mcp.resume_domain_mcp
+.\.venv\Scripts\python.exe -m app.graphs.resume_agent.mcp.resume_domain_mcp
 ```
 
 当前暴露的工具：

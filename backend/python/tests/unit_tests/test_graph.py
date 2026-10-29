@@ -3,7 +3,7 @@ import uuid
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from src.agent.graph import graph
+from agent.graph import graph
 
 
 def graph_config(run_id: int) -> dict:
@@ -38,8 +38,14 @@ class DummySummaryModel:
 
 def test_graph_reaches_approval_without_java_bootstrap(monkeypatch):
     """有 JD 且传入 mock 简历时，主链路应能走到审批挂起。"""
-    monkeypatch.setattr("src.app.agent.nodes.jd_analyst_node.agent_factory.invoke_agent", raise_llm_unavailable)
-    monkeypatch.setattr("src.app.agent.nodes.gap_analyzer_node.agent_factory.invoke_agent", raise_llm_unavailable)
+    monkeypatch.setattr(
+        "app.graphs.resume_agent.nodes.jd_analyst_node.agent_factory.invoke_agent",
+        raise_llm_unavailable,
+    )
+    monkeypatch.setattr(
+        "app.graphs.resume_agent.nodes.gap_analyzer_node.agent_factory.invoke_agent",
+        raise_llm_unavailable,
+    )
 
     result = asyncio.run(
         graph.ainvoke(
@@ -64,7 +70,10 @@ def test_graph_reaches_approval_without_java_bootstrap(monkeypatch):
 
 def test_graph_reaches_clarifier_when_jd_missing(monkeypatch):
     """JD 定制场景缺少 JD 时，应进入追问挂起。"""
-    monkeypatch.setattr("src.app.agent.nodes.clarifier_node.agent_factory.invoke_agent", raise_llm_unavailable)
+    monkeypatch.setattr(
+        "app.graphs.resume_agent.nodes.clarifier_node.agent_factory.invoke_agent",
+        raise_llm_unavailable,
+    )
 
     result = asyncio.run(
         graph.ainvoke(
@@ -89,11 +98,17 @@ def test_graph_reaches_clarifier_when_jd_missing(monkeypatch):
 def test_graph_summarizes_old_messages(monkeypatch):
     """messages 过多时，应写入 summary 并只保留最近消息。"""
     monkeypatch.setattr(
-        "src.app.agent.memory.agent_factory.create_chat_model",
+        "app.graphs.resume_agent.memory.agent_factory.create_chat_model",
         lambda: DummySummaryModel(),
     )
-    monkeypatch.setattr("src.app.agent.nodes.jd_analyst_node.agent_factory.invoke_agent", raise_llm_unavailable)
-    monkeypatch.setattr("src.app.agent.nodes.gap_analyzer_node.agent_factory.invoke_agent", raise_llm_unavailable)
+    monkeypatch.setattr(
+        "app.graphs.resume_agent.nodes.jd_analyst_node.agent_factory.invoke_agent",
+        raise_llm_unavailable,
+    )
+    monkeypatch.setattr(
+        "app.graphs.resume_agent.nodes.gap_analyzer_node.agent_factory.invoke_agent",
+        raise_llm_unavailable,
+    )
 
     result = asyncio.run(
         graph.ainvoke(

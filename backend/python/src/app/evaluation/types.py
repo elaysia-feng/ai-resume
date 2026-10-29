@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from src.app.agent.types import ResumeSectionPatch
+from app.graphs.resume_agent.types import ResumeSectionPatch
 
 
 class PatchQuality(BaseModel):

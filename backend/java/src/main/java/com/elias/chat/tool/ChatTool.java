@@ -1,6 +1,6 @@
 package com.elias.chat.tool;
 
-import com.elias.common.minimax.MiniMaxTool;
+import com.elias.chat.minimax.MiniMaxTool;
 
 import java.util.Map;
 

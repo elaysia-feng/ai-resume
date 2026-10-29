@@ -31,16 +31,18 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=73.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.11.7,<0.12"]
+build-backend = "uv_build"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
+[tool.uv.build-backend]
+module-name = ["app", "agent"]
+module-root = "src"
+source-exclude = ["src/**/.omc", "src/**/.omc/**", "src/**/__pycache__", "src/**/__pycache__/**", "src/**/*.pyc"]
+wheel-exclude = ["app/**/.omc", "app/**/.omc/**", "app/**/__pycache__", "app/**/__pycache__/**", "app/**/*.pyc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
 addopts = "-p no:cacheprovider"
 
 [tool.ruff]

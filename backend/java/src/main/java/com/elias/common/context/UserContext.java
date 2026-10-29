@@ -26,7 +26,7 @@ import com.alibaba.ttl.TransmittableThreadLocal;
  * </pre>
  */
 
-// TODO 因为现在的common并不是一个微服务, 我们无法取到 x-user-header里面的userId, 如果后面有强需要的话, 可以考虑加一个UserContextFilter, 其它服务通过扫描注册
+// TODO(to be confirmed): 如后续拆分为独立微服务，再评估通过 UserContextFilter 传递 userId。
 public final class UserContext {
 
     private static final TransmittableThreadLocal<String> USER_ID = new TransmittableThreadLocal<>();

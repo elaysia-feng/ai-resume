@@ -46,16 +46,23 @@ sqlite3 data/ai_resume.db < db_schema/schema.sql
 ```
 src/main/java/com/elias/
 ├── AiResumeForgeApplication.java   # 唯一启动类
-├── common/                         # 公共层：DTO、异常、MQ、JWT、本地文件存储、UserContext
-├── auth/                           # 注册登录、验证码、JWT 签发
-├── resume/                         # 简历、段落、版本、patch 应用
-├── agent/                          # Agent 会话与 run 生命周期、SSE、任务派发
-├── chat/                           # 通用对话：MiniMax 对话循环、工具调用、工作区
-├── interview/                      # 模拟面试会话、轮次、答题
-└── notification/                   # 邮件验证码（邮箱验证码已改存 SQLite）
+├── controller/<domain>/            # HTTP 边界，含 controller/advice 异常映射
+├── dto/<domain>/                   # 请求与响应模型
+├── service/<domain>/               # 业务接口
+│   └── impl/                       # Service、队列和集成契约的实现
+├── mapper/<domain>/                # MyBatis 持久化访问
+├── entity/<domain>/                # 数据库实体
+├── config/<domain>/                # Spring 配置与配置属性
+├── security/                       # JWT 与内部服务认证
+├── storage/                        # 用户文件存储边界与实现
+├── common/                         # 跨领域状态、上下文和 SQLite 任务流
+├── chat/tool/                      # 聊天工具契约与实现
+└── resume/validation/              # 简历 schema 校验契约
 
-src/test/java/com/elias/            # 单元测试：JWT、鉴权过滤器派发、MQ 消费、通知归属
+src/test/java/com/elias/            # 按领域与分层组织的单元测试
 ```
+
+单体仍保留领域子包；HTTP、DTO、业务 Service、Mapper、Entity 和配置按统一分层归属。业务实现通过 `service/<domain>/impl/` 提供。
 
 跨模块调用规则、鉴权链路和内部接口契约见仓库根目录的 [ARCHITECTURE.md](../ARCHITECTURE.md)。
 

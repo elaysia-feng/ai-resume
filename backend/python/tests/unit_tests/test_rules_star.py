@@ -4,8 +4,8 @@
 """
 import pytest
 
-from src.app.evaluation import rules
-from src.app.evaluation.rubric import DIMENSION_LABELS, DIMENSION_WEIGHTS, DIMENSIONS
+from app.evaluation import rules
+from app.evaluation.rubric import DIMENSION_LABELS, DIMENSION_WEIGHTS, DIMENSIONS
 
 
 def test_full_star_gets_top_score():
@@ -112,7 +112,7 @@ def test_rubric_weights_cover_star_and_sum_to_one():
 
 
 def _patch(after):
-    from src.app.agent.types import ResumeSectionPatch
+    from app.graphs.resume_agent.types import ResumeSectionPatch
 
     return ResumeSectionPatch(
         patchId="p1",
@@ -132,7 +132,7 @@ def test_score_patch_carries_star_dimension():
     """5star 维度要真的进到 patch 的维度分里。"""
     import asyncio
 
-    from src.app.evaluation.scoring_service import score_patch
+    from app.evaluation.scoring_service import score_patch
 
     weak = {
         "items": [

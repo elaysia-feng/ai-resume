@@ -95,7 +95,7 @@ def main() -> None:
         "--specpath",
         str(BUILD_DIR),
         "--paths",
-        str(PROJECT_ROOT),
+        str(PROJECT_ROOT / "src"),
         # 收集子模块，否则动态 import 的包不会被打进去。
         "--collect-submodules",
         "langchain",

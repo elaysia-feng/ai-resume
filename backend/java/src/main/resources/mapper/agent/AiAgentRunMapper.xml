@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.elias.agent.mapper.AiAgentRunMapper">
+<mapper namespace="com.elias.mapper.agent.AiAgentRunMapper">
 
-  <resultMap id="preferredSessionRunMap" type="com.elias.agent.entity.AiAgentRun">
+  <resultMap id="preferredSessionRunMap" type="com.elias.entity.agent.AiAgentRun">
     <id property="id" column="id" />
     <result property="sessionId" column="session_id" />
     <result property="sceneCode" column="scene_code" />

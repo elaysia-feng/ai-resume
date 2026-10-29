@@ -4,6 +4,9 @@ import com.elias.chat.tool.impl.ListDirTool;
 import com.elias.chat.tool.impl.ReadLocalFileTool;
 import com.elias.chat.tool.impl.ReadWorkspaceTreeTool;
 import com.elias.chat.tool.impl.SearchInFilesTool;
+import com.elias.chat.tool.impl.ChatToolExecutorImpl;
+import com.elias.chat.tool.impl.ToolRegistryImpl;
+import com.elias.chat.tool.impl.WorkspacePathGuardImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,13 +40,13 @@ class ChatToolTest {
 
     @BeforeEach
     void setUp() {
-        pathGuard = new WorkspacePathGuard();
-        toolRegistry = new ToolRegistry(List.of(
+        pathGuard = new WorkspacePathGuardImpl();
+        toolRegistry = new ToolRegistryImpl(List.of(
                 new ReadLocalFileTool(pathGuard),
                 new ListDirTool(pathGuard),
                 new SearchInFilesTool(pathGuard),
                 new ReadWorkspaceTreeTool(pathGuard)));
-        toolExecutor = new ChatToolExecutor(toolRegistry);
+        toolExecutor = new ChatToolExecutorImpl(toolRegistry);
     }
 
     @Test
