@@ -4,7 +4,7 @@
     <header class="page-head">
       <div class="page-head__text">
         <h1 class="ui-page-title">设置</h1>
-        <p class="ui-page-subtitle">配置对话模型、Agent 模型、服务地址与后端进程状态。桌面端保存后会写入安装目录的 config/application.yaml。</p>
+        <p class="ui-page-subtitle">配置简历优化、模拟面试和对话共用的模型连接，以及本地服务。</p>
       </div>
       <div class="page-head__actions">
         <button class="ui-btn ui-btn--outline" :disabled="loading" @click="loadConfig">
@@ -51,78 +51,37 @@
         </div>
 
         <template v-else>
-          <!-- 区块一：对话模型（Java 链路） -->
-          <section v-show="activeSection === 'chat'" class="ui-panel block">
-            <header class="ui-section-head">
-              <div>
-                <h2 class="ui-section-head__title">对话模型（Java 链路）</h2>
-                <p class="ui-section-head__hint">这一组配置给 Java 后端的对话循环用，走 Anthropic 兼容端点。</p>
-              </div>
-              <span class="ui-badge ui-badge--accent">{{ config.chat.model || '未设置模型' }}</span>
-            </header>
-
-            <hr class="ui-divider block__divider" />
-
-            <div class="field-grid">
-              <div class="ui-field">
-                <label class="ui-label" for="chat-base-url">Base URL</label>
-                <input id="chat-base-url" v-model="config.chat.baseUrl" class="ui-input" type="text" placeholder="https://api.minimaxi.com/anthropic" />
-                <p class="ui-field__hint">对话循环访问的 Anthropic 兼容端点地址。</p>
-              </div>
-              <div class="ui-field">
-                <label class="ui-label" for="chat-api-key">API Key</label>
-                <div class="input-with-action">
-                  <input id="chat-api-key" v-model="config.chat.apiKey" class="ui-input" :type="showChatKey ? 'text' : 'password'" placeholder="sk-…" autocomplete="off" />
-                  <button
-                    type="button"
-                    class="ui-icon-btn ui-icon-btn--outline"
-                    :title="showChatKey ? '隐藏' : '显示'"
-                    :aria-label="showChatKey ? '隐藏' : '显示'"
-                    @click="showChatKey = !showChatKey"
-                  >
-                    <AppIcon :name="showChatKey ? 'eye-slash' : 'eye'" :size="16" />
-                  </button>
-                </div>
-                <p class="ui-field__hint">密钥只写入本机配置文件，不会上传到第三方服务。</p>
-              </div>
-              <div class="ui-field">
-                <label class="ui-label" for="chat-model">模型名</label>
-                <input id="chat-model" v-model="config.chat.model" class="ui-input" type="text" placeholder="MiniMax-M3.1-Flash" />
-                <p class="ui-field__hint">对话循环实际调用的模型标识。</p>
-              </div>
-              <div class="ui-field">
-                <label class="ui-label" for="chat-max-tokens">最大输出 token</label>
-                <input id="chat-max-tokens" v-model.number="config.chat.maxTokens" class="ui-input" type="number" min="1" step="1" />
-                <p class="ui-field__hint">单次请求允许生成的最大 token 数。</p>
-                <p v-if="chatMaxTokensError" class="ui-field__error">{{ chatMaxTokensError }}</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- 区块二：Agent 模型（Python 链路） -->
+          <!-- 统一模型配置由 Python AI 运行时读取。 -->
           <section v-show="activeSection === 'agent'" class="ui-panel block">
             <header class="ui-section-head">
               <div>
-                <h2 class="ui-section-head__title">Agent 模型（Python 链路）</h2>
-                <p class="ui-section-head__hint">这一组配置给 Python AI 运行时用，走 OpenAI 兼容端点。</p>
+                <h2 class="ui-section-head__title">统一 AI 模型</h2>
+                <p class="ui-section-head__hint">工作区对话、简历优化和模拟面试共用此模型。切换预设会填入常用地址和模型名，字段仍可编辑。</p>
               </div>
-              <span class="ui-badge ui-badge--accent">{{ config.agent.provider || 'custom' }}</span>
+              <span class="ui-badge ui-badge--accent">{{ selectedProviderLabel }}</span>
             </header>
 
             <hr class="ui-divider block__divider" />
 
             <div class="field-grid">
               <div class="ui-field">
-                <label class="ui-label" for="agent-provider">供应商</label>
+                <label class="ui-label" for="agent-provider">服务预设</label>
                 <select id="agent-provider" v-model="config.agent.provider" class="ui-input ui-select">
-                  <option v-for="option in providerOptions" :key="option" :value="option">{{ option }}</option>
+                  <option v-for="option in providerOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
-                <p class="ui-field__hint">选择 deepseek 或 mimo 会自动填入对应的 Base URL 与模型名，custom 需要自己填写。</p>
+                <p class="ui-field__hint">预设只填入常见地址和模型名；中转站可选“自定义”，再指定它实现的协议。</p>
+              </div>
+              <div class="ui-field">
+                <label class="ui-label" for="agent-model-provider">模型 API 协议 / 接入方式</label>
+                <select id="agent-model-provider" v-model="config.agent.modelProvider" class="ui-input ui-select">
+                  <option v-for="option in modelProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+                <p class="ui-field__hint">按模型服务或中转站实际实现的请求格式选择。中转站只支持 OpenAI 兼容接口时，选择“OpenAI 兼容”。</p>
               </div>
               <div class="ui-field">
                 <label class="ui-label" for="agent-base-url">Base URL</label>
-                <input id="agent-base-url" v-model="config.agent.baseUrl" class="ui-input" type="text" placeholder="https://api.deepseek.com/v1" />
-                <p class="ui-field__hint">Agent 运行时访问的 OpenAI 兼容端点地址。</p>
+                <input id="agent-base-url" v-model="config.agent.baseUrl" class="ui-input" type="text" :placeholder="config.agent.modelProvider === 'ollama' ? 'http://localhost:11434' : 'https://api.example.com'" />
+                <p class="ui-field__hint">填写服务商或中转站的 API 根地址。Bedrock、Google 等特殊端点可在集成参数中填写。</p>
               </div>
               <div class="ui-field">
                 <label class="ui-label" for="agent-api-key">API Key</label>
@@ -138,12 +97,44 @@
                     <AppIcon :name="showAgentKey ? 'eye-slash' : 'eye'" :size="16" />
                   </button>
                 </div>
-                <p class="ui-field__hint">密钥只写入本机配置文件，不会上传到第三方服务。</p>
+                <p class="ui-field__hint">密钥保存在本机，并发送到上方地址用于鉴权。Ollama 可留空；Bedrock 也可通过 AWS 配置或集成参数鉴权。</p>
               </div>
               <div class="ui-field">
                 <label class="ui-label" for="agent-model">模型名</label>
-                <input id="agent-model" v-model="config.agent.model" class="ui-input" type="text" placeholder="deepseek-chat" />
-                <p class="ui-field__hint">Agent 运行时实际调用的模型标识。</p>
+                <input id="agent-model" v-model="config.agent.model" class="ui-input" type="text" placeholder="填写服务商提供的模型 ID" />
+                <p class="ui-field__hint">模型 ID 以服务商控制台为准，可覆盖预设值。</p>
+              </div>
+              <div class="ui-field">
+                <label class="ui-label" for="agent-max-tokens">最大输出 token</label>
+                <input id="agent-max-tokens" v-model.number="config.agent.maxTokens" class="ui-input" type="number" min="1" step="1" />
+                <p class="ui-field__hint">每次模型请求的输出上限。</p>
+                <p v-if="agentMaxTokensError" class="ui-field__error">{{ agentMaxTokensError }}</p>
+              </div>
+              <div class="ui-field">
+                <label class="ui-label" for="agent-extra-headers">中转站额外请求头（可选）</label>
+                <textarea
+                  id="agent-extra-headers"
+                  v-model="extraHeadersText"
+                  class="ui-input"
+                  rows="4"
+                  spellcheck="false"
+                  placeholder='{"HTTP-Referer":"https://your-app.example","X-Title":"AI Resume Forge"}'
+                ></textarea>
+                <p class="ui-field__hint">支持的集成会把这些 HTTP 头发给中转站；部分集成需用下方原生参数配置。API Key 仍放在上方密钥栏。</p>
+                <p v-if="extraHeadersError" class="ui-field__error">{{ extraHeadersError }}</p>
+              </div>
+              <div class="ui-field">
+                <label class="ui-label" for="agent-provider-options">集成参数（可选）</label>
+                <textarea
+                  id="agent-provider-options"
+                  v-model="providerOptionsText"
+                  class="ui-input"
+                  rows="4"
+                  spellcheck="false"
+                  placeholder='{"region_name":"us-east-1"}'
+                ></textarea>
+                <p class="ui-field__hint">特殊区域、鉴权和客户端参数可填 JSON，例如 Bedrock 的 region_name 或 Hugging Face 的 backend。中转站若不完整支持所选格式，工具调用或结构化输出可能不可用。</p>
+                <p v-if="providerOptionsError" class="ui-field__error">{{ providerOptionsError }}</p>
               </div>
             </div>
           </section>
@@ -275,18 +266,48 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AppIcon from '../components/common/AppIcon.vue';
 
-// 供应商预设：只在用户切换供应商时用于自动填充 Base URL 与模型名
+// 常用兼容端点预设；API Key 始终由用户填写，模型和地址都允许覆盖。
 const PROVIDER_PRESETS = {
-  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
-  mimo: { baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1', model: 'mimo-v2.5' },
+  deepseek: { label: 'DeepSeek', modelProvider: 'deepseek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-flash' },
+  zhipu: { label: '智谱 GLM', modelProvider: 'openai', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.5' },
+  minimax: { label: 'MiniMax', modelProvider: 'anthropic', baseUrl: 'https://api.minimaxi.com/anthropic', model: 'MiniMax-M3.1-Flash' },
+  qwen: { label: '通义千问', modelProvider: 'openai', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  mimo: { label: 'MiMo', modelProvider: 'openai', baseUrl: 'https://api.xiaomimimo.com/v1', model: 'mimo-v2.5-pro' },
+  openai: { label: 'OpenAI', modelProvider: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini' },
+  anthropic: { label: 'Anthropic', modelProvider: 'anthropic', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-5-20250929' },
+  openrouter: { label: 'OpenRouter', modelProvider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', model: '' },
+  ollama: { label: 'Ollama 本地', modelProvider: 'ollama', baseUrl: 'http://localhost:11434', model: '' },
+  google_genai: { label: 'Google GenAI', modelProvider: 'google_genai', baseUrl: '', model: '' },
+  xai: { label: 'xAI', modelProvider: 'xai', baseUrl: 'https://api.x.ai/v1', model: '' },
+  mistralai: { label: 'Mistral AI', modelProvider: 'mistralai', baseUrl: 'https://api.mistral.ai/v1', model: '' },
+  groq: { label: 'Groq', modelProvider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: '' },
+  together: { label: 'Together AI', modelProvider: 'together', baseUrl: 'https://api.together.xyz/v1', model: '' },
+  huggingface: { label: 'Hugging Face Endpoint', modelProvider: 'huggingface', baseUrl: '', model: '' },
+  bedrock: { label: 'Amazon Bedrock', modelProvider: 'bedrock', baseUrl: '', model: '' },
+  litellm: { label: 'LiteLLM', modelProvider: 'litellm', baseUrl: 'http://localhost:4000', model: '' },
+  custom: { label: '自定义', modelProvider: 'openai', baseUrl: '', model: '' },
 };
 
-const PROVIDER_OPTIONS = ['deepseek', 'mimo', 'custom'];
+const PROVIDER_OPTIONS = Object.entries(PROVIDER_PRESETS).map(([value, preset]) => ({ value, label: preset.label }));
+const MODEL_PROVIDER_OPTIONS = [
+  { value: 'openai', label: 'OpenAI 兼容' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'google_genai', label: 'Google GenAI' },
+  { value: 'openrouter', label: 'OpenRouter' },
+  { value: 'ollama', label: 'Ollama 本地模型' },
+  { value: 'xai', label: 'xAI' },
+  { value: 'mistralai', label: 'Mistral AI' },
+  { value: 'groq', label: 'Groq' },
+  { value: 'together', label: 'Together AI' },
+  { value: 'huggingface', label: 'Hugging Face' },
+  { value: 'bedrock', label: 'Amazon Bedrock' },
+  { value: 'litellm', label: 'LiteLLM Proxy' },
+];
 
-// 左侧目录的四个分区，语义与原来的四个卡片一致
+// 左侧目录只保留统一模型配置、服务地址和进程状态。
 const SECTIONS = [
-  { id: 'chat', title: '对话模型', icon: 'chat-circle' },
-  { id: 'agent', title: 'Agent 模型', icon: 'robot' },
+  { id: 'agent', title: 'AI 模型', icon: 'robot' },
   { id: 'server', title: '服务地址', icon: 'desktop' },
   { id: 'process', title: '后端进程', icon: 'pulse' },
 ];
@@ -300,17 +321,15 @@ const MESSAGE_AUTO_HIDE_MS = 3500;
 // 与主进程 defaultConfig() 保持一致，作为读不到配置时的兜底值
 function createDefaultConfig() {
   return {
-    chat: {
-      baseUrl: 'https://api.minimaxi.com/anthropic',
-      apiKey: '',
-      model: 'MiniMax-M3.1-Flash',
-      maxTokens: 4096,
-    },
     agent: {
       provider: 'deepseek',
-      baseUrl: 'https://api.deepseek.com/v1',
+      modelProvider: 'deepseek',
+      baseUrl: 'https://api.deepseek.com',
       apiKey: '',
-      model: 'deepseek-chat',
+      model: 'deepseek-flash',
+      maxTokens: 4096,
+      extraHeaders: {},
+      providerOptions: {},
     },
     server: {
       host: '127.0.0.1',
@@ -329,12 +348,13 @@ const processes = ref([]);
 const loading = ref(false);
 const saving = ref(false);
 const restarting = ref(false);
-const showChatKey = ref(false);
 const showAgentKey = ref(false);
+const extraHeadersText = ref('{}');
+const providerOptionsText = ref('{}');
 const showToken = ref(false);
 const message = ref('');
 const messageType = ref('');
-const activeSection = ref('chat');
+const activeSection = ref('agent');
 // 首次配置是否已读完，未读完时用骨架屏占位
 const configLoaded = ref(false);
 
@@ -347,6 +367,8 @@ let messageTimer = null;
 const desktop = computed(() => (typeof window !== 'undefined' ? window.desktop : undefined));
 
 const providerOptions = PROVIDER_OPTIONS;
+const modelProviderOptions = MODEL_PROVIDER_OPTIONS;
+const selectedProviderLabel = computed(() => PROVIDER_PRESETS[config.value.agent.provider]?.label || '自定义');
 
 const environmentTip = computed(() =>
   typeof desktop.value?.getAppConfig === 'function'
@@ -370,13 +392,39 @@ const serverAddressText = computed(() => {
   return `http://${host}:${config.value.server.port}`;
 });
 
-// 数值字段的输入提示：只做展示，保存时的兜底逻辑保持原样
-const chatMaxTokensError = computed(() => {
-  const parsed = Number(config.value.chat.maxTokens);
+const agentMaxTokensError = computed(() => {
+  const parsed = Number(config.value.agent.maxTokens);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return '最大输出 token 需为大于 0 的整数。';
   }
   return '';
+});
+
+const extraHeadersError = computed(() => {
+  try {
+    const headers = JSON.parse(extraHeadersText.value || '{}');
+    if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
+      return '额外请求头必须是 JSON 对象。';
+    }
+    if (Object.entries(headers).some(([name, value]) => !name.trim() || typeof value !== 'string')) {
+      return '请求头名称不能为空，值必须是字符串。';
+    }
+    return '';
+  } catch {
+    return '额外请求头不是有效的 JSON。';
+  }
+});
+
+const providerOptionsError = computed(() => {
+  try {
+    const options = JSON.parse(providerOptionsText.value || '{}');
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+      return '集成参数必须是 JSON 对象。';
+    }
+    return '';
+  } catch {
+    return '集成参数不是有效的 JSON。';
+  }
 });
 
 const serverPortError = computed(() => {
@@ -397,9 +445,6 @@ const pythonPortError = computed(() => {
 
 // 目录右侧的一行摘要，让每个分区当前配置一目了然
 function sectionMeta(sectionId) {
-  if (sectionId === 'chat') {
-    return config.value.chat.model || '未设置模型';
-  }
   if (sectionId === 'agent') {
     return config.value.agent.model || '未设置模型';
   }
@@ -417,10 +462,11 @@ watch(
       return;
     }
     const preset = PROVIDER_PRESETS[provider];
-    if (!preset) {
-      // custom 由用户自己填写，不做任何自动修改
+    if (!preset || provider === 'custom') {
+      // 自定义端点由用户自己填写，不覆盖协议和地址。
       return;
     }
+    config.value.agent.modelProvider = preset.modelProvider;
     config.value.agent.baseUrl = preset.baseUrl;
     config.value.agent.model = preset.model;
   },
@@ -525,6 +571,8 @@ async function loadProcesses() {
 function applyConfig(next) {
   providerReady.value = false;
   config.value = normalizeConfig(next);
+  extraHeadersText.value = JSON.stringify(config.value.agent.extraHeaders || {}, null, 2);
+  providerOptionsText.value = JSON.stringify(config.value.agent.providerOptions || {}, null, 2);
   providerReady.value = true;
 }
 
@@ -533,30 +581,65 @@ function normalizeConfig(source) {
   if (!source || typeof source !== 'object') {
     return base;
   }
+  let agent = { ...base.agent, ...(source.agent || {}) };
+  if (!source.agent?.modelProvider) {
+    agent.modelProvider = agent.provider === 'deepseek' ? 'deepseek' : 'openai';
+  }
+  const legacyChat = source.chat || {};
+  if (!String(agent.apiKey || '').trim() && String(legacyChat.apiKey || '').trim()) {
+    const baseUrl = String(legacyChat.baseUrl || '').trim();
+    const modelProvider = /\/anthropic(?:\/|$)/i.test(baseUrl) ? 'anthropic' : 'openai';
+    agent = {
+      ...agent,
+      provider: modelProvider === 'anthropic' && /minimaxi/i.test(baseUrl) ? 'minimax' : 'custom',
+      modelProvider,
+      baseUrl,
+      apiKey: String(legacyChat.apiKey),
+      model: String(legacyChat.model || agent.model),
+      maxTokens: toPositiveInt(legacyChat.maxTokens, agent.maxTokens),
+    };
+  }
+  if (!agent.extraHeaders || typeof agent.extraHeaders !== 'object' || Array.isArray(agent.extraHeaders)) {
+    agent.extraHeaders = {};
+  }
+  if (!agent.providerOptions || typeof agent.providerOptions !== 'object' || Array.isArray(agent.providerOptions)) {
+    agent.providerOptions = {};
+  }
   return {
-    chat: { ...base.chat, ...(source.chat || {}) },
-    agent: { ...base.agent, ...(source.agent || {}) },
+    agent,
     server: { ...base.server, ...(source.server || {}) },
     python: { ...base.python, ...(source.python || {}) },
     internalToken: source.internalToken ?? base.internalToken,
   };
 }
 
+function parseExtraHeaders() {
+  if (extraHeadersError.value) {
+    throw new Error(extraHeadersError.value);
+  }
+  return JSON.parse(extraHeadersText.value || '{}');
+}
+
+function parseProviderOptions() {
+  if (providerOptionsError.value) {
+    throw new Error(providerOptionsError.value);
+  }
+  return JSON.parse(providerOptionsText.value || '{}');
+}
+
 // 组装保存用的配置，端口与 token 数兜底成合法数字
 function buildPayload() {
   const base = createDefaultConfig();
   return {
-    chat: {
-      baseUrl: String(config.value.chat.baseUrl || '').trim(),
-      apiKey: String(config.value.chat.apiKey || '').trim(),
-      model: String(config.value.chat.model || '').trim(),
-      maxTokens: toPositiveInt(config.value.chat.maxTokens, base.chat.maxTokens),
-    },
     agent: {
       provider: String(config.value.agent.provider || 'custom').trim(),
+      modelProvider: String(config.value.agent.modelProvider || 'openai').trim(),
       baseUrl: String(config.value.agent.baseUrl || '').trim(),
       apiKey: String(config.value.agent.apiKey || '').trim(),
       model: String(config.value.agent.model || '').trim(),
+      maxTokens: toPositiveInt(config.value.agent.maxTokens, base.agent.maxTokens),
+      extraHeaders: parseExtraHeaders(),
+      providerOptions: parseProviderOptions(),
     },
     server: {
       host: String(config.value.server.host || '').trim(),

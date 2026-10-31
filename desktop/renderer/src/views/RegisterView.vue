@@ -4,9 +4,7 @@
     <section class="auth-brand">
       <div class="auth-brand__inner">
         <div class="auth-brand__logo">
-          <span class="auth-brand__mark ui-icon-tile ui-icon-tile--lg" aria-hidden="true">
-            <AppIcon name="sparkle" :size="20" />
-          </span>
+          <AppBrandMark :size="38" />
           <span class="auth-brand__name">AI Resume Forge</span>
         </div>
 
@@ -15,7 +13,7 @@
           验证邮箱、设置密码后即可使用。简历与历史记录保存在本机；启用 AI 时，当前任务所需内容会发送到你配置的模型服务。
         </p>
 
-        <ul class="auth-brand__points ui-panel ui-panel--flat">
+        <ul class="auth-brand__points">
           <li class="auth-brand__point">
             <AppIcon name="envelope" :size="18" />
             <span>邮箱验证码确认身份</span>
@@ -31,8 +29,6 @@
         </ul>
       </div>
 
-      <!-- 极淡水印：用内置图标给大面积留白一点纹理，不依赖外部图片 -->
-      <AppIcon name="file-text" class="auth-brand__watermark" :size="240" />
     </section>
 
     <!-- 右侧表单区 -->
@@ -238,6 +234,7 @@ import { useRouter } from 'vue-router';
 import { sendCode, verifyCode, setPassword } from '../api/auth.js';
 import { useAuthStore } from '../store/authStore.js';
 import AppIcon from '../components/common/AppIcon.vue';
+import AppBrandMark from '../components/common/AppBrandMark.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -468,34 +465,28 @@ function startCountdown(seconds) {
 .auth-brand__points {
   list-style: none;
   margin: 0;
-  padding: var(--ui-space-5);
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-4);
-  border-color: var(--ui-border-hairline);
+  border-top: 1px solid var(--ui-grid-line-strong);
+  border-bottom: 1px solid var(--ui-grid-line-strong);
 }
 
 .auth-brand__point {
   display: flex;
   align-items: center;
   gap: var(--ui-space-3);
+  min-height: 42px;
   font-size: var(--ui-text-base);
   color: var(--ui-fg-secondary);
 }
 
-.auth-brand__point .app-icon {
-  color: var(--ui-fg-accent);
+.auth-brand__point + .auth-brand__point {
+  border-top: 1px solid var(--ui-grid-line);
 }
 
-/* 极淡水印：压在大面积留白上，不抢文案 */
-.auth-brand__watermark {
-  position: absolute;
-  right: -32px;
-  bottom: -40px;
-  z-index: 0;
-  color: var(--ui-fg-primary);
-  opacity: 0.05;
-  pointer-events: none;
+.auth-brand__point .app-icon {
+  color: var(--ui-fg-accent);
 }
 
 /* ---- 右侧表单区 ---- */
@@ -513,8 +504,8 @@ function startCountdown(seconds) {
   width: 100%;
   max-width: 420px;
   padding: var(--ui-space-8);
-  border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg);
+  border-color: var(--ui-grid-line-strong);
+  box-shadow: none;
 }
 
 .auth-card__head {
@@ -688,10 +679,6 @@ function startCountdown(seconds) {
   .auth-brand__desc {
     margin-bottom: var(--ui-space-5);
     font-size: var(--ui-text-base);
-  }
-
-  .auth-brand__watermark {
-    display: none;
   }
 
   .auth-panel {

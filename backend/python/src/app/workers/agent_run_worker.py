@@ -24,6 +24,7 @@ from app.services.java_gateway_service import java_gateway_service
 from app.stream import agent_stream
 
 logger = logging.getLogger("uvicorn.error")
+READ_BATCH_SIZE = 4
 
 
 class AgentRunJobMessage(BaseModel):
@@ -52,17 +53,16 @@ class AgentRunJobMessage(BaseModel):
 
 
 async def run_worker() -> None:
-    """启动任务队列消费循环。
+    """启动任务队列消费循环，不限制不同简历分区的 run 并发数量。
 
-    并发控制：
-    1. 每次最多认领 max_runs 条未处理消息。
-    2. 本地 semaphore 再兜一层，避免并发处理数超过配置。
-    3. 每个消息对应一个 LangGraph run，执行结束或挂起后才 ack。
+    1. 初始化消费组和任务跟踪集合。
+    2. 轮询队列，为每条消息创建独立的后台任务，不等待上一批结束。
+    3. worker 退出时取消并等待仍在运行的任务。
     """
+    # 1. 初始化配置、队列客户端和消费组。
     settings = get_settings()
-    max_runs = max(1, settings.python_agent_max_concurrent_runs)
     poll_interval = max(0.05, settings.agent_task_poll_interval_seconds)
-    semaphore = asyncio.Semaphore(max_runs)
+    active_tasks: set[asyncio.Task[None]] = set()
     client = agent_stream.get_client()
     stream = settings.agent_resume_run_stream
     group = settings.agent_resume_worker_group
@@ -75,41 +75,55 @@ async def run_worker() -> None:
     reclaim_interval_seconds = 60
     last_reclaim_at = 0.0
 
-    while True:
-        if time.monotonic() - last_reclaim_at >= reclaim_interval_seconds:
+    # 2. 持续拉取消息并为每个 run 建立独立任务，不等待上一批任务结束。
+    try:
+        while True:
+            if time.monotonic() - last_reclaim_at >= reclaim_interval_seconds:
+                try:
+                    agent_stream.reclaim_stale(
+                        client,
+                        stream,
+                        group,
+                        timeout_seconds=settings.agent_task_claim_timeout_seconds,
+                    )
+                except sqlite3.OperationalError:
+                    logger.warning("回收陈旧任务消息失败，等待下一轮重试")
+                last_reclaim_at = time.monotonic()
+
             try:
-                agent_stream.reclaim_stale(
-                    client,
-                    stream,
-                    group,
-                    timeout_seconds=settings.agent_task_claim_timeout_seconds,
-                )
+                messages = agent_stream.read_batch(client, stream, group, consumer, READ_BATCH_SIZE)
             except sqlite3.OperationalError:
-                logger.warning("回收陈旧任务消息失败，等待下一轮重试")
-            last_reclaim_at = time.monotonic()
+                # 数据库被占用或不可用，等一会儿再试，不要让整个 worker 退出。
+                await asyncio.sleep(2)
+                continue
 
-        try:
-            messages = agent_stream.read_batch(client, stream, group, consumer, max_runs)
-        except sqlite3.OperationalError:
-            # 数据库被占用或不可用，等一会儿再试，不要让整个 worker 退出。
-            await asyncio.sleep(2)
-            continue
+            if not messages:
+                # 空队列时让出事件循环，避免饿死同进程的 HTTP 服务。
+                await asyncio.sleep(poll_interval)
+                continue
 
-        if not messages:
-            # 队列为空时必须让出控制权。
-            # 桌面端把 worker 挂在 FastAPI 的 lifespan 里（见 src/app/main.py），
-            # 这个循环如果一次都不 await，就会独占 event loop，
-            # uvicorn 的 startup 永远完不成，HTTP 接口根本起不来。
-            await asyncio.sleep(poll_interval)
-            continue
+            for message_id, raw, _retry_count in messages:
+                task = asyncio.create_task(handle_message(client, stream, group, message_id, raw))
+                active_tasks.add(task)
+                task.add_done_callback(lambda completed: _finish_worker_task(active_tasks, completed))
+            await asyncio.sleep(0)
+    finally:
+        # 3. worker 退出时取消并回收本进程仍在运行的任务。
+        pending_tasks = tuple(active_tasks)
+        for task in pending_tasks:
+            task.cancel()
+        if pending_tasks:
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
 
-        # 并发处理本批消息：semaphore 已限制同时执行的 run 数，
-        # 这里必须用 task 并行推进，否则 await 串行会让实际并发退化为 1。
-        tasks = [
-            asyncio.create_task(handle_message(client, stream, group, message_id, raw, semaphore))
-            for message_id, raw, _retry_count in messages
-        ]
-        await asyncio.gather(*tasks)
+
+def _finish_worker_task(active_tasks: set[asyncio.Task[None]], task: asyncio.Task[None]) -> None:
+    active_tasks.discard(task)
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception:
+        logger.exception("简历 Agent 后台任务异常退出")
 
 
 async def handle_message(
@@ -118,9 +132,16 @@ async def handle_message(
     group: str,
     message_id: str,
     raw: str,
-    semaphore: asyncio.Semaphore,
 ) -> None:
-    """处理单条任务消息。"""
+    """处理单条任务消息。
+
+    Args:
+        client: 任务队列 SQLite 客户端。
+        stream: 当前任务流名称。
+        group: 当前消费组名称。
+        message_id: 队列消息编号。
+        raw: 队列中的原始 JSON 消息。
+    """
     settings = get_settings()
     try:
         job = AgentRunJobMessage.model_validate(json.loads(raw))
@@ -137,19 +158,20 @@ async def handle_message(
         agent_stream.ack(client, message_id)
         return
 
-    async with semaphore:
-        try:
-            claimed = await java_gateway_service.claim_run(job.run_id)
-            if not claimed:
-                return
-            await execute_job(job)
-        except Exception as exc:
-            # 业务执行失败也 ack：状态已经写回 FAILED，不让同一条 run 无限重试。
-            # 后续如果要自动重试，应单独设计 retry_count 和重试队列。
-            await mark_failed(job.run_id, exc)
-        finally:
-            # 确认消息已处理完成，对应任务从队列里移出。
-            agent_stream.ack(client, message_id)
+    # 1. 向 Java 认领 run，再执行图流程并同步结果。
+    try:
+        claimed = await java_gateway_service.claim_run(job.run_id)
+        if not claimed:
+            return
+        await execute_job(job)
+    except Exception as exc:
+        # 业务执行失败也 ack：状态已经写回 FAILED，不让同一条 run 无限重试。
+        # 后续如果要自动重试，应单独设计 retry_count 和重试队列。
+        await mark_failed(job.run_id, exc)
+    finally:
+        # 2. 处理结束后确认队列消息。
+        # 确认消息已处理完成，对应任务从队列里移出。
+        agent_stream.ack(client, message_id)
 
 
 async def execute_job(job: AgentRunJobMessage) -> None:

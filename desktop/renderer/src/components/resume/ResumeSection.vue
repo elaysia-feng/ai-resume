@@ -456,12 +456,12 @@ function listItemText(item) {
 .resume-section-block--compact .resume-entry__description,
 .resume-section-block--compact .resume-bullet-list,
 .resume-section-block--compact .resume-rich-text {
-  font-size: calc(var(--resume-text-size, 9px) - 1px);
+  font-size: max(9px, calc(var(--resume-text-size, 10px) - 1px));
 }
 
 .resume-section-block--compact .resume-chip {
   padding: 1px 7px;
-  font-size: calc(var(--resume-chip-size, 9px) - 0.5px);
+  font-size: max(8.5px, calc(var(--resume-chip-size, 10px) - 0.5px));
 }
 
 @media (max-width: 720px) {

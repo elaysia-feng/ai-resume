@@ -27,17 +27,17 @@
 
   /* ---------- 中性色（暖灰）---------- */
   --ui-neutral-0: #ffffff;
-  --ui-neutral-50: #fafaf9;
-  --ui-neutral-100: #f5f5f4;
-  --ui-neutral-200: #e7e5e4;
-  --ui-neutral-300: #d6d3d1;
-  --ui-neutral-400: #a8a29e;
-  --ui-neutral-500: #78716c;
-  --ui-neutral-600: #57534e;
-  --ui-neutral-700: #44403c;
-  --ui-neutral-800: #292524;
-  --ui-neutral-900: #1c1917;
-  --ui-neutral-950: #0c0a09;
+  --ui-neutral-50: #f7f7f8;
+  --ui-neutral-100: #f0f3f7;
+  --ui-neutral-200: #e6ebf2;
+  --ui-neutral-300: #cbd3df;
+  --ui-neutral-400: #9aa3b2;
+  --ui-neutral-500: #6b7280;
+  --ui-neutral-600: #4b5563;
+  --ui-neutral-700: #374151;
+  --ui-neutral-800: #1f2937;
+  --ui-neutral-900: #0c0c0c;
+  --ui-neutral-950: #030712;
 
   /* ---------- 语义：背景 ---------- */
   --ui-bg-app: var(--ui-neutral-50);
@@ -46,10 +46,10 @@
   --ui-bg-raised: var(--ui-neutral-0);
   --ui-bg-sunken: var(--ui-neutral-100);
   --ui-bg-inverse: var(--ui-neutral-900);
-  --ui-bg-hover: rgba(28, 25, 23, 0.05);
-  --ui-bg-active: rgba(28, 25, 23, 0.09);
-  --ui-bg-selected: var(--ui-brand-50);
-  --ui-overlay: rgba(28, 25, 23, 0.45);
+  --ui-bg-hover: rgba(12, 12, 12, 0.05);
+  --ui-bg-active: rgba(12, 12, 12, 0.09);
+  --ui-bg-selected: #e9f1ff;
+  --ui-overlay: rgba(12, 12, 12, 0.45);
 
   /* ---------- 语义：前景 ---------- */
   --ui-fg-primary: var(--ui-neutral-900);
@@ -57,22 +57,24 @@
   --ui-fg-muted: var(--ui-neutral-500);
   --ui-fg-subtle: var(--ui-neutral-600);
   --ui-fg-inverse: var(--ui-neutral-0);
-  --ui-fg-accent: var(--ui-brand-700);
+  --ui-fg-accent: #0057ff;
 
   /* ---------- 语义：强调色 ---------- */
-  --ui-accent: var(--ui-brand-700);
-  --ui-accent-hover: var(--ui-brand-800);
-  --ui-accent-active: var(--ui-brand-900);
+  --ui-accent: #0057ff;
+  --ui-accent-hover: #0048d9;
+  --ui-accent-active: #003bb3;
   --ui-accent-fg: var(--ui-neutral-0);
-  --ui-accent-soft: var(--ui-brand-50);
-  --ui-accent-soft-hover: var(--ui-brand-100);
-  --ui-accent-border: var(--ui-brand-200);
+  --ui-accent-soft: #e9f1ff;
+  --ui-accent-soft-hover: #dce9ff;
+  --ui-accent-border: #b7ceff;
 
   /* ---------- 语义：描边 ---------- */
   --ui-border: var(--ui-neutral-200);
   --ui-border-strong: var(--ui-neutral-300);
   --ui-border-subtle: var(--ui-neutral-100);
-  --ui-border-focus: var(--ui-brand-600);
+  --ui-border-focus: #0057ff;
+  --ui-grid-line: #e6ebf2;
+  --ui-grid-line-strong: #d7dee8;
 
   /* ---------- 语义：状态 ---------- */
   --ui-success: #16a34a;
@@ -99,15 +101,15 @@
   --ui-bg-app-wash: none;
   --ui-accent-gradient: var(--ui-accent);
   --ui-accent-gradient-hover: var(--ui-accent-hover);
-  --ui-border-hairline: rgba(28, 25, 23, 0.1);
+  --ui-border-hairline: rgba(12, 12, 12, 0.1);
 
   /* ---------- 圆角 ---------- */
-  --ui-radius-xs: 4px;
-  --ui-radius-sm: 6px;
-  --ui-radius-md: 10px;
-  --ui-radius-lg: 14px;
-  --ui-radius-xl: 20px;
-  --ui-radius-2xl: 28px;
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 3px;
+  --ui-radius-md: 4px;
+  --ui-radius-lg: 4px;
+  --ui-radius-xl: 6px;
+  --ui-radius-2xl: 8px;
   --ui-radius-full: 9999px;
 
   /* ---------- 间距（补齐了历史上缺失的 5/7/9/10/11）---------- */
@@ -146,7 +148,7 @@
      再退回 Segoe UI，最后落到苹方/雅黑。全程不依赖网络字体。 */
   --ui-font-sans: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', -apple-system,
     BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
-  --ui-font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', -apple-system,
+  --ui-font-display: 'Bitcount Grid Double', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', -apple-system,
     BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
   --ui-font-mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Courier New', monospace;
 
@@ -160,15 +162,15 @@
 
   /* ---------- 阴影与焦点环 ---------- */
   /* 阴影只用于悬浮层，采用低透明度的森林色调。 */
-  --ui-shadow-xs: 0 1px 2px rgba(32, 56, 43, 0.05);
-  --ui-shadow-sm: 0 2px 6px rgba(32, 56, 43, 0.07);
-  --ui-shadow-md: 0 5px 14px rgba(32, 56, 43, 0.09);
-  --ui-shadow-lg: 0 12px 28px rgba(32, 56, 43, 0.12);
-  --ui-shadow-xl: 0 22px 44px rgba(32, 56, 43, 0.14);
-  --ui-shadow-float: 0 14px 32px rgba(32, 56, 43, 0.13), 0 2px 8px rgba(32, 56, 43, 0.07);
-  --ui-shadow-accent: 0 2px 8px rgba(32, 56, 43, 0.12);
+  --ui-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ui-shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.07);
+  --ui-shadow-md: 0 5px 14px rgba(15, 23, 42, 0.09);
+  --ui-shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.12);
+  --ui-shadow-xl: 0 22px 44px rgba(15, 23, 42, 0.14);
+  --ui-shadow-float: 0 14px 32px rgba(15, 23, 42, 0.13), 0 2px 8px rgba(15, 23, 42, 0.07);
+  --ui-shadow-accent: 0 2px 8px rgba(0, 87, 255, 0.16);
   --ui-highlight-top: none;
-  --ui-ring: 0 0 0 2px var(--ui-brand-600);
+  --ui-ring: 0 0 0 2px var(--ui-accent);
   --ui-ring-danger: 0 0 0 2px var(--ui-danger);
 
   /* ---------- 动效 ---------- */
@@ -177,7 +179,6 @@
   --ui-duration-slow: 320ms;
   --ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ui-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --ui-ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ---------- 层级 ---------- */
   --ui-z-base: 0;
@@ -189,7 +190,7 @@
   --ui-z-toast: 600;
 
   /* ---------- 布局 ---------- */
-  --ui-sidebar-width: 232px;
+  --ui-sidebar-width: 258px;
   --ui-sidebar-width-collapsed: 64px;
   --ui-header-height: 56px;
   --ui-content-max: 1440px;
@@ -207,7 +208,7 @@
   --color-border: var(--ui-border);
   --color-error: var(--ui-danger);
   --color-success: var(--ui-success);
-  --color-green: var(--ui-accent);
+  --color-green: var(--ui-brand-600);
   --color-green-light: var(--ui-brand-400);
   --color-green-dark: var(--ui-brand-600);
   --color-magenta: var(--ui-info);
@@ -238,7 +239,6 @@
   --duration-slow: var(--ui-duration-slow);
   --ease-out-expo: var(--ui-ease-out);
   --ease-in-out: var(--ui-ease-in-out);
-  --ease-out-back: var(--ui-ease-out-back);
   --radius-sm: var(--ui-radius-sm);
   --radius-md: var(--ui-radius-md);
   --radius-lg: var(--ui-radius-lg);
@@ -261,25 +261,27 @@
     --ui-bg-inverse: var(--ui-neutral-0);
     --ui-bg-hover: rgba(255, 255, 255, 0.06);
     --ui-bg-active: rgba(255, 255, 255, 0.11);
-    --ui-bg-selected: rgba(127, 166, 138, 0.14);
+    --ui-bg-selected: rgba(74, 131, 255, 0.16);
     --ui-overlay: rgba(0, 0, 0, 0.6);
     --ui-fg-primary: var(--ui-neutral-50);
     --ui-fg-secondary: var(--ui-neutral-300);
     --ui-fg-muted: var(--ui-neutral-400);
     --ui-fg-subtle: var(--ui-neutral-300);
     --ui-fg-inverse: var(--ui-neutral-900);
-    --ui-fg-accent: var(--ui-brand-300);
-    --ui-accent: var(--ui-brand-300);
-    --ui-accent-hover: var(--ui-brand-200);
-    --ui-accent-active: var(--ui-brand-100);
-    --ui-accent-fg: var(--ui-brand-900);
-    --ui-accent-soft: rgba(127, 166, 138, 0.16);
-    --ui-accent-soft-hover: rgba(127, 166, 138, 0.24);
-    --ui-accent-border: rgba(167, 195, 174, 0.35);
+    --ui-fg-accent: #7ba4ff;
+    --ui-accent: #7ba4ff;
+    --ui-accent-hover: #a3bdff;
+    --ui-accent-active: #c0d1ff;
+    --ui-accent-fg: #0c1426;
+    --ui-accent-soft: rgba(74, 131, 255, 0.16);
+    --ui-accent-soft-hover: rgba(74, 131, 255, 0.24);
+    --ui-accent-border: rgba(123, 164, 255, 0.4);
     --ui-border: var(--ui-neutral-700);
     --ui-border-strong: var(--ui-neutral-600);
     --ui-border-subtle: var(--ui-neutral-800);
-    --ui-border-focus: var(--ui-brand-300);
+    --ui-border-focus: #7ba4ff;
+    --ui-grid-line: #293344;
+    --ui-grid-line-strong: #3a475a;
     --ui-success: var(--ui-brand-400);
     --ui-success-fg: #86efac;
     --ui-success-soft: rgba(34, 197, 94, 0.16);
@@ -294,15 +296,15 @@
     --ui-info: #38bdf8;
     --ui-info-fg: #7dd3fc;
     --ui-info-soft: rgba(56, 189, 248, 0.14);
-    --ui-shadow-xs: 0 1px 2px rgba(17, 39, 27, 0.16);
-    --ui-shadow-sm: 0 2px 6px rgba(17, 39, 27, 0.2);
-    --ui-shadow-md: 0 5px 14px rgba(17, 39, 27, 0.24);
-    --ui-shadow-lg: 0 12px 28px rgba(17, 39, 27, 0.28);
-    --ui-shadow-xl: 0 22px 44px rgba(17, 39, 27, 0.3);
-    --ui-shadow-float: 0 14px 32px rgba(17, 39, 27, 0.32), 0 2px 8px rgba(17, 39, 27, 0.2);
-    --ui-shadow-accent: 0 2px 8px rgba(17, 39, 27, 0.24);
+    --ui-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.22);
+    --ui-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+    --ui-shadow-md: 0 5px 14px rgba(0, 0, 0, 0.3);
+    --ui-shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.34);
+    --ui-shadow-xl: 0 22px 44px rgba(0, 0, 0, 0.38);
+    --ui-shadow-float: 0 14px 32px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.24);
+    --ui-shadow-accent: 0 2px 8px rgba(74, 131, 255, 0.2);
     --ui-highlight-top: none;
-    --ui-ring: 0 0 0 2px var(--ui-brand-300);
+    --ui-ring: 0 0 0 2px var(--ui-accent);
     --ui-ring-danger: 0 0 0 2px var(--ui-danger);
 
     /* 暗色下的表面材质 */

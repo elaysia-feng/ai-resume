@@ -5,6 +5,9 @@
   >
     <header class="dual-creative-hero">
       <div class="dual-creative-hero__copy">
+        <p class="dual-creative-hero__eyebrow">
+          {{ locale === 'en' ? 'PROFILE / CAPABILITY INDEX' : '职业定位 / 能力索引' }}
+        </p>
         <h1 class="dual-creative-hero__name">{{ basicProfile.name }}</h1>
         <p v-if="basicProfile.title" class="dual-creative-hero__title">{{ basicProfile.title }}</p>
       </div>
@@ -20,12 +23,12 @@
         </span>
       </div>
 
-      <img
-        v-if="basicProfile.avatar"
-        :src="basicProfile.avatar"
-        alt="avatar"
-        class="resume-basic-header__avatar dual-creative-hero__avatar"
-      />
+      <div v-if="basicProfile.avatar" class="dual-creative-hero__portrait">
+        <img :src="basicProfile.avatar" alt="简历头像" class="dual-creative-hero__avatar" />
+      </div>
+      <div v-else-if="profileInitial" class="dual-creative-hero__monogram" aria-hidden="true">
+        {{ profileInitial }}
+      </div>
     </header>
 
     <div v-if="jobIntentItems.length" class="dual-creative-pills">
@@ -37,6 +40,7 @@
 
     <div class="dual-creative-body">
       <aside v-if="hasSidebarContent" class="dual-creative-sidebar">
+        <p class="dual-creative-sidebar__label">{{ locale === 'en' ? 'INDEX' : '能力与背景' }}</p>
         <ResumeSection
           v-for="section in layout.asideSections"
           :key="section.id"
@@ -78,13 +82,12 @@ const layout = computed(() => {
   return buildTemplateLayout(
     props.sections,
     {
-      aside: ['SKILLS', 'CERTIFICATES', 'LAC_CERTIFICATES', 'SELF_EVALUATION'],
+      lead: ['SUMMARY'],
+      aside: ['SKILLS', 'EDUCATION', 'CERTIFICATES', 'LAC_CERTIFICATES', 'SELF_EVALUATION'],
       main: [
-        'SUMMARY',
-        'EXPERIENCE',
         'PROJECTS',
+        'EXPERIENCE',
         'INTERNSHIP',
-        'EDUCATION',
         'CAMPUS',
       ],
     },
@@ -94,6 +97,7 @@ const layout = computed(() => {
 
 const basicProfile = computed(() => buildBasicProfile(layout.value.basic, props.locale))
 const jobIntentItems = computed(() => buildJobIntentItems(layout.value.jobIntent, props.locale))
+const profileInitial = computed(() => String(basicProfile.value.name || '').trim().charAt(0))
 const hasSidebarContent = computed(() => layout.value.asideSections.length > 0)
 const orderedSections = computed(() => {
   return [
@@ -105,21 +109,18 @@ const orderedSections = computed(() => {
 </script>
 
 <style scoped>
-/* ========================================
-   双栏创意版：等宽左右分栏 + 中缝分隔线 + 横向抬头带
-   左栏放技能证书，右栏放经历主线。
-   ======================================== */
+/* 复合能力双栏：窄栏索引能力，宽栏展开项目与经历。 */
 .resume-template--dual-creative {
   --resume-color-page: var(--ui-neutral-0);
-  --resume-color-heading: var(--ui-neutral-900);
-  --resume-color-text: var(--ui-neutral-700);
-  --resume-color-text-soft: var(--ui-neutral-600);
-  --resume-color-text-faint: var(--ui-neutral-500);
-  --resume-color-accent: var(--ui-brand-700);
-  --resume-color-accent-soft: var(--ui-brand-50);
-  --resume-color-border: var(--ui-neutral-200);
-  --resume-color-surface: var(--ui-neutral-50);
-  --resume-color-surface-strong: var(--ui-brand-50);
+  --resume-color-heading: #202d30;
+  --resume-color-text: #39494c;
+  --resume-color-text-soft: #617175;
+  --resume-color-text-faint: #829093;
+  --resume-color-accent: #0a6269;
+  --resume-color-accent-soft: #e5f0ee;
+  --resume-color-border: #d7e0de;
+  --resume-color-surface: #f5f8f7;
+  --resume-color-surface-strong: #e5f0ee;
 
   --resume-font-name: 27px;
   --resume-font-title: 12.5px;
@@ -130,28 +131,37 @@ const orderedSections = computed(() => {
   min-height: 1123px;
 }
 
-/* ---------- 抬头：横向色带 ---------- */
+/* ---------- 抬头：定位、联系方式与姓名标记 ---------- */
 .dual-creative-hero {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-6);
-  padding: 26px 36px 22px;
-  background: var(--resume-color-accent-soft);
-  border-bottom: 4px solid var(--resume-color-accent);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 280px) 64px;
+  align-items: end;
+  gap: 20px;
+  padding: 28px 36px 18px;
+  border-bottom: 1px solid var(--resume-color-border);
 }
 
 .dual-creative-hero__copy {
   min-width: 0;
-  flex: 1;
+}
+
+.dual-creative-hero__eyebrow {
+  margin: 0 0 9px;
+  color: var(--resume-color-accent);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .dual-creative-hero__name {
   margin: 0;
   color: var(--resume-color-heading);
   font-family: var(--resume-font-display);
-  font-size: var(--resume-font-name);
-  font-weight: 700;
-  line-height: 1.1;
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .dual-creative-hero__title {
@@ -162,17 +172,20 @@ const orderedSections = computed(() => {
 }
 
 .dual-creative-hero__contacts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px var(--ui-space-4);
-  max-width: 300px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+  max-width: 280px;
 }
 
 .dual-creative-hero__contact {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
   gap: 5px;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--resume-color-border);
   font-size: var(--resume-font-contact);
   color: var(--resume-color-text);
 }
@@ -182,54 +195,139 @@ const orderedSections = computed(() => {
   font-weight: 600;
 }
 
+.dual-creative-hero__portrait,
+.dual-creative-hero__monogram {
+  display: grid;
+  width: 64px;
+  height: 76px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--resume-color-accent);
+  background: var(--resume-color-accent);
+}
+
 .dual-creative-hero__avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 1px solid var(--resume-color-border);
-  background: var(--resume-color-page);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dual-creative-hero__monogram {
+  color: var(--ui-neutral-0);
+  font-family: var(--resume-font-display);
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1;
 }
 
 /* ---------- 求职意向 ---------- */
 .dual-creative-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ui-space-2);
-  padding: 10px 36px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px 18px;
+  padding: 11px 36px 13px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
 .dual-creative-pill {
-  background: var(--resume-color-accent-soft);
-  color: var(--resume-color-accent);
-  border: 1px solid var(--resume-color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 5px 0 0;
+  border: 0;
+  border-top: 1px solid var(--resume-color-accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--resume-color-text);
 }
 
-/* ---------- 正文：等宽双栏 ---------- */
+/* ---------- 正文：背景索引栏与项目叙事栏 ---------- */
 .dual-creative-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--ui-space-6);
-  padding: 22px 36px 30px;
+  grid-template-columns: minmax(0, 0.31fr) minmax(0, 0.69fr);
+  align-items: stretch;
+  padding: 0 36px 28px;
 }
 
 .resume-template--dual-creative-single .dual-creative-body {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.resume-template--dual-creative-single .dual-creative-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.resume-template--dual-creative-single .dual-creative-main {
+  padding-left: 0;
+}
+
 .dual-creative-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-right: var(--ui-space-5);
+  gap: 15px;
+  padding: 17px 15px 20px 0;
   border-right: 1px solid var(--resume-color-border);
-  background: var(--resume-sidebar-bg, transparent);
+  background: var(--resume-sidebar-chip-bg, var(--resume-color-accent-soft));
+}
+
+.dual-creative-sidebar__label {
+  margin: 0;
+  color: var(--resume-sidebar-accent, var(--resume-color-accent));
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .dual-creative-main {
+  counter-reset: dual-entry;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 15px;
+  min-width: 0;
+  padding: 17px 0 0 18px;
+}
+
+.dual-creative-main :deep(.resume-entry) {
+  counter-increment: dual-entry;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 11px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--resume-color-border);
+}
+
+.dual-creative-main :deep(.resume-entry__title::before) {
+  margin-right: 6px;
+  color: var(--resume-color-text-faint);
+  content: 'ROLE';
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.dual-creative-main :deep(.resume-entry::before) {
+  grid-column: 1;
+  grid-row: 1 / span 6;
+  padding-top: 1px;
+  border-right: 1px solid var(--resume-color-accent);
+  color: var(--resume-color-accent);
+  content: counter(dual-entry, decimal-leading-zero);
+  font-family: var(--resume-font-display);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dual-creative-main :deep(.resume-entry__header),
+.dual-creative-main :deep(.resume-entry__meta),
+.dual-creative-main :deep(.resume-entry__description),
+.dual-creative-main :deep(.resume-entry__bullets),
+.dual-creative-main :deep(.resume-entry > .resume-chip-list) {
+  grid-column: 2;
 }
 
 /* 模块标题：标题前一个强调色小方块 */
@@ -243,20 +341,19 @@ const orderedSections = computed(() => {
 .resume-template--dual-creative :deep(.resume-section-block__title)::before {
   content: '';
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: var(--resume-color-accent);
 }
 
 .resume-template--dual-creative :deep(.resume-section-block__head) {
-  padding-bottom: 6px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
 .resume-template--dual-creative :deep(.resume-entry) {
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--resume-color-border);
+  padding-bottom: 12px;
 }
 
 .resume-template--dual-creative :deep(.resume-entry:last-child) {
@@ -308,6 +405,12 @@ const orderedSections = computed(() => {
 /* 打印时保留抬头色带 */
 @media print {
   .resume-template--dual-creative {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .dual-creative-sidebar,
+  .dual-creative-hero__monogram {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

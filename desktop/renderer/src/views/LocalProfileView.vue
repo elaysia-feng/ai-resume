@@ -1,92 +1,92 @@
 <template>
   <div class="welcome">
-    <main class="welcome__inner ui-panel">
-      <header class="welcome__head">
-        <span class="welcome__mark ui-icon-tile ui-icon-tile--lg" aria-hidden="true">
-          <AppIcon name="sparkle" :size="20" />
-        </span>
-        <h1 class="ui-page-title">创建本地身份</h1>
-        <p class="ui-page-subtitle">
-          填一个昵称就能开始用。昵称和头像属于「账号身份」，会显示在侧边栏和个人档案里；
-          简历中的姓名与照片仍要在每份简历里单独填写，两者互不影响。
-        </p>
-      </header>
+    <aside class="welcome-brand">
+      <div class="welcome-brand__logo">
+        <AppBrandMark :size="42" />
+        <span>AI Resume Forge</span>
+      </div>
 
-      <form class="welcome__form" novalidate @submit.prevent="handleSubmit">
-        <!-- 账号头像 -->
-        <section class="welcome__section">
-          <div class="ui-section-head">
-            <h2 class="ui-section-head__title">账号头像</h2>
-            <p class="ui-section-head__hint">可选</p>
-          </div>
+      <div class="welcome-brand__message">
+        <p class="welcome-brand__eyebrow">求职准备工作台</p>
+        <h1>创建本地身份</h1>
+        <p>用昵称进入工作台。账号头像与简历中的姓名、照片分别保存，互不替代。</p>
+      </div>
 
-          <div class="welcome__avatar">
-            <span class="avatar-shell" aria-hidden="true">
-              <img v-if="avatarPreviewUrl" :src="avatarPreviewUrl" alt="" class="avatar-image" />
-              <span v-else class="avatar-text">{{ nicknameInitial }}</span>
-            </span>
-            <div class="avatar-actions">
-              <div class="avatar-actions__row">
-                <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" :disabled="submitting" @click="handlePickAvatar">
-                  <AppIcon name="image" :size="16" />
-                  {{ avatarFile ? '重新选择头像' : '选择头像' }}
-                </button>
-                <button v-if="avatarFile" type="button" class="ui-btn ui-btn--ghost ui-btn--sm" :disabled="submitting" @click="removeAvatar">
-                  <AppIcon name="x" :size="16" />
-                  移除
-                </button>
+      <div class="welcome-brand__note">
+        <AppIcon name="desktop" :size="18" />
+        <span>这台电脑上的本地身份无需邮箱和密码。</span>
+      </div>
+    </aside>
+
+    <main class="welcome-main">
+      <div class="welcome__inner">
+        <header class="welcome__head">
+          <h2>你的账号身份</h2>
+          <p>昵称会显示在应用侧边栏和个人档案中。</p>
+        </header>
+
+        <form class="welcome__form" novalidate @submit.prevent="handleSubmit">
+          <section class="welcome__section">
+            <div class="welcome__section-head">
+              <div>
+                <h3>账号头像</h3>
+                <p>可选 · 仅用于应用内展示</p>
               </div>
-              <p class="ui-field__hint">{{ avatarTip }}</p>
+              <span class="welcome__avatar-shell" aria-hidden="true">
+                <img v-if="avatarPreviewUrl" :src="avatarPreviewUrl" alt="" class="welcome__avatar-image" />
+                <span v-else class="welcome__avatar-text">{{ nicknameInitial }}</span>
+              </span>
             </div>
-            <input ref="avatarInputRef" type="file" accept="image/*" class="hidden-input" @change="handleAvatarInputChange" />
+
+            <div class="welcome__avatar-actions">
+              <button type="button" class="ui-btn ui-btn--outline ui-btn--sm" :disabled="submitting" @click="handlePickAvatar">
+                <AppIcon name="image" :size="16" />
+                {{ avatarFile ? '重新选择头像' : '选择头像' }}
+              </button>
+              <button v-if="avatarFile" type="button" class="ui-btn ui-btn--ghost ui-btn--sm" :disabled="submitting" @click="removeAvatar">
+                <AppIcon name="x" :size="16" />
+                移除
+              </button>
+              <input ref="avatarInputRef" type="file" accept="image/*" class="hidden-input" @change="handleAvatarInputChange" />
+            </div>
+            <p class="ui-field__hint">{{ avatarTip }}</p>
+          </section>
+
+          <div class="ui-field">
+            <label class="ui-label" for="localDisplayName">昵称</label>
+            <input
+              id="localDisplayName"
+              v-model="displayName"
+              type="text"
+              class="ui-input"
+              maxlength="32"
+              placeholder="例如：小王"
+              autocomplete="nickname"
+              :disabled="submitting"
+            />
+            <p class="ui-field__hint">1–32 个字符，用作应用内展示名。</p>
           </div>
-        </section>
 
-        <!-- 昵称 -->
-        <div class="ui-field">
-          <label class="ui-label" for="localDisplayName">昵称</label>
-          <input
-            id="localDisplayName"
-            v-model="displayName"
-            type="text"
-            class="ui-input"
-            maxlength="32"
-            placeholder="例如：小王"
-            autocomplete="nickname"
-            :disabled="submitting"
-          />
-          <p class="ui-field__hint">1-32 个字符，用作应用内的展示名。</p>
-        </div>
+          <div v-if="errorMsg" class="ui-callout ui-callout--danger" role="alert">
+            <AppIcon name="warning-circle" :size="16" />
+            <span>{{ errorMsg }}</span>
+          </div>
 
-        <!-- 失败提示 -->
-        <div v-if="errorMsg" class="ui-callout ui-callout--danger" role="alert">
-          <AppIcon name="warning-circle" :size="16" />
-          <span>{{ errorMsg }}</span>
-        </div>
+          <div v-if="successMsg" class="ui-callout ui-callout--accent" role="status">
+            <AppIcon name="check-circle" :size="16" />
+            <span>{{ successMsg }}</span>
+          </div>
 
-        <!-- 成功提示 -->
-        <div v-if="successMsg" class="ui-callout ui-callout--accent" role="status">
-          <AppIcon name="check-circle" :size="16" />
-          <span>{{ successMsg }}</span>
-        </div>
-
-        <button type="submit" class="ui-btn ui-btn--primary ui-btn--lg ui-btn--block" :disabled="submitting">
-          <AppIcon v-if="submitting" name="spinner-gap" :size="16" spin />
-          <span>{{ submitting ? '正在创建…' : '进入应用' }}</span>
-        </button>
-
-        <div class="ui-callout">
-          <AppIcon name="desktop" :size="16" />
-          <span>
-            本地身份只保存在这台电脑上，不绑定邮箱、不需要密码；
-            下次打开应用会直接进入工作台。
-          </span>
-        </div>
-      </form>
+          <button type="submit" class="ui-btn ui-btn--primary ui-btn--lg welcome-submit" :disabled="submitting">
+            <AppIcon v-if="submitting" name="spinner-gap" :size="16" spin />
+            <span>{{ submitting ? '正在创建…' : '进入应用' }}</span>
+            <AppIcon v-if="!submitting" name="caret-right" :size="17" />
+          </button>
+        </form>
+      </div>
     </main>
   </div>
 </template>
-
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -94,6 +94,7 @@ import { createLocalProfile } from '../api/localProfile.js';
 import { extractApiMessage } from '../api/request.js';
 import { useAuthStore } from '../store/authStore.js';
 import AppIcon from '../components/common/AppIcon.vue';
+import AppBrandMark from '../components/common/AppBrandMark.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -282,129 +283,216 @@ onBeforeUnmount(() => {
   }
 });
 </script>
-
 <style scoped>
-/* ========================================
-   本地身份引导页：单列居中卡片，访客页整页铺满
-   ======================================== */
 .welcome {
+  display: grid;
   min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ui-space-10) var(--ui-space-8);
-  background: var(--ui-bg-app);
-  background-image: var(--ui-bg-app-wash);
+  grid-template-columns: minmax(320px, 0.82fr) minmax(480px, 1.18fr);
+  background: var(--ui-bg-surface);
   color: var(--ui-fg-primary);
-  font-family: var(--ui-font-sans);
 }
 
-/* 居中卡片：细边框 + 分层阴影，比画布浮起来一层 */
+.welcome-brand {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 34px clamp(28px, 4vw, 64px) 30px;
+  border-right: 1px solid var(--ui-grid-line-strong);
+  background: var(--ui-bg-canvas);
+}
+
+.welcome-brand__logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ui-fg-primary);
+  font-family: var(--ui-font-display);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.welcome-brand__message {
+  width: 100%;
+  max-width: 440px;
+  margin: auto 0;
+  padding: 60px 0;
+}
+
+.welcome-brand__eyebrow {
+  margin: 0 0 18px;
+  color: var(--ui-fg-accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.welcome-brand__message h1 {
+  margin: 0;
+  font-family: var(--ui-font-display);
+  font-size: clamp(34px, 3.5vw, 50px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.welcome-brand__message p:last-child {
+  max-width: 40ch;
+  margin: 18px 0 0;
+  color: var(--ui-fg-secondary);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.welcome-brand__note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ui-grid-line-strong);
+  color: var(--ui-fg-secondary);
+  font-size: 13px;
+}
+
+.welcome-brand__note .app-icon {
+  flex: 0 0 auto;
+  color: var(--ui-accent);
+}
+
+.welcome-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 48px clamp(28px, 6vw, 96px);
+  background: var(--ui-bg-surface);
+}
+
 .welcome__inner {
   width: 100%;
   max-width: 520px;
-  padding: var(--ui-space-8);
-  border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg);
 }
 
-/* ---- 标题区 ---- */
 .welcome__head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--ui-grid-line);
 }
 
-.welcome__mark {
-  display: inline-flex;
-  margin-bottom: var(--ui-space-4);
+.welcome__head h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
-/* ---- 表单 ---- */
+.welcome__head p {
+  margin: 8px 0 0;
+  color: var(--ui-fg-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .welcome__form {
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-5);
-  margin-top: var(--ui-space-6);
+  gap: 24px;
+  padding-top: 24px;
 }
 
-/* .ui-field 自带 gap，标签再加 margin 会把间距撑成两倍 */
-.ui-field > .ui-label {
-  margin-bottom: 0;
-}
-
-/* ---- 账号头像 ---- */
 .welcome__section {
-  display: flex;
-  flex-direction: column;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ui-grid-line);
 }
 
-.welcome__avatar {
+.welcome__section-head {
   display: flex;
   align-items: center;
-  gap: var(--ui-space-4);
+  justify-content: space-between;
+  gap: 20px;
 }
 
-/* 头像保持圆形：选图后是照片，没选图时是昵称首字 */
-.avatar-shell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 72px;
-  height: 72px;
-  border-radius: var(--ui-radius-full);
-  background: var(--ui-accent-soft);
-  border: 1px solid var(--ui-accent-border);
-  color: var(--ui-fg-accent);
-  font-size: var(--ui-text-2xl);
+.welcome__section-head h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
-  overflow: hidden;
 }
 
-.avatar-image {
+.welcome__section-head p {
+  margin: 5px 0 0;
+  color: var(--ui-fg-muted);
+  font-size: 12px;
+}
+
+.welcome__avatar-shell {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--ui-accent-border);
+  background: var(--ui-accent-soft);
+  color: var(--ui-fg-accent);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.welcome__avatar-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-actions {
-  min-width: 0;
-  flex: 1;
-}
-
-.avatar-actions__row {
+.welcome__avatar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ui-space-2);
+  gap: 8px;
+  margin-top: 14px;
 }
 
-.avatar-tip {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-xs);
-  line-height: var(--ui-line-normal);
-  color: var(--ui-fg-muted);
-  text-wrap: pretty;
+.welcome__section .ui-field__hint {
+  margin: 10px 0 0;
+  line-height: 1.55;
+}
+
+.welcome__form > .ui-field > .ui-label {
+  margin-bottom: 0;
 }
 
 .hidden-input {
   display: none;
 }
 
-/* ---- 提示条 ---- */
-.ui-callout .app-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
+.welcome-submit {
+  width: 100%;
+  min-height: 54px;
+  justify-content: space-between;
+  padding-right: 18px;
+  padding-left: 18px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 820px) {
   .welcome {
-    padding: var(--ui-space-8) var(--ui-space-5);
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .welcome__inner {
-    padding: var(--ui-space-6);
+  .welcome-brand {
+    min-height: 240px;
+    padding: 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-grid-line-strong);
+  }
+
+  .welcome-brand__message {
+    padding: 28px 0;
+  }
+
+  .welcome-brand__note {
+    padding-top: 12px;
+  }
+
+  .welcome-main {
+    padding: 32px 24px;
   }
 }
 </style>

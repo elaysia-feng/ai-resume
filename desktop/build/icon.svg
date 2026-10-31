@@ -1,42 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="AI Resume Forge">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#22302a" />
-      <stop offset="52%" stop-color="#16201b" />
-      <stop offset="100%" stop-color="#0c1210" />
-    </linearGradient>
-    <linearGradient id="forge" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0%" stop-color="#15a34a" />
-      <stop offset="100%" stop-color="#52dd83" />
-    </linearGradient>
-    <linearGradient id="paper" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#dedbd7" />
-    </linearGradient>
-    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2" />
-      <stop offset="44%" stop-color="#ffffff" stop-opacity="0" />
-    </linearGradient>
-  </defs>
-
-  <!-- 底板 -->
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)" />
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#sheen)" />
-  <rect x="17" y="17" width="478" height="478" rx="111" fill="none" stroke="#ffffff" stroke-opacity="0.11" stroke-width="2" />
-
-  <!-- 简历纸张 -->
-  <path d="M138 84h170l80 80v248a34 34 0 0 1-34 34H138a34 34 0 0 1-34-34V118a34 34 0 0 1 34-34z" fill="url(#paper)" />
-  <path d="M308 84l80 80h-80V84z" fill="#a8a29e" fill-opacity="0.48" />
-
-  <!-- 抬头 + 两行正文（上部留白，视觉重心在上） -->
-  <rect x="146" y="176" width="116" height="17" rx="8.5" fill="#3f3b38" fill-opacity="0.88" />
-  <rect x="146" y="216" width="176" height="11" rx="5.5" fill="#a8a29e" />
-  <rect x="146" y="246" width="128" height="11" rx="5.5" fill="#a8a29e" />
-
-  <!-- 职业轨迹：独立占据下部区域的绿色上扬箭头 -->
-  <g fill="none" stroke="url(#forge)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M150 392l62-50 46 30" />
-    <path d="M258 372l74-62" />
-  </g>
-  <path d="M334 288l-2 44-44 2 46-46z" fill="#52dd83" />
+  <rect x="16" y="16" width="480" height="480" rx="56" fill="#0057ff" />
+  <rect x="228" y="84" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="156" y="156" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="300" y="156" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="84" y="228" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="372" y="228" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="84" y="300" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="156" y="300" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="228" y="300" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="300" y="300" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="372" y="300" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="84" y="372" width="58" height="58" rx="2" fill="#ffffff" />
+  <rect x="372" y="372" width="58" height="58" rx="2" fill="#ffffff" />
 </svg>

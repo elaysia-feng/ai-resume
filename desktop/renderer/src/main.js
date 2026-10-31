@@ -28,6 +28,11 @@ const pinia = createPinia();
 const app = createApp(App);
 
 app.use(pinia);
-useAuthStore(pinia).initialize().catch(() => {});
+const authStore = useAuthStore(pinia);
+authStore.initialize().catch(() => {}).finally(() => {
+  if (window.desktop && !authStore.isAuthenticated) {
+    authStore.loginAsGuest().catch(() => {});
+  }
+});
 app.use(router);
 app.mount('#app');

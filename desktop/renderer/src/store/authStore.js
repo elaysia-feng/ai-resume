@@ -8,6 +8,7 @@ import {
   getCurrentUser as apiGetCurrentUser,
   uploadAvatar as apiUploadAvatar,
 } from '../api/auth.js';
+import { createLocalProfile, DEFAULT_GUEST_DISPLAY_NAME } from '../api/localProfile.js';
 import { resolveApiAssetUrl } from '../api/request.js';
 
 const USER_STORAGE_KEY = 'resume_forge_user';
@@ -53,6 +54,8 @@ function decodeJwtPayload(token) {
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('jwt_token') || null);
   const user = ref(readStoredUser());
+  const guestSessionState = ref('idle');
+  let guestSessionPromise = null;
 
   const isAuthenticated = computed(() => !!token.value);
   const currentUser = computed(() => user.value);
@@ -120,6 +123,33 @@ export const useAuthStore = defineStore('auth', () => {
     _storeToken(data);
   }
 
+  async function loginAsGuest() {
+    if (token.value) {
+      return user.value;
+    }
+    if (guestSessionPromise) {
+      return guestSessionPromise;
+    }
+
+    guestSessionState.value = 'loading';
+    guestSessionPromise = createLocalProfile(DEFAULT_GUEST_DISPLAY_NAME)
+      .then((data) => {
+        if (!token.value) {
+          _storeToken(data);
+        }
+        guestSessionState.value = 'ready';
+        return user.value;
+      })
+      .catch((error) => {
+        guestSessionState.value = 'error';
+        throw error;
+      })
+      .finally(() => {
+        guestSessionPromise = null;
+      });
+    return guestSessionPromise;
+  }
+
   async function register(data) {
     const resp = await apiRegister(data);
     _storeToken(resp.user || resp);
@@ -128,6 +158,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshCurrentUser() {
     if (!token.value) {
       persistUser(null);
+      guestSessionState.value = 'idle';
       return null;
     }
 
@@ -175,17 +206,20 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = null;
     persistUser(null);
+    guestSessionState.value = 'idle';
     apiLogout();
   }
 
   return {
     token,
     user,
+    guestSessionState,
     isAuthenticated,
     currentUser,
     login,
     loginByCode,
     storeAuthResponse,
+    loginAsGuest,
     register,
     refreshCurrentUser,
     uploadAvatar,

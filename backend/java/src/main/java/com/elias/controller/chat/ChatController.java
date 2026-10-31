@@ -7,7 +7,7 @@ import com.elias.dto.chat.response.ChatMessageResponse;
 import com.elias.dto.chat.response.ChatSessionCreateResponse;
 import com.elias.dto.chat.response.ChatSessionItemResponse;
 import com.elias.dto.chat.response.ChatWorkspaceResponse;
-import com.elias.service.chat.ChatService;
+import com.elias.service.chat.ChatSessionService;
 import com.elias.service.chat.WorkspaceService;
 import com.elias.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,53 +32,70 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final ChatService chatService;
+    private final ChatSessionService chatSessionService;
     private final WorkspaceService workspaceService;
 
     /**
-     * 创建对话会话
+     * 创建聊天会话。
+     *
+     * @param request 会话标题和可选简历 ID
+     * @return 新建会话信息
      */
     @PostMapping("/sessions")
     public ApiResponse<ChatSessionCreateResponse> createSession(
             @RequestBody(required = false) ChatSessionCreateRequest request) {
-        return ApiResponse.ok(chatService.createSession(request));
+        return ApiResponse.ok(chatSessionService.createSession(request));
     }
 
     /**
-     * 查询会话列表，按最后消息时间倒序
+     * 查询当前用户的会话列表，按最后消息时间倒序。
+     *
+     * @return 当前用户的聊天会话
      */
     @GetMapping("/sessions")
     public ApiResponse<List<ChatSessionItemResponse>> listSessions() {
-        return ApiResponse.ok(chatService.listSessions());
+        return ApiResponse.ok(chatSessionService.listSessions());
     }
 
     /**
-     * 查询会话内的消息，按 seqNo 升序
+     * 查询会话内的消息，按 seqNo 升序。
+     *
+     * @param id 会话 ID
+     * @return 会话消息列表
      */
     @GetMapping("/sessions/{id}/messages")
     public ApiResponse<List<ChatMessageResponse>> listMessages(@PathVariable Long id) {
-        return ApiResponse.ok(chatService.listMessages(id));
+        return ApiResponse.ok(chatSessionService.listMessages(id));
     }
 
     /**
-     * 删除会话（连带消息）
+     * 删除当前用户的会话及其消息。
+     *
+     * @param id 会话 ID
+     * @return 空成功响应
      */
     @DeleteMapping("/sessions/{id}")
     public ApiResponse<Void> deleteSession(@PathVariable Long id) {
-        chatService.deleteSession(id);
+        chatSessionService.deleteSession(id);
         return ApiResponse.ok();
     }
 
     /**
-     * 发送消息，返回 SSE 流
+     * 保存用户消息并代理 Python 的 SSE 对话流。
+     *
+     * @param id 会话 ID
+     * @param request 用户消息和可选工作区路径
+     * @return 对话事件流
      */
     @PostMapping("/sessions/{id}/messages")
     public SseEmitter sendMessage(@PathVariable Long id, @RequestBody ChatMessageRequest request) {
-        return chatService.sendMessage(id, request);
+        return chatSessionService.sendMessage(id, request);
     }
 
     /**
-     * 查询当前工作区根目录
+     * 查询当前用户保存的工作区根目录。
+     *
+     * @return 工作区信息
      */
     @GetMapping("/workspace")
     public ApiResponse<ChatWorkspaceResponse> getWorkspace() {
@@ -86,7 +103,10 @@ public class ChatController {
     }
 
     /**
-     * 设置当前工作区根目录
+     * 设置当前用户的工作区根目录。
+     *
+     * @param request 新工作区路径
+     * @return 已保存的工作区信息
      */
     @PostMapping("/workspace")
     public ApiResponse<ChatWorkspaceResponse> setWorkspace(@RequestBody ChatWorkspaceRequest request) {

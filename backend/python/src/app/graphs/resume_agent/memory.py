@@ -21,6 +21,12 @@ def build_memory_messages(state: ResumeAgentState) -> list[BaseMessage]:
     summary 保存被压缩掉的旧上下文，messages 保存最近几轮原始消息。
     节点 Agent 调模型时同时带上两者，既能保留长期上下文，又不会让消息无限增长。
     这里只负责“读取并拼装模型输入”，不会写回 LangGraph state。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+
+    Returns:
+        包含长期摘要和近期消息的模型输入。
     """
     result: list[BaseMessage] = []
     summary = state.get("summary")
@@ -36,6 +42,12 @@ def build_initial_messages(state: ResumeAgentState) -> list[BaseMessage]:
     """把 Java 历史消息和本轮输入放入 MessagesState。
 
     只有 graph 输入里没有 messages 时才使用，避免 continue 或 Studio Chat 重复追加。
+
+    Args:
+        state: 包含 Java 历史记录和本轮用户输入的图状态。
+
+    Returns:
+        转换后的 LangChain 消息列表。
     """
     # Java 保存的历史消息是普通 dict，这里先转成 LangChain 消息对象。
     messages = _history_to_messages(state.get("history_messages", []), state.get("run_id", 0))
@@ -43,7 +55,9 @@ def build_initial_messages(state: ResumeAgentState) -> list[BaseMessage]:
         # 本轮用户输入也放进 messages，后续每个节点都能通过 build_memory_messages 看到。
         messages.append(HumanMessage(content=f"用户输入：{state['user_input']}", id=_message_id(state, "user-input")))
     if state.get("job_description"):
-        messages.append(HumanMessage(content=f"目标岗位 JD：{state['job_description']}", id=_message_id(state, "job-description")))
+        messages.append(
+            HumanMessage(content=f"目标岗位 JD：{state['job_description']}", id=_message_id(state, "job-description"))
+        )
     return messages
 
 
@@ -54,20 +68,30 @@ async def compact_memory_for_model(
     """模型调用前的上下文守卫。
 
     这里检查的是“本次真实要发给模型的 messages”，不是图上某条边。
-    如果 prompt 接近 MiniMax 上下文上限，就先压缩 state["messages"]，
+    如果 prompt 接近配置的模型上下文上限，就先压缩 state["messages"]，
     再让当前节点用压缩后的 state 重新构造 prompt 并继续执行。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+        model_messages: 当前节点准备发送给模型的消息。
+
+    Returns:
+        状态更新，以及压缩后供当前节点继续使用的状态。
     """
+    # 1. 估算本轮输入长度；未接近配置阈值时不改写上下文。
     settings = get_settings()
     prompt_tokens = estimate_messages_tokens(model_messages)
     trigger_tokens = int(settings.agent_model_context_length * settings.agent_summary_trigger_context_ratio)
     if prompt_tokens < trigger_tokens:
         return {}, state
 
+    # 2. 只有已有可压缩历史时才调用模型生成摘要。
     source_messages = list(state.get("messages") or [])
     if not source_messages:
         # 超长内容如果来自简历快照/JD/patch，本轮没有可删除的历史消息，只能继续交给模型或由模型报错。
         return {}, state
 
+    # 3. 保存摘要、保留近期消息，并生成 LangGraph 删除指令。
     summary = await summarize_messages(source_messages, state.get("summary", ""))
     if not summary:
         return {}, state
@@ -89,7 +113,16 @@ async def compact_memory_for_model(
 
 
 async def summarize_messages(messages: list[BaseMessage], existing_summary: str) -> str:
-    """调用 ChatModel 生成新的长期摘要。"""
+    """调用统一 ChatModel 合并当前历史并生成长期摘要。
+
+    Args:
+        messages: 待摘要的历史消息。
+        existing_summary: 之前保存的摘要，可为空。
+
+    Returns:
+        新摘要；模型不可用或调用失败时返回空字符串。
+    """
+    # 1. 将旧摘要与新增消息整理成一次更新请求。
     if existing_summary:
         # 已有摘要时不是重新总结全部，而是把旧摘要和新增消息合并成更新版摘要。
         summary_message = (
@@ -99,12 +132,14 @@ async def summarize_messages(messages: list[BaseMessage], existing_summary: str)
     else:
         summary_message = "请为上面的对话创建一份长期记忆摘要。"
 
+    # 2. 通过统一 AgentFactory 调用用户选择的模型。
     try:
         model = agent_factory.create_chat_model()
         response = await model.ainvoke([*messages, HumanMessage(content=f"{SUMMARY_PROMPT}\n\n{summary_message}")])
     except Exception:
         return ""
 
+    # 3. 统一文本和多模态内容的返回类型。
     content = getattr(response, "content", "")
     if isinstance(content, str):
         return content.strip()
@@ -112,15 +147,32 @@ async def summarize_messages(messages: list[BaseMessage], existing_summary: str)
 
 
 def build_delete_messages(messages: list[BaseMessage], keep_recent_count: int) -> list[RemoveMessage]:
-    """生成 RemoveMessage，让 MessagesState reducer 删除旧消息。"""
+    """生成 RemoveMessage，让 MessagesState reducer 删除旧消息。
+
+    Args:
+        messages: 当前保存的消息列表。
+        keep_recent_count: 需要保留的末尾消息数。
+
+    Returns:
+        对应旧消息 ID 的删除指令。
+    """
     keep_count = max(keep_recent_count, 0)
     messages_to_delete = messages if keep_count == 0 else messages[:-keep_count]
     return [RemoveMessage(id=message.id) for message in messages_to_delete if message.id]
 
 
 def _history_to_messages(history_messages: list[dict[str, Any]], run_id: int) -> list[BaseMessage]:
-    """把 Java/数据库里取出来的历史消息 dict，转换成 LangChain 能识别的 BaseMessage 对象列表。"""
+    """把 Java 历史消息 dict 转换成 LangChain 消息。
 
+    Args:
+        history_messages: Java 从消息表读取的普通字典列表。
+        run_id: 当前 Agent run ID，用于生成稳定的消息 ID。
+
+    Returns:
+        LangChain 可识别的 BaseMessage 列表。
+    """
+
+    # 1. 规范化每条记录的角色和内容，并跳过空消息。
     result: list[BaseMessage] = []
     for index, item in enumerate(history_messages):
         # enumerate 同时给出下标和消息内容，下标用于生成稳定 message id。
@@ -129,6 +181,7 @@ def _history_to_messages(history_messages: list[dict[str, Any]], run_id: int) ->
         if not content:
             continue
 
+        # 2. 根据角色构造对应的 LangChain 消息类型。
         message_id = f"run-{run_id}-history-{index}"
         if role == "user":
             result.append(HumanMessage(content=content, id=message_id))
@@ -140,5 +193,13 @@ def _history_to_messages(history_messages: list[dict[str, Any]], run_id: int) ->
 
 
 def _message_id(state: ResumeAgentState, suffix: str) -> str:
-    """生成当前 run 内稳定的消息 ID，方便 RemoveMessage 后续按 id 删除旧消息。"""
+    """生成当前 run 内稳定的消息 ID，方便 RemoveMessage 后续按 ID 删除旧消息。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+        suffix: 消息用途后缀。
+
+    Returns:
+        当前 run 内唯一的消息 ID。
+    """
     return f"run-{state.get('run_id', 0)}-{suffix}"

@@ -30,6 +30,13 @@ import CreativeTemplate from './CreativeTemplate.vue'
 import CompactTemplate from './CompactTemplate.vue'
 import AcademicTemplate from './AcademicTemplate.vue'
 import DualCreativeTemplate from './DualCreativeTemplate.vue'
+import InternationalCvTemplate from './InternationalCvTemplate.vue'
+import CareerBridgeTemplate from './CareerBridgeTemplate.vue'
+import EngineeringTemplate from './EngineeringTemplate.vue'
+import LeadershipTemplate from './LeadershipTemplate.vue'
+import PublicServiceTemplate from './PublicServiceTemplate.vue'
+import SalesGrowthTemplate from './SalesGrowthTemplate.vue'
+import { RESUME_TEMPLATE_IDS } from '../../data/resumeTemplates.js'
 
 const PAGE_HEIGHT = 1123
 
@@ -37,7 +44,7 @@ const props = defineProps({
   template: {
     type: String,
     default: 'classic',
-    validator: (value) => ['classic', 'modern', 'creative', 'compact', 'academic', 'dual-creative'].includes(value),
+    validator: (value) => RESUME_TEMPLATE_IDS.includes(value),
   },
   sections: {
     type: Array,
@@ -49,7 +56,7 @@ const props = defineProps({
   },
   bodyFontSize: {
     type: Number,
-    default: 9,
+    default: 10,
   },
   sidebarColor: {
     type: String,
@@ -70,6 +77,12 @@ const templateComponent = computed(() => {
     compact: CompactTemplate,
     academic: AcademicTemplate,
     'dual-creative': DualCreativeTemplate,
+    'international-cv': InternationalCvTemplate,
+    'career-bridge': CareerBridgeTemplate,
+    engineering: EngineeringTemplate,
+    leadership: LeadershipTemplate,
+    'public-service': PublicServiceTemplate,
+    'sales-growth': SalesGrowthTemplate,
   }
 
   return templateMap[props.template] || ClassicTemplate
@@ -78,7 +91,7 @@ const templateComponent = computed(() => {
 const typographyStyle = computed(() => {
   const bodyFontSize = [9, 10, 11, 12].includes(Number(props.bodyFontSize))
     ? Number(props.bodyFontSize)
-    : 9
+    : 10
 
   return {
     '--resume-text-size': `${bodyFontSize}px`,

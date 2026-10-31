@@ -4,9 +4,7 @@
     <section class="auth-brand">
       <div class="auth-brand__inner">
         <div class="auth-brand__logo">
-          <span class="auth-brand__mark ui-icon-tile ui-icon-tile--lg" aria-hidden="true">
-            <AppIcon name="sparkle" :size="20" />
-          </span>
+          <AppBrandMark :size="38" />
           <span class="auth-brand__name">AI Resume Forge</span>
         </div>
 
@@ -15,7 +13,7 @@
           简历与历史记录保存在本机。启用 AI 功能时，当前任务所需内容会发送到设置中配置的模型服务。
         </p>
 
-        <ul class="auth-brand__points ui-panel ui-panel--flat">
+        <ul class="auth-brand__points">
           <li class="auth-brand__point">
             <AppIcon name="file-text" :size="18" />
             <span>简历生成与多版本迭代</span>
@@ -31,8 +29,6 @@
         </ul>
       </div>
 
-      <!-- 极淡水印：用内置图标给大面积留白一点纹理，不依赖外部图片 -->
-      <AppIcon name="file-text" class="auth-brand__watermark" :size="240" />
     </section>
 
     <!-- 右侧表单区 -->
@@ -170,6 +166,9 @@
           还没有账号？
           <router-link class="auth-switch__link" to="/register">立即注册</router-link>
         </p>
+        <button v-if="isDesktopApp" type="button" class="auth-guest-link" :disabled="loading" @click="continueAsGuest">
+          以游客身份继续
+        </button>
       </div>
     </section>
   </div>
@@ -181,10 +180,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store/authStore.js';
 import { sendCode } from '../api/auth.js';
 import AppIcon from '../components/common/AppIcon.vue';
+import AppBrandMark from '../components/common/AppBrandMark.vue';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const isDesktopApp = typeof window !== 'undefined' && !!window.desktop;
 
 const loginMode = ref('password');
 const loading = ref(false);
@@ -252,6 +253,22 @@ async function handleLogin() {
     router.push(resolveRedirect());
   } catch (err) {
     errorMsg.value = describeError(err, '登录失败。请稍后重试，若一直失败请检查后端服务是否已启动。');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function continueAsGuest() {
+  if (loading.value) {
+    return;
+  }
+  loading.value = true;
+  errorMsg.value = '';
+  try {
+    await authStore.loginAsGuest();
+    await router.push('/dashboard');
+  } catch (error) {
+    errorMsg.value = describeError(error, '游客模式暂时无法连接，请稍后重试。');
   } finally {
     loading.value = false;
   }
@@ -345,34 +362,28 @@ function startCountdown(seconds) {
 .auth-brand__points {
   list-style: none;
   margin: 0;
-  padding: var(--ui-space-5);
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-4);
-  border-color: var(--ui-border-hairline);
+  border-top: 1px solid var(--ui-grid-line-strong);
+  border-bottom: 1px solid var(--ui-grid-line-strong);
 }
 
 .auth-brand__point {
   display: flex;
   align-items: center;
   gap: var(--ui-space-3);
+  min-height: 42px;
   font-size: var(--ui-text-base);
   color: var(--ui-fg-secondary);
 }
 
-.auth-brand__point .app-icon {
-  color: var(--ui-fg-accent);
+.auth-brand__point + .auth-brand__point {
+  border-top: 1px solid var(--ui-grid-line);
 }
 
-/* 极淡水印：压在大面积留白上，不抢文案 */
-.auth-brand__watermark {
-  position: absolute;
-  right: -32px;
-  bottom: -40px;
-  z-index: 0;
-  color: var(--ui-fg-primary);
-  opacity: 0.05;
-  pointer-events: none;
+.auth-brand__point .app-icon {
+  color: var(--ui-fg-accent);
 }
 
 /* ---- 右侧表单区 ---- */
@@ -390,8 +401,8 @@ function startCountdown(seconds) {
   width: 100%;
   max-width: 420px;
   padding: var(--ui-space-8);
-  border-color: var(--ui-border-hairline);
-  box-shadow: var(--ui-shadow-lg);
+  border-color: var(--ui-grid-line-strong);
+  box-shadow: none;
 }
 
 .auth-card__head {
@@ -484,6 +495,30 @@ function startCountdown(seconds) {
   text-decoration: underline;
 }
 
+.auth-guest-link {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-fg-secondary);
+  font: inherit;
+  font-size: var(--ui-text-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.auth-guest-link:hover {
+  color: var(--ui-accent);
+}
+
+.auth-guest-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ========================================
    窄窗口（1280 以下或分栏放不下）：两栏上下堆叠
    ======================================== */
@@ -513,10 +548,6 @@ function startCountdown(seconds) {
   .auth-brand__desc {
     margin-bottom: var(--ui-space-5);
     font-size: var(--ui-text-base);
-  }
-
-  .auth-brand__watermark {
-    display: none;
   }
 
   .auth-panel {

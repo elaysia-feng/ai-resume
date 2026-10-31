@@ -178,7 +178,7 @@
               {{ exportingPdf ? '导出中...' : '导出 PDF' }}
             </button>
             <button type="button" class="ui-btn ui-btn--sm ui-btn--outline ui-btn--block" @click="openAgentCopilot">
-              AI 助手
+              模块 AI 助手
             </button>
           </div>
         </section>
@@ -344,7 +344,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
-import { useRoute, onBeforeRouteLeave } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import AppIcon from '../components/common/AppIcon.vue';
 import {
   sections,
@@ -374,6 +374,7 @@ import SkillsEditor from '../components/resume/editors/SkillsEditor.vue';
 import CertificatesEditor from '../components/resume/editors/CertificatesEditor.vue';
 import SelfEvaluationEditor from '../components/resume/editors/SelfEvaluationEditor.vue';
 import { sanitizeSectionContentForSave } from '../utils/resumeSectionNormalizer.js';
+import { RESUME_TEMPLATE_IDS, RESUME_TEMPLATE_SELECT_OPTIONS } from '../data/resumeTemplates.js';
 import ProjectsEditor from '../components/resume/editors/ProjectsEditor.vue';
 import InternshipEditor from '../components/resume/editors/InternshipEditor.vue';
 import GenericEditor from '../components/resume/editors/GenericEditor.vue';
@@ -382,14 +383,16 @@ import { extractApiMessage } from '../api/request.js';
 import '../styles/resume-editor.css';
 
 const route = useRoute();
+const router = useRouter();
 const resumeStore = useResumeStore();
+let routeSectionSelectionReady = false;
 
 const resumeId = computed(() => route.params.id || null);
 const editorResumeId = computed(() => {
   const parsedValue = Number(resumeId.value);
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
 });
-const locale = ref('zh');
+const locale = computed(() => (selectedTemplate.value === 'international-cv' ? 'en' : 'zh'));
 
 // A4 预览页宽度（与 resume-template-base.css 的 .resume-page 一致）
 const PREVIEW_PAGE_WIDTH = 794;
@@ -640,7 +643,7 @@ onMounted(async () => {
       await resumeStore.fetchResume(resumeId.value);
       // Apply template from query param (e.g. from template market)
       const queryTemplate = route.query.template;
-      if (queryTemplate && ['classic', 'modern', 'creative', 'compact', 'academic', 'dual-creative'].includes(queryTemplate)) {
+      if (queryTemplate && RESUME_TEMPLATE_IDS.includes(queryTemplate)) {
         store.selectedTemplate.value = queryTemplate;
       }
       // New resume (no sections yet): auto-fill all system modules
@@ -664,6 +667,7 @@ onMounted(async () => {
   } else if (!activeId.value && sections.length) {
     activeId.value = sections[0].id;
   }
+  routeSectionSelectionReady = true;
 
   updatePreviewScale();
 });
@@ -787,18 +791,16 @@ const pageLoading = ref(true);
 const loadError = ref('');
 
 // 切换模块时默认展开该模块的编辑表单
-watch(activeId, () => {
+watch(activeId, (sectionId) => {
   sectionExpanded.value = true;
-});
+  if (!routeSectionSelectionReady || !sectionId
+      || String(sectionId) === String(route.query.sectionId || '')) {
+    return;
+  }
+  router.replace({ query: { ...route.query, sectionId: String(sectionId), sessionId: undefined } });
+}, { flush: 'sync' });
 
-const templates = [
-  { value: 'classic', label: '标准版' },
-  { value: 'modern', label: '简约求职版' },
-  { value: 'compact', label: '双列紧凑版' },
-  { value: 'academic', label: '学术科研版' },
-  { value: 'creative', label: '创意进阶版' },
-  { value: 'dual-creative', label: '双列创意版' },
-];
+const templates = RESUME_TEMPLATE_SELECT_OPTIONS;
 
 const bodyFontOptions = [9, 10, 11, 12];
 // 左栏配色色板：全部引用设计 token，避免写死十六进制颜色
@@ -832,7 +834,7 @@ const resumeName = computed(() => {
 });
 
 const supportsSidebarColor = computed(() =>
-  ['modern', 'compact', 'creative', 'dual-creative'].includes(store.selectedTemplate.value)
+  ['compact', 'dual-creative', 'sales-growth'].includes(store.selectedTemplate.value)
 );
 
 const activeEditor = computed(() => {
@@ -926,7 +928,7 @@ function openAgentCopilot() {
     launcher.focus();
     return;
   }
-  window.alert('AI 助手面板未就绪，请稍后再试');
+  window.alert('模块 AI 助手未就绪，请稍后重试');
 }
 
 function buildExportFilename() {

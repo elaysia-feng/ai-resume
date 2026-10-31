@@ -6,9 +6,10 @@
 由 PyInstaller 打成 exe 后，桌面端主进程直接 spawn 这个 exe，
 用户机器上不需要装 Python。
 
-环境变量由 desktop 主进程注入（见 desktop/electron/backend.ts）：
+环境变量由 desktop 主进程注入（见 desktop/electron/backend_process.ts）：
 - AI_RESUME_AGENT_TASK_DB_PATH / AGENT_TASK_DB_PATH：与 Java 共用的 SQLite 业务库
-- LLM_PROVIDER / DEEPSEEK_API_KEY / MIMO_API_KEY ...：模型配置
+- LLM_PROVIDER / LLM_MODEL_PROVIDER / LLM_API_KEY / LLM_BASE_URL：统一模型配置
+- LLM_EXTRA_HEADERS / LLM_PROVIDER_OPTIONS：中转站请求头和集成原生参数
 - JAVA_INTERNAL_BASE_URL / INTERNAL_AGENT_SERVICE_TOKEN：调 Java 内部接口
 """
 

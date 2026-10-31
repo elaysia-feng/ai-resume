@@ -1,80 +1,76 @@
 <template>
   <div class="app-shell">
-    <!-- 访客页（欢迎页 / 登录 / 注册）：整页铺满，不显示侧边栏 -->
     <div v-if="isGuest" class="app-guest">
       <router-view />
     </div>
 
     <template v-else>
-      <!-- 左侧固定侧边栏 -->
       <aside class="app-sidebar" :class="{ 'app-sidebar--collapsed': collapsed }">
-        <!-- 品牌标识 -->
         <div class="sidebar-brand">
-          <span class="sidebar-brand__mark" aria-hidden="true">
-            <AppIcon name="file-text" :size="22" />
+          <AppBrandMark :size="collapsed ? 24 : 32" />
+          <span class="sidebar-brand__text">
+            <span class="sidebar-brand__name">AI Resume Forge</span>
+            <span class="sidebar-brand__tagline">你的求职准备工作台</span>
           </span>
-          <span class="sidebar-brand__text">AI Resume Forge</span>
+          <button
+            type="button"
+            class="sidebar-collapse"
+            :aria-label="collapsed ? '展开侧边栏' : '收起侧边栏'"
+            :title="collapsed ? '展开侧边栏' : '收起侧边栏'"
+            @click="toggleCollapsed"
+          >
+            <AppIcon
+              name="caret-double-left"
+              :size="17"
+              :class="{ 'is-flipped': collapsed }"
+            />
+          </button>
         </div>
 
-        <router-link class="ui-btn ui-btn--primary ui-btn--block sidebar-create" to="/resume/create">
-          <AppIcon name="file-plus" :size="16" />
-          <span class="nav-item__label">新建简历</span>
-        </router-link>
-
-        <!-- 分组导航 -->
         <nav class="sidebar-nav ui-scroll" aria-label="主导航">
-          <div v-for="group in navGroups" :key="group.title" class="nav-group">
-            <p class="nav-group__title">{{ group.title }}</p>
+          <div v-for="group in navGroups" :key="group.title || group.items[0].path" class="nav-group">
+            <p v-if="group.title" class="nav-group__title">{{ group.title }}</p>
             <router-link
               v-for="item in group.items"
-              :key="item.path"
-              :to="item.path"
+              :key="item.label + ':' + (item.section || '')"
+              :to="item.to || item.path"
               class="nav-item"
-              :class="{ 'is-active': isActive(item.path) }"
+              :class="{ 'is-active': isActive(item) }"
+              :aria-current="isActive(item) ? 'page' : undefined"
               :title="item.label"
             >
-              <AppIcon :name="item.icon" :size="18" class="nav-item__icon" />
+              <AppIcon :name="item.icon" :size="19" class="nav-item__icon" />
               <span class="nav-item__label">{{ item.label }}</span>
             </router-link>
           </div>
         </nav>
 
-        <!-- 用户信息与操作 -->
         <div class="sidebar-footer">
-          <div class="sidebar-user">
-            <span class="sidebar-user__avatar">
-              <img v-if="avatarUrl" :src="avatarUrl" alt="用户头像" />
-              <span v-else>{{ userInitial }}</span>
-            </span>
-            <span class="sidebar-user__meta">
-              <span class="sidebar-user__name">{{ displayName }}</span>
-              <span class="sidebar-user__email">{{ displayEmail }}</span>
-            </span>
+          <div class="sidebar-footer__row">
+            <router-link class="sidebar-user" to="/dashboard/profile" :title="displayName">
+              <AppIcon name="user-circle" :size="18" class="sidebar-user__icon" />
+              <span class="sidebar-user__meta">
+                <span class="sidebar-user__name">{{ displayName }}</span>
+                <span class="sidebar-user__email">{{ displayEmail }}</span>
+              </span>
+            </router-link>
+            <button v-if="guestIdentity" type="button" class="sidebar-action" aria-label="账号登录" title="账号登录" @click="goToAccountLogin">
+              <AppIcon name="sign-in" :size="17" class="sidebar-action__icon" />
+              <span class="sidebar-action__label">账号登录</span>
+            </button>
+            <button v-else type="button" class="sidebar-action" aria-label="退出登录" title="退出登录" @click="handleLogout">
+              <AppIcon name="sign-out" :size="17" class="sidebar-action__icon" />
+              <span class="sidebar-action__label">退出登录</span>
+            </button>
           </div>
-
-          <button type="button" class="ui-btn ui-btn--ghost ui-btn--block sidebar-action" @click="handleLogout">
-            <AppIcon name="sign-out" :size="18" class="sidebar-action__icon" />
-            <span class="nav-item__label">退出登录</span>
-          </button>
-
-          <button type="button" class="ui-btn ui-btn--ghost ui-btn--block sidebar-action" @click="toggleCollapsed">
-            <AppIcon
-              name="caret-double-left"
-              :size="18"
-              class="sidebar-action__icon sidebar-action__icon--flip"
-              :class="{ 'is-flipped': collapsed }"
-            />
-            <span class="nav-item__label">{{ collapsed ? '展开侧边栏' : '收起侧边栏' }}</span>
-          </button>
         </div>
       </aside>
 
-      <!-- 页面内容：各工作区在首屏提供自己的标题与操作栏 -->
       <div class="app-body">
         <main class="app-content ui-scroll">
-          <div class="app-content__inner">
+          <div class="app-content__inner" :class="{ 'app-content__inner--flush': route.name === 'Home' }">
             <router-view v-slot="{ Component, route: viewRoute }">
-              <component :is="Component" :key="`${viewRoute.name}:${viewRoute.params.id || ''}`" />
+              <component :is="Component" :key="viewRoute.name + ':' + (viewRoute.params.id || '')" />
             </router-view>
           </div>
         </main>
@@ -89,12 +85,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './store/authStore.js';
 import { isLocalIdentity } from './api/localProfile.js';
 import AppIcon from './components/common/AppIcon.vue';
+import AppBrandMark from './components/common/AppBrandMark.vue';
 
 const COLLAPSE_STORAGE_KEY = 'resume_forge_sidebar_collapsed';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const isDesktopApp = typeof window !== 'undefined' && !!window.desktop;
 
 // 访客页（欢迎页 / 登录 / 注册）不显示应用壳
 const isGuest = computed(() => !!route.meta.guest);
@@ -107,76 +105,75 @@ function toggleCollapsed() {
   localStorage.setItem(COLLAPSE_STORAGE_KEY, collapsed.value ? '1' : '0');
 }
 
-// 保持多入口工作台，简历、对话和面试均可独立进入。
+// 保持多入口工作台，简历、模板、对话和面试均可独立进入。
 // icon 字段对应 src/icons/paths.js 的键名
 const navGroups = [
   {
-    title: '工作台',
-    items: [{ path: '/dashboard', label: '总览', icon: 'squares-four' }],
-  },
-  {
-    title: '独立工具',
+    title: '',
     items: [
-      { path: '/chat', label: 'AI 对话', icon: 'chat-circle' },
+      { path: '/dashboard', label: '工作台', icon: 'squares-four' },
+      { path: '/dashboard', to: { path: '/dashboard', query: { section: 'resumes' } }, section: 'resumes', label: '简历', icon: 'file-text' },
+      { path: '/dashboard/templates', label: '简历模板', icon: 'layout' },
+      { path: '/chat', label: '工作区对话', icon: 'chat-circle' },
       { path: '/dashboard/interview', label: '模拟面试', icon: 'microphone' },
-      { path: '/dashboard/templates', label: '模板市场', icon: 'layout' },
+      { path: '/settings', label: '设置', icon: 'gear' },
     ],
-  },
-  {
-    title: '账号',
-    items: [
-      { path: '/dashboard/history', label: '历史记录', icon: 'clock-counter-clockwise' },
-      { path: '/dashboard/profile', label: '个人档案', icon: 'user-circle' },
-    ],
-  },
-  {
-    title: '设置',
-    items: [{ path: '/settings', label: '设置', icon: 'gear' }],
   },
 ];
 
-function isActive(path) {
-  if (path === '/dashboard') {
-    return route.path === path;
+function isActive(item) {
+  if (item.section === 'resumes') {
+    return route.path === '/dashboard' && route.query.section === 'resumes';
   }
-  if (path.endsWith('/')) {
-    return route.path.startsWith(path);
+  if (item.path === '/dashboard') {
+    return route.path === item.path && route.query.section !== 'resumes';
   }
-  return route.path === path || route.path.startsWith(`${path}/`);
+  return route.path === item.path || route.path.startsWith(item.path + '/');
 }
 
-const displayName = computed(() => authStore.currentUser?.username || '用户');
-// 本地身份没有真实邮箱，侧边栏显示「本地身份」而不是占位邮箱
+const displayName = computed(() => authStore.currentUser?.username || (isDesktopApp ? '访客模式' : '用户'));
+// 游客身份没有真实邮箱，侧边栏显示模式说明而不是占位邮箱。
 const displayEmail = computed(() => {
   if (isLocalIdentity(authStore.currentUser)) {
-    return '本地身份';
+    return '游客模式';
+  }
+  if (isDesktopApp && !authStore.isAuthenticated) {
+    return authStore.guestSessionState === 'error' ? '游客模式未连接' : '正在连接游客模式';
   }
   return authStore.currentUser?.email || '未绑定邮箱';
 });
-const avatarUrl = computed(() => authStore.currentUser?.avatarUrl || '');
-const userInitial = computed(() => displayName.value.charAt(0).toUpperCase());
+const guestIdentity = computed(() => isDesktopApp && (!authStore.isAuthenticated || isLocalIdentity(authStore.currentUser)));
 
-function handleLogout() {
+function goToAccountLogin() {
+  router.push('/login');
+}
+
+async function handleLogout() {
   authStore.logout();
+  if (isDesktopApp) {
+    try {
+      await authStore.loginAsGuest();
+    } catch {
+      // 游客模式仍会显示工作台，并在页面里提供重试入口。
+    }
+    router.push('/dashboard');
+    return;
+  }
   router.push('/login');
 }
 </script>
-
 <style scoped>
-/* ========================================
-   应用壳骨架：左侧栏 + 独立滚动内容区
-   ======================================== */
 .app-shell {
   display: flex;
+  width: 100%;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
   background: var(--ui-bg-app);
-  background-image: var(--ui-bg-app-wash);
   color: var(--ui-fg-primary);
   font-family: var(--ui-font-sans);
 }
 
-/* ---- 访客页整页铺满 ---- */
 .app-guest {
   flex: 1;
   min-width: 0;
@@ -184,276 +181,342 @@ function handleLogout() {
   overflow-y: auto;
 }
 
-/* ========================================
-   侧边栏
-   ======================================== */
 .app-sidebar {
-  width: var(--ui-sidebar-width);
-  flex-shrink: 0;
   display: flex;
+  width: var(--ui-sidebar-width);
+  min-width: var(--ui-sidebar-width);
+  height: 100%;
   flex-direction: column;
-  min-height: 0;
-  background: var(--ui-bg-surface);
-  border-right: 1px solid var(--ui-border-hairline);
-  transition: width var(--ui-duration-normal) var(--ui-ease-out);
+  background: var(--ui-bg-app);
+  border-right: 1px solid var(--ui-grid-line-strong);
 }
 
 .app-sidebar--collapsed {
   width: var(--ui-sidebar-width-collapsed);
+  min-width: var(--ui-sidebar-width-collapsed);
 }
 
-/* ---- 品牌标识 ---- */
 .sidebar-brand {
+  position: relative;
   display: flex;
+  min-height: 140px;
   align-items: center;
-  gap: var(--ui-space-3);
-  height: var(--ui-header-height);
-  flex-shrink: 0;
-  padding: 0 var(--ui-space-4);
-  border-bottom: 1px solid var(--ui-border-hairline);
-}
-
-.sidebar-brand__mark {
-  display: flex;
-  flex-shrink: 0;
-  color: var(--ui-fg-accent);
+  gap: 8px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--ui-grid-line);
 }
 
 .sidebar-brand__text {
-  font-family: var(--ui-font-display);
-  font-size: var(--ui-text-base);
-  font-weight: 650;
-  letter-spacing: var(--ui-tracking-snug);
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 1px;
+}
+
+.sidebar-collapse {
+  display: grid;
+  width: 22px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ui-fg-muted);
+  cursor: pointer;
+}
+
+.sidebar-collapse:hover {
+  border-color: var(--ui-grid-line);
   color: var(--ui-fg-primary);
-  white-space: nowrap;
+}
+
+.sidebar-collapse:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 1px;
+}
+
+.sidebar-collapse .app-icon {
+  transition: transform var(--ui-duration-normal) var(--ui-ease-out);
+}
+
+.sidebar-collapse .is-flipped {
+  transform: rotate(180deg);
+}
+
+.sidebar-brand__name {
   overflow: hidden;
+  color: var(--ui-fg-primary);
+  font-family: var(--ui-font-display);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sidebar-create {
-  margin: var(--ui-space-3) var(--ui-space-3) 0;
-  justify-content: center;
+.sidebar-brand__tagline {
+  margin-top: 4px;
+  color: var(--ui-fg-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
-/* ---- 分组导航 ---- */
 .sidebar-nav {
   flex: 1;
   min-height: 0;
-  padding: var(--ui-space-4) var(--ui-space-3);
+  padding: 0 2px 12px;
+  overflow-y: auto;
 }
 
 .nav-group + .nav-group {
-  margin-top: var(--ui-space-5);
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-grid-line);
 }
 
 .nav-group__title {
-  margin: 0 0 var(--ui-space-2);
-  padding: 0 var(--ui-space-3);
-  font-size: var(--ui-text-xs);
-  font-weight: 600;
+  margin: 10px 0 6px;
+  padding: 0 22px;
   color: var(--ui-fg-muted);
-  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .nav-item {
   position: relative;
   display: flex;
+  min-height: 66px;
   align-items: center;
-  gap: var(--ui-space-3);
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border-radius: var(--ui-radius-md);
-  color: var(--ui-fg-secondary);
-  font-size: var(--ui-text-base);
+  gap: 28px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--ui-grid-line);
+  color: var(--ui-fg-primary);
+  font-size: 16px;
   font-weight: 500;
-  line-height: 1.5rem;
+  line-height: 1.35;
   text-decoration: none;
   transition: background var(--ui-duration-fast) var(--ui-ease-out),
     color var(--ui-duration-fast) var(--ui-ease-out);
 }
 
-.nav-item + .nav-item {
-  margin-top: var(--ui-space-1);
+.nav-item:first-of-type {
+  min-height: 58px;
 }
 
 .nav-item:hover {
   background: var(--ui-bg-hover);
-  color: var(--ui-fg-primary);
 }
 
 .nav-item:focus-visible {
-  outline: none;
-  box-shadow: var(--ui-ring);
+  outline: 2px solid var(--ui-accent);
+  outline-offset: -3px;
 }
 
 .nav-item.is-active {
-  background: var(--ui-bg-selected);
-  color: var(--ui-fg-accent);
+  background: var(--ui-accent);
+  color: var(--ui-accent-fg);
   font-weight: 600;
 }
 
-/* 选中项左侧一道品牌色竖条：替代整块底色的第二种强调手段 */
-.nav-item.is-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  border-radius: var(--ui-radius-full);
-  background: var(--ui-accent);
-}
-
 .nav-item__icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
 }
 
 .nav-item__label {
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ---- 侧边栏底部：用户信息与操作 ---- */
 .sidebar-footer {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-top: 1px solid var(--ui-grid-line-strong);
+}
+
+.sidebar-footer__row {
   display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-1);
-  padding: var(--ui-space-3);
-  border-top: 1px solid var(--ui-border);
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 5px;
 }
 
 .sidebar-user {
   display: flex;
-  align-items: center;
-  gap: var(--ui-space-3);
-  padding: var(--ui-space-2);
   min-width: 0;
-}
-
-.sidebar-user__avatar {
-  display: inline-flex;
+  flex: 1;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ui-radius-full);
-  background: var(--ui-accent-soft);
-  border: 1px solid var(--ui-accent-border);
-  color: var(--ui-fg-accent);
-  font-size: var(--ui-text-sm);
-  font-weight: 600;
-  overflow: hidden;
+  gap: 8px;
+  padding: 4px 6px;
+  color: var(--ui-fg-primary);
+  text-decoration: none;
 }
 
-.sidebar-user__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.sidebar-user__icon {
+  flex: 0 0 auto;
+  color: var(--ui-fg-secondary);
 }
 
 .sidebar-user__meta {
   display: flex;
-  flex-direction: column;
   min-width: 0;
-  line-height: 1.25rem;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.sidebar-user__name,
+.sidebar-user__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-user__name {
-  font-size: var(--ui-text-base);
-  font-weight: 600;
   color: var(--ui-fg-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .sidebar-user__email {
-  font-size: var(--ui-text-xs);
+  margin-top: 2px;
   color: var(--ui-fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.sidebar-user:hover .sidebar-user__name {
+  color: var(--ui-accent);
 }
 
 .sidebar-action {
-  justify-content: flex-start;
-  gap: var(--ui-space-3);
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--ui-fg-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sidebar-action:hover {
+  border-color: var(--ui-grid-line);
+  background: var(--ui-bg-hover);
+  color: var(--ui-fg-primary);
+}
+
+.sidebar-action:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: -2px;
 }
 
 .sidebar-action__icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  transition: transform var(--ui-duration-normal) var(--ui-ease-in-out);
+  flex: 0 0 auto;
 }
 
-.sidebar-action__icon--flip.is-flipped {
-  transform: rotate(180deg);
-}
-
-/* ---- 收起态：只留图标 ---- */
 .app-sidebar--collapsed .sidebar-brand {
   justify-content: center;
-  padding: 0;
+  gap: 0;
+  padding-right: 0;
+  padding-left: 0;
 }
 
 .app-sidebar--collapsed .sidebar-brand__text,
-.app-sidebar--collapsed .nav-item__label,
 .app-sidebar--collapsed .nav-group__title,
-.app-sidebar--collapsed .sidebar-user__meta {
+.app-sidebar--collapsed .nav-item__label,
+.app-sidebar--collapsed .sidebar-user__meta,
+.app-sidebar--collapsed .sidebar-action__label {
   display: none;
 }
 
 .app-sidebar--collapsed .nav-item,
 .app-sidebar--collapsed .sidebar-action {
   justify-content: center;
-  padding-left: 0;
   padding-right: 0;
-}
-
-.app-sidebar--collapsed .nav-group + .nav-group {
-  margin-top: var(--ui-space-3);
-  padding-top: var(--ui-space-3);
-  border-top: 1px solid var(--ui-border-subtle);
+  padding-left: 0;
 }
 
 .app-sidebar--collapsed .sidebar-user {
   justify-content: center;
 }
 
-/* ========================================
-   主内容区
-   ======================================== */
 .app-body {
-  flex: 1;
+  display: flex;
   min-width: 0;
   min-height: 0;
-  display: flex;
+  flex: 1;
   flex-direction: column;
 }
 
 .app-content {
-  flex: 1;
   min-height: 0;
-  padding: var(--ui-space-8);
+  flex: 1;
+  padding: 0;
+  overflow: auto;
 }
 
 .app-content__inner {
   width: 100%;
-  max-width: var(--ui-content-max);
-  margin: 0 auto;
+  min-height: 100%;
+  margin: 0;
+  padding: var(--ui-space-8);
 }
 
-/* ---- 窄窗口：压缩间距，避免横向滚动 ---- */
+.app-content__inner--flush {
+  padding: 0;
+}
+
 @media (max-width: 1100px) {
-  .app-content {
+  .app-content__inner {
     padding: var(--ui-space-6);
   }
 
+  .app-content__inner--flush {
+    padding: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-sidebar,
+  .app-sidebar--collapsed {
+    width: var(--ui-sidebar-width-collapsed);
+    min-width: var(--ui-sidebar-width-collapsed);
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    gap: 0;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .sidebar-brand__text,
+  .nav-group__title,
+  .nav-item__label,
+  .sidebar-user__meta,
+  .sidebar-action__label {
+    display: none;
+  }
+
+  .nav-item,
+  .sidebar-action {
+    justify-content: center;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .sidebar-user {
+    justify-content: center;
+  }
 }
 </style>

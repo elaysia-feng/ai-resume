@@ -22,11 +22,8 @@ const routes = [
     meta: { guest: true },
   },
   {
-    // 桌面端首次启动：创建本地身份（昵称 + 账号头像），不需要邮箱验证码和密码
     path: '/welcome',
-    name: 'Welcome',
-    component: () => import('../views/LocalProfileView.vue'),
-    meta: { guest: true },
+    redirect: { name: 'Home' },
   },
   {
     path: '/dashboard',
@@ -104,27 +101,31 @@ const router = createRouter({
   routes,
 });
 
-// 桌面端（Electron）才走「创建本地身份」；网页端保持原来的登录 / 注册流程
+// 桌面端默认进入游客工作台；网页端保持原来的登录 / 注册流程。
 const isDesktopApp = typeof window !== 'undefined' && !!window.desktop;
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
+
+  if (isDesktopApp) {
+    if (to.name === 'Lobby' || to.name === 'Welcome') {
+      next({ name: 'Home' });
+      return;
+    }
+    next();
+    return;
+  }
+
   const requiresAuth = to.meta.requiresAuth;
   const isGuest = to.meta.guest;
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    next(isDesktopApp ? { name: 'Welcome' } : { name: 'Login', query: { redirect: to.fullPath } });
+    next({ name: 'Login', query: { redirect: to.fullPath } });
     return;
   }
 
   if (isGuest && authStore.isAuthenticated) {
     next({ name: 'Home' });
-    return;
-  }
-
-  // 桌面端首次启动：还没建本地身份就先去建，之后会直接进工作台
-  if (isDesktopApp && !authStore.isAuthenticated && to.name !== 'Welcome') {
-    next({ name: 'Welcome' });
     return;
   }
 

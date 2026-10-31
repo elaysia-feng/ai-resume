@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.dev_resume_controller import router as dev_resume_router
 from app.api.health_controller import router as health_router
+from app.api.internal.chat_controller import router as internal_chat_router
 from app.api.internal.graph_controller import router as graph_router
 
 # 统一汇总所有 API 路由，避免在 main.py 里逐个注册。
@@ -13,3 +14,4 @@ api_router = APIRouter()
 api_router.include_router(health_router)
 api_router.include_router(dev_resume_router)
 api_router.include_router(graph_router)
+api_router.include_router(internal_chat_router)

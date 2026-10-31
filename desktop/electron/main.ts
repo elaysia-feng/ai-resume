@@ -22,8 +22,22 @@ let supervisor: BackendSupervisor | null = null;
 
 /** 开发模式的渲染层地址，dev 脚本通过 AI_RESUME_DEV_SERVER_URL 注入 */
 const DEV_SERVER_URL = (process.env.AI_RESUME_DEV_SERVER_URL || '').trim();
-/** 后端地址，可用 AI_RESUME_BACKEND_URL 覆盖 */
-const BACKEND_BASE_URL = (process.env.AI_RESUME_BACKEND_URL || 'http://localhost:8080').replace(/\/+$/, '');
+/** 缓存应用配置，渲染层 API 和后端探活共用同一地址。 */
+let currentConfig: AppConfig | null = null;
+
+function getAppConfig(): AppConfig {
+  if (!currentConfig) {
+    currentConfig = loadConfig(installDir());
+  }
+  return currentConfig;
+}
+
+/** 显式调试地址优先；默认使用应用配置里的 Java 服务地址。 */
+function backendBaseUrl(): string {
+  const override = (process.env.AI_RESUME_BACKEND_URL || '').trim();
+  const config = getAppConfig();
+  return (override || `http://${config.server.host}:${config.server.port}`).replace(/\/+$/, '');
+}
 /** 后端探活轮询间隔 */
 const BACKEND_PROBE_INTERVAL_MS = 5000;
 /** 等待开发服务器就绪的最长时间 */
@@ -39,7 +53,7 @@ const RENDERER_CANDIDATES = [path.join('renderer', 'dist', 'index.html'), path.j
 let mainWindow: BrowserWindow | null = null;
 let backendStatus: BackendStatus = {
   online: false,
-  baseUrl: BACKEND_BASE_URL,
+  baseUrl: '',
   checkedAt: 0,
   message: '尚未检测',
 };
@@ -136,7 +150,7 @@ function broadcast(channel: string, payload: unknown): void {
 
 /** 重新探活后端，状态变化时广播给所有窗口 */
 async function refreshBackendStatus(): Promise<BackendStatus> {
-  const next = await probeBackend(BACKEND_BASE_URL);
+  const next = await probeBackend(backendBaseUrl());
   const changed = next.online !== backendStatus.online || next.message !== backendStatus.message;
   backendStatus = next;
   if (changed) {
@@ -179,27 +193,27 @@ function registerIpcHandlers(): void {
   ipcMain.handle('desktop:backend-refresh', () => refreshBackendStatus());
 
   // ---- 配置与后端进程 ----
-  ipcMain.handle('desktop:get-app-config', () => loadConfig(installDir()));
+  ipcMain.handle('desktop:get-app-config', () => getAppConfig());
   ipcMain.handle('desktop:save-app-config', (_event, config: AppConfig) => {
-    const saved = loadConfig(installDir());
+    const saved = getAppConfig();
     const merged: AppConfig = {
-      chat: { ...saved.chat, ...(config?.chat ?? {}) },
       agent: { ...saved.agent, ...(config?.agent ?? {}) },
       server: { ...saved.server, ...(config?.server ?? {}) },
       python: { ...saved.python, ...(config?.python ?? {}) },
       internalToken: config?.internalToken ?? saved.internalToken,
     };
     saveConfig(installDir(), merged);
+    currentConfig = merged;
     return merged;
   });
   ipcMain.handle('desktop:restart-backends', () => {
-    supervisor?.restart(loadConfig(installDir()));
+    supervisor?.restart(getAppConfig());
   });
   ipcMain.handle('desktop:get-backend-processes', () => supervisor?.status() ?? []);
 
   // preload 需要同步拿到基础信息，这里用 sendSync 返回
   ipcMain.on('desktop:backend-base-url', (event) => {
-    event.returnValue = BACKEND_BASE_URL;
+    event.returnValue = backendBaseUrl();
   });
   ipcMain.on('desktop:platform', (event) => {
     event.returnValue = process.platform;
@@ -235,8 +249,9 @@ function createWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 640,
     show: false,
+    autoHideMenuBar: true,
     title: 'AI Resume Forge',
-    backgroundColor: '#fafaf9',
+    backgroundColor: '#f7f7f8',
     icon: resolveAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -338,7 +353,7 @@ if (!app.requestSingleInstanceLock()) {
     registerIpcHandlers();
 
     // 桌面端是自包含应用：后端由主进程拉起并守护，用户不用自己开命令行。
-    supervisor = new BackendSupervisor(installDir(), loadConfig(installDir()), (state) => {
+    supervisor = new BackendSupervisor(installDir(), getAppConfig(), (state) => {
       broadcast('desktop:backend-process-changed', state);
     });
     supervisor.start();

@@ -4,7 +4,7 @@
       <div class="agent-copilot__heading">
         <h3 class="agent-copilot__title">
           <AppIcon name="sparkle" :size="16" />
-          模块 Copilot
+          模块 AI 助手
         </h3>
         <p class="agent-copilot__subtitle">{{ sectionTitle }}</p>
       </div>

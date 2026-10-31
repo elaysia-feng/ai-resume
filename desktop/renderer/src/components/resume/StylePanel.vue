@@ -189,7 +189,7 @@ const sidebarColors = [
   { value: 'gray', name: '浅灰', label: '浅灰', swatch: 'linear-gradient(180deg, var(--ui-neutral-100) 0%, var(--ui-neutral-50) 100%)' },
 ]
 
-const showSidebarColor = computed(() => localStyle.template === 'modern')
+const showSidebarColor = computed(() => ['compact', 'dual-creative', 'sales-growth'].includes(localStyle.template))
 
 const fontSizes = [9, 10, 11, 12]
 

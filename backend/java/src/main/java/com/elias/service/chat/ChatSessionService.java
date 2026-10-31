@@ -10,9 +10,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 /**
- * 对话服务。
+ * 聊天会话与消息服务；模型请求由 Python AI 运行时执行。
  */
-public interface ChatService {
+public interface ChatSessionService {
 
     /**
      * 创建对话会话

@@ -49,13 +49,16 @@ public class AgentSessionController {
      * 查询当前用户会话列表
      *
      * @param resumeId  关联简历ID，可为空
-     * @param sceneCode 会话场景，可为空
+     * @param sceneCode       会话场景，可为空
+     * @param targetSectionId 简历分区；传 0 时只查询未绑定分区的旧会话
      * @return 会话列表
      */
     @GetMapping
-    public ApiResponse<List<AgentSessionItemResponse>> listSessions(@RequestParam(required = false) Long resumeId,
-            @RequestParam(required = false) String sceneCode) {
-        return ApiResponse.ok(agentSessionService.listSessions(resumeId, sceneCode));
+    public ApiResponse<List<AgentSessionItemResponse>> listSessions(
+            @RequestParam(required = false) Long resumeId,
+            @RequestParam(required = false) String sceneCode,
+            @RequestParam(required = false) Long targetSectionId) {
+        return ApiResponse.ok(agentSessionService.listSessions(resumeId, sceneCode, targetSectionId));
     }
 
     /**

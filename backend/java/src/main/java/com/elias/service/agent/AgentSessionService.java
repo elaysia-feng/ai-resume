@@ -22,7 +22,7 @@ public interface AgentSessionService {
     /**
      * 查询当前用户会话列表
      */
-    List<AgentSessionItemResponse> listSessions(Long resumeId, String sceneCode);
+    List<AgentSessionItemResponse> listSessions(Long resumeId, String sceneCode, Long targetSectionId);
 
     /**
      * 查询会话详情

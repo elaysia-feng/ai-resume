@@ -15,21 +15,19 @@
                │ HTTP + SSE                                  │ IPC
                ▼                                             ▼
 ┌────────────────────────── Java 后端 (8080) ───────────────────────────┐
-│  /api/chat/**    对话循环 + 工具调用 + MiniMax M3.1 Flash                │
+│  /api/chat/**    会话鉴权、消息落库、Python SSE 代理                      │
 │  /api/files/**   本地磁盘文件（带鉴权下载）                                │
 │  业务域          简历 / Agent / 面试 / 个人资料 / 通知                       │
-│  工具            read_local_file / list_dir / search_in_files /           │
-│                  choose_workspace_root                                    │
 └──────────────┬──────────────────────────────────────────────────────────┘
                │ HTTP（内部）
                ▼
 ┌────────────────── Python AI 运行时 (8000) ──────────────────┐
-│  保留：LangGraph 简历优化 / 面试模拟工作流（RAG、模型 provider） │
+│  模型调用、提示词、工作区聊天工具、LangGraph 简历与面试工作流 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **分工原则**
-- 文件读写、LLM 对话循环、工具执行 → **Java 后端**（它跑在用户本机，权限完整，且无跨进程中转）
+- 用户鉴权、会话权限和消息落库 → **Java 后端**；聊天模型调用与工作区只读工具 → **Python AI 运行时**
 - 「用户选哪个目录」这种原生 UI 交互 → **Electron 主进程**（`dialog`），选完把路径 POST 给 Java
 - 深度 AI 能力（LangGraph 工作流、RAG） → **Python**，由 Java 通过内部接口调用
 
@@ -124,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `user_setting` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户级设置';
 ```
 
-## 4. 工具（Java 侧执行，模型通过 tool calling 触发）
+## 4. 工具（Python 侧执行，模型通过 tool calling 触发）
 
 | 工具名 | 入参 | 行为 | 限制 |
 |---|---|---|---|
@@ -138,25 +136,14 @@ CREATE TABLE IF NOT EXISTS `user_setting` (
 2. 拒绝含 `..` 的路径
 3. 拒绝符号链接逃逸（`toRealPath()` 后再校验一次）
 
-## 5. MiniMax 接入（Java）
+## 5. Python ChatModel 与供应商兼容协议
 
-- 端点：`https://api.minimaxi.com/anthropic/v1/messages`（Anthropic 兼容）
-- 模型名：`MiniMax-M3.1-Flash`（**已实测有效**，不是 `MiniMax-M3`）
-- 鉴权头：`x-api-key: <token>` + `authorization: Bearer <token>`，`anthropic-version: 2023-06-01`
-- **原生支持 tool calling**（已实测：会返回 `tool_use` block，`stop_reason=tool_use`）
-- 配置项（`application.yaml`）：
-  ```yaml
-  minimax:
-    base-url: ${MINIMAX_BASE_URL:https://api.minimaxi.com/anthropic}
-    # 密钥属性名必须是 anthropic-api-key，不能叫 api-key：
-    # Spring 的 relaxed binding 会把 minimax.api-key 映射到操作系统环境变量 MINIMAX_API_KEY，
-    # 而操作系统环境变量优先级高于 .env，会把 .env 里能用的 key 盖掉（本机那个旧 key 只对
-    # 原生 chatcompletion 端点有效，对本兼容端点会 401）。
-    anthropic-api-key: ${MINIMAX_ANTHROPIC_API_KEY:${MINIMAX_API_KEY:}}
-    model: ${MINIMAX_MODEL:MiniMax-M3.1-Flash}
-    max-tokens: ${MINIMAX_MAX_TOKENS:4096}
-  ```
-- **缺 api-key 时不要启动失败**（跟 OSS 一样，延迟到真正调用时报错），但调用时必须给清晰报错
+- 所有模型调用、提示词、Agent 编排和聊天工具执行都在 Python；Java 保留用户鉴权、会话和消息落库，并代理 SSE。
+- Python 通过 LangChain `init_chat_model` 创建统一 `BaseChatModel`。设置页可选择 OpenAI、Anthropic、DeepSeek、Google GenAI、OpenRouter、Ollama、xAI、Mistral、Groq、Together、Hugging Face、Bedrock 或 LiteLLM 集成。
+- 服务预设只填入常见地址和模型 ID，所有字段仍可修改；自建中转站填写它实际实现的协议、Base URL、模型 ID、额外请求头和集成原生参数。额外请求头是否可用取决于所选集成。
+- 中转站名称不等于它支持的协议。使用中转站时按其实际请求/响应格式选择适配器；它还需要支持工具调用、流式输出和简历 Agent 使用的结构化输出。只支持普通文本聊天的中转站不能完成这些工作流。
+- Python 按集成映射通用 API Key、地址、超时、最大 token 和请求头；`providerOptions` 用于传递该集成自己的参数。Bedrock 可使用 AWS 凭据链或初始化参数，Ollama 可不填 API Key。
+- MiniMax 的 Anthropic 兼容 Base URL 为 `https://api.minimaxi.com/anthropic`，常用模型 ID 可按账户实际可用值填写。
 
 ## 6. Electron 桌面端
 
@@ -209,16 +196,15 @@ interface DesktopApi {
 
 ```yaml
 # {安装目录}/config/application.yaml
-chat:                      # Java 对话链路，Anthropic 兼容端点
-  baseUrl: https://api.minimaxi.com/anthropic
+agent:                     # 所有 AI 功能共用，由 Python ChatModel 使用
+  provider: deepseek       # 服务预设标识，只用于设置页默认值
+  modelProvider: deepseek  # LangChain ChatModel 集成标识
+  baseUrl: https://api.deepseek.com
   apiKey: ''
-  model: MiniMax-M3.1-Flash
+  model: deepseek-flash
   maxTokens: 4096
-agent:                     # Python Agent 链路，OpenAI 兼容端点
-  provider: deepseek       # deepseek / mimo / custom
-  baseUrl: https://api.deepseek.com/v1
-  apiKey: ''
-  model: deepseek-chat
+  extraHeaders: {}         # 中转站特殊请求头，可选
+  providerOptions: {}      # 所选集成的原生初始化参数，可选
 server:                    # Java 后端监听地址
   host: 127.0.0.1
   port: 8080

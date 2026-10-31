@@ -10,32 +10,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse, stringify } from 'yaml';
 
-/** Java 对话模型配置（Anthropic 兼容端点） */
-export interface ChatModelConfig {
-  /** Anthropic 兼容端点前缀，实际请求 {baseUrl}/v1/messages */
-  baseUrl: string;
-  /** API Key，同时作为 x-api-key 和 authorization 头 */
-  apiKey: string;
-  /** 模型名 */
-  model: string;
-  /** 单次请求最大输出 token */
-  maxTokens: number;
-}
-
-/** Python Agent 模型配置（OpenAI 兼容端点） */
-export interface AgentModelConfig {
-  /** 供应商：deepseek / mimo / custom */
+/** 全部 Python AI 功能共用的模型配置。 */
+export interface AiModelConfig {
+  /** 供应商预设标识；custom 表示用户自定义端点。 */
   provider: string;
-  /** OpenAI 兼容端点前缀 */
+  /** LangChain ChatModel 集成标识，例如 openai、deepseek、ollama。 */
+  modelProvider: string;
+  /** 供应商兼容 API 的 Base URL。 */
   baseUrl: string;
   apiKey: string;
   model: string;
+  maxTokens: number;
+  extraHeaders: Record<string, string>;
+  providerOptions: Record<string, unknown>;
 }
 
 /** 整体应用配置 */
 export interface AppConfig {
-  chat: ChatModelConfig;
-  agent: AgentModelConfig;
+  agent: AiModelConfig;
   /** Java 后端监听地址 */
   server: {
     host: string;
@@ -58,17 +50,15 @@ export const CONFIG_FILE_NAME = 'application.yaml';
 
 export function defaultConfig(): AppConfig {
   return {
-    chat: {
-      baseUrl: 'https://api.minimaxi.com/anthropic',
-      apiKey: '',
-      model: 'MiniMax-M3.1-Flash',
-      maxTokens: 4096,
-    },
     agent: {
       provider: 'deepseek',
-      baseUrl: 'https://api.deepseek.com/v1',
+      modelProvider: 'deepseek',
+      baseUrl: 'https://api.deepseek.com',
       apiKey: '',
-      model: 'deepseek-chat',
+      model: 'deepseek-flash',
+      maxTokens: 4096,
+      extraHeaders: {},
+      providerOptions: {},
     },
     server: {
       host: '127.0.0.1',
@@ -104,7 +94,7 @@ export function loadConfig(installDir: string): AppConfig {
     return config;
   }
   try {
-    const parsed = parse(fs.readFileSync(file, 'utf-8')) as Partial<AppConfig> | null;
+    const parsed = parse(fs.readFileSync(file, 'utf-8')) as LegacyAppConfig | null;
     return mergeConfig(defaultConfig(), parsed ?? {});
   } catch (error) {
     console.error(`[config] 解析 ${file} 失败，回退到默认配置:`, error);
@@ -120,12 +110,41 @@ export function saveConfig(installDir: string, config: AppConfig): void {
 }
 
 /** 用已有配置逐字段覆盖默认值，缺字段补默认 */
-function mergeConfig(base: AppConfig, override: Partial<AppConfig>): AppConfig {
+function mergeConfig(base: AppConfig, override: LegacyAppConfig): AppConfig {
+  let agentOverride = override.agent ?? {};
+  const legacyChat = override.chat;
+  if (!agentOverride.apiKey?.trim() && legacyChat?.apiKey?.trim()) {
+    const baseUrl = legacyChat.baseUrl ?? '';
+    const modelProvider = /\/anthropic(?:\/|$)/i.test(baseUrl) ? 'anthropic' : 'openai';
+    agentOverride = {
+      provider: modelProvider === 'anthropic' && /minimaxi/i.test(baseUrl) ? 'minimax' : 'custom',
+      modelProvider,
+      baseUrl,
+      apiKey: legacyChat.apiKey,
+      model: legacyChat.model ?? '',
+      maxTokens: legacyChat.maxTokens ?? base.agent.maxTokens,
+    };
+  } else if (!agentOverride.modelProvider && agentOverride.provider) {
+    agentOverride = {
+      ...agentOverride,
+      modelProvider: agentOverride.provider === 'deepseek' ? 'deepseek' : 'openai',
+    };
+  }
   return {
-    chat: { ...base.chat, ...(override.chat ?? {}) },
-    agent: { ...base.agent, ...(override.agent ?? {}) },
+    agent: { ...base.agent, ...agentOverride },
     server: { ...base.server, ...(override.server ?? {}) },
     python: { ...base.python, ...(override.python ?? {}) },
     internalToken: override.internalToken ?? base.internalToken,
   };
 }
+
+type LegacyChatModelConfig = {
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+  maxTokens?: number;
+};
+
+type LegacyAppConfig = Partial<AppConfig> & {
+  chat?: LegacyChatModelConfig;
+};

@@ -45,6 +45,11 @@ public class AgentSession {
     private String sceneCode;
 
     /**
+     * 模块助手会话所属的简历分区；为空时表示通用会话或旧版共享会话。
+     */
+    private Long targetSectionId;
+
+    /**
      * 会话标题
      */
     private String sessionTitle;

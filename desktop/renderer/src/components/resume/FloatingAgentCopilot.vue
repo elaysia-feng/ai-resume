@@ -3,8 +3,8 @@
     v-if="!open"
     class="copilot-launcher"
     type="button"
-    title="打开 AI 助手"
-    aria-label="打开 AI 助手"
+    title="打开模块 AI 助手"
+    aria-label="打开模块 AI 助手"
     @click="open = true"
   >
     <AppIcon name="sparkle" :size="22" />
@@ -18,7 +18,7 @@
   >
     <header class="floating-copilot__header" @mousedown="startDrag">
       <div class="floating-copilot__heading">
-        <strong class="floating-copilot__title">AI 助手</strong>
+          <strong class="floating-copilot__title">模块 AI 助手</strong>
         <span class="floating-copilot__subtitle">{{ sectionTitle }}</span>
       </div>
       <div class="floating-copilot__tools">
@@ -31,15 +31,32 @@
 
     <div v-if="!minimized" class="floating-copilot__body">
       <div class="floating-copilot__row">
-        <select v-model="sessionId" class="ui-input ui-select" aria-label="选择简历 AI 会话" @change="onSessionChange">
-          <option :value="null">选择会话</option>
-          <option v-for="session in sessions" :key="session.id" :value="session.id">
-            {{ session.sessionTitle || `Session ${session.id}` }}
-          </option>
+        <select v-model="sessionId" class="ui-input ui-select" :aria-label="`选择${sectionTitle}的 AI 会话`" @change="onSessionChange">
+          <option :value="null">选择当前分区会话</option>
+          <optgroup v-if="sessions.length" :label="`${sectionTitle} 会话`">
+            <option v-for="session in sessions" :key="session.id" :value="session.id">
+              {{ session.sessionTitle || `会话 #${session.id}` }}{{ session.activeRunId ? ' · 处理中' : '' }}
+            </option>
+          </optgroup>
+          <optgroup v-if="legacySessions.length" label="旧版共享会话（只读）">
+            <option v-for="session in legacySessions" :key="`legacy-${session.id}`" :value="session.id">
+              {{ session.sessionTitle || `会话 #${session.id}` }}
+            </option>
+          </optgroup>
         </select>
-        <button type="button" class="ui-btn ui-btn--sm ui-btn--outline" @click="newSession">新建会话</button>
+        <button
+          type="button"
+          class="ui-btn ui-btn--sm ui-btn--outline"
+          :disabled="!canCreateSession || creatingSession"
+          @click="newSession"
+        >
+          {{ creatingSession ? '创建中…' : '新建会话' }}
+        </button>
       </div>
 
+      <p v-if="isLegacySession" class="floating-copilot__legacy-note" role="note">
+        这是旧版共享会话，只能查看历史。新建会话后，{{ sectionTitle }} 的上下文会单独保存。
+      </p>
       <div class="floating-copilot__field">
         <label class="ui-label" for="floating-copilot-jd">目标岗位 JD</label>
         <textarea
@@ -151,6 +168,7 @@ import AppIcon from '../common/AppIcon.vue';
 import {
   approveAgentRun,
   continueAgentRun,
+  createClientRequestId,
   createAgentSession,
   getAgentRun,
   getAgentRunEvents,
@@ -181,10 +199,12 @@ const position = ref({ x: window.innerWidth - 460, y: 92 });
 const dragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 const sessions = ref([]);
+const legacySessions = ref([]);
 const sessionId = ref(null);
 const messages = ref([]);
 const running = ref(false);
 const approving = ref(false);
+const creatingSession = ref(false);
 const useMock = ref(shouldUseAgentMock());
 const userInput = ref('');
 const jobDescription = ref('');
@@ -195,17 +215,40 @@ const clarificationAnswers = ref({});
 const selectedPatchIds = ref([]);
 const error = ref('');
 const statusText = ref('');
+const runStreamController = ref(null);
 let runStreamGeneration = 0;
+let lastResolvedResumeId = null;
+let lastRequestedSessionId = null;
+const pendingStartRequestIds = new Map();
 
 const sectionTitle = computed(() => props.section?.sectionTitle || '未选择模块');
-const canStart = computed(() => Boolean(props.resumeId && props.section?.id));
+const currentSession = computed(() =>
+  [...sessions.value, ...legacySessions.value].find((session) => String(session.id) === String(sessionId.value)) || null
+);
+const isLegacySession = computed(() => Boolean(currentSession.value && !currentSession.value.targetSectionId));
+const canCreateSession = computed(() => Boolean(props.resumeId && props.section?.id));
+const canStart = computed(() => canCreateSession.value && !isLegacySession.value);
 const panelStyle = computed(() => ({
   transform: `translate(${Math.max(12, position.value.x)}px, ${Math.max(12, position.value.y)}px)`,
 }));
 
-watch(() => [props.resumeId, props.sessionId], () => {
+watch(() => [props.resumeId, props.section?.id, props.sessionId], ([resumeId, sectionId, requestedSessionId]) => {
+  if (!resumeId || !sectionId) {
+    return;
+  }
+  const resumeChanged = String(resumeId) !== String(lastResolvedResumeId);
+  const requestedSessionChanged = requestedSessionId
+    && String(requestedSessionId) !== String(lastRequestedSessionId);
+  const preferredSessionId = resumeChanged || requestedSessionChanged ? requestedSessionId : null;
+  lastResolvedResumeId = resumeId;
+  lastRequestedSessionId = requestedSessionId;
+  runStreamController.value?.abort();
+  runStreamController.value = null;
   runStreamGeneration += 1;
   sessionId.value = null;
+  sessions.value = [];
+  legacySessions.value = [];
+  jobDescription.value = '';
   messages.value = [];
   events.value = [];
   approvalPayload.value = null;
@@ -214,7 +257,7 @@ watch(() => [props.resumeId, props.sessionId], () => {
   running.value = false;
   error.value = '';
   statusText.value = '';
-  refreshSessions(props.sessionId);
+  refreshSessions(preferredSessionId);
 }, { immediate: true });
 
 onMounted(() => {
@@ -225,10 +268,11 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('mousemove', onDrag);
   window.removeEventListener('mouseup', stopDrag);
+  runStreamController.value?.abort();
 });
 
 async function refreshSessions(preferredSessionId = null) {
-  if (!props.resumeId) {
+  if (!props.resumeId || !props.section?.id) {
     return;
   }
   if (useMock.value) {
@@ -239,15 +283,26 @@ async function refreshSessions(preferredSessionId = null) {
     return;
   }
   try {
-    sessions.value = await listAgentSessions({ resumeId: props.resumeId, sceneCode: 'JD_CUSTOMIZE' });
+    const [moduleSessions, unboundSessions] = await Promise.all([
+      listAgentSessions({
+        resumeId: props.resumeId,
+        sceneCode: 'JD_CUSTOMIZE',
+        targetSectionId: Number(props.section.id),
+      }),
+      listAgentSessions({ resumeId: props.resumeId, sceneCode: 'JD_CUSTOMIZE', targetSectionId: 0 }),
+    ]);
+    sessions.value = Array.isArray(moduleSessions) ? moduleSessions : [];
+    legacySessions.value = Array.isArray(unboundSessions) ? unboundSessions : [];
     if (preferredSessionId) {
-      const requestedSession = sessions.value.find((session) => String(session.id) === String(preferredSessionId));
+      const requestedSession = [...sessions.value, ...legacySessions.value]
+        .find((session) => String(session.id) === String(preferredSessionId));
       if (!requestedSession) {
         sessionId.value = null;
+        jobDescription.value = '';
         messages.value = [];
         approvalPayload.value = null;
         clarificationPayload.value = null;
-        error.value = '找不到这条简历 AI 会话，请从历史记录重新打开。';
+        error.value = '找不到这条会话，或它属于简历的其他分区。请从对应分区的历史重新打开。';
         return;
       }
       sessionId.value = requestedSession.id;
@@ -255,10 +310,19 @@ async function refreshSessions(preferredSessionId = null) {
       await loadSessionDetail();
       return;
     }
-    if (!sessionId.value && sessions.value.length) {
-      sessionId.value = sessions.value[0].id;
+    const selectedSession = [...sessions.value].find((session) => Boolean(session.activeRunId)) || sessions.value[0];
+    if (selectedSession) {
+      sessionId.value = selectedSession.id;
       await loadSessionDetail();
+      return;
     }
+    sessionId.value = null;
+    messages.value = [];
+    jobDescription.value = '';
+    approvalPayload.value = null;
+    clarificationPayload.value = null;
+    selectedPatchIds.value = [];
+    events.value = [];
   } catch (err) {
     error.value = extractApiMessage(err, '加载简历 AI 会话失败');
   }
@@ -293,9 +357,21 @@ async function loadSessionDetail() {
 }
 
 function onSessionChange() {
+  runStreamController.value?.abort();
+  runStreamController.value = null;
   runStreamGeneration += 1;
   running.value = false;
   error.value = '';
+  statusText.value = '';
+  messages.value = [];
+  events.value = [];
+  approvalPayload.value = null;
+  clarificationPayload.value = null;
+  selectedPatchIds.value = [];
+  if (!sessionId.value) {
+    jobDescription.value = '';
+    return;
+  }
   loadSessionDetail();
 }
 
@@ -316,7 +392,12 @@ async function restoreRun(runId, sessionIdAtStart, generation) {
     if (['QUEUED', 'RUNNING'].includes(run?.status)) {
       running.value = true;
       const afterSeq = Math.max(0, ...events.value.map((event) => Number(event.eventSeq) || 0));
-      streamAgentRunEvents(runId, createRunHandlers(sessionIdAtStart, generation), { afterSeq })
+      const controller = new AbortController();
+      runStreamController.value = controller;
+      streamAgentRunEvents(runId, createRunHandlers(sessionIdAtStart, generation), {
+        afterSeq,
+        signal: controller.signal,
+      })
         .catch((err) => {
           if (isCurrentSession(sessionIdAtStart, generation)) {
             error.value = extractApiMessage(err, '恢复运行状态失败');
@@ -325,8 +406,9 @@ async function restoreRun(runId, sessionIdAtStart, generation) {
         .finally(() => {
           if (isCurrentSession(sessionIdAtStart, generation)) {
             running.value = false;
+            runStreamController.value = null;
+            refreshSessions();
           }
-          refreshSessions();
         });
     }
   } catch (err) {
@@ -338,33 +420,64 @@ async function restoreRun(runId, sessionIdAtStart, generation) {
 
 async function newSession() {
   const sourceSessionId = sessionId.value;
+  const nextSessionNumber = sessions.value.length + 1;
+  runStreamController.value?.abort();
+  runStreamController.value = null;
+  runStreamGeneration += 1;
+  running.value = false;
+  creatingSession.value = true;
+  error.value = '';
   if (useMock.value) {
     sessionId.value = Date.now();
+    sessions.value = [{
+      id: sessionId.value,
+      resumeId: props.resumeId,
+      targetSectionId: Number(props.section.id),
+      sessionTitle: `${sectionTitle.value} · 会话 ${nextSessionNumber}`,
+    }, ...sessions.value];
     messages.value = [];
-    return;
+    creatingSession.value = false;
+    return sessionId.value;
   }
-  const session = await createAgentSession({
-    resumeId: props.resumeId,
-    sceneCode: 'JD_CUSTOMIZE',
-    sessionTitle: `${sectionTitle.value} Copilot`,
-    copyFromSessionId: sourceSessionId,
-    copyJobDescription: true,
-    jobDescription: sourceSessionId ? null : jobDescription.value,
-  });
-  sessionId.value = session.id;
-  runStreamGeneration += 1;
-  await refreshSessions();
-  await loadSessionDetail();
+  try {
+    const session = await createAgentSession({
+      resumeId: props.resumeId,
+      targetSectionId: Number(props.section.id),
+      sceneCode: 'JD_CUSTOMIZE',
+      sessionTitle: `${sectionTitle.value} · 会话 ${nextSessionNumber}`,
+      copyFromSessionId: sourceSessionId,
+      copyJobDescription: Boolean(sourceSessionId),
+      jobDescription: sourceSessionId ? null : jobDescription.value,
+    });
+    sessionId.value = session.id;
+    await refreshSessions(session.id);
+    return session.id;
+  } catch (err) {
+    error.value = extractApiMessage(err, '创建当前分区的 AI 会话失败');
+    if (sourceSessionId) {
+      await refreshSessions(sourceSessionId);
+    }
+    return null;
+  } finally {
+    creatingSession.value = false;
+  }
 }
 
 async function ensureSession() {
-  if (sessionId.value) return sessionId.value;
-  await newSession();
+  if (sessionId.value && !isLegacySession.value) {
+    return sessionId.value;
+  }
+  const createdSessionId = await newSession();
+  if (!createdSessionId) {
+    throw new Error(error.value || '创建当前分区的 AI 会话失败');
+  }
   return sessionId.value;
 }
 
 async function startRun() {
   if (!canStart.value) return;
+  const resumeIdAtStart = props.resumeId;
+  const sectionIdAtStart = props.section.id;
   running.value = true;
   error.value = '';
   approvalPayload.value = null;
@@ -373,17 +486,31 @@ async function startRun() {
   let generation = runStreamGeneration;
   try {
     const currentSessionId = await ensureSession();
-    generation = ++runStreamGeneration;
-    if (!useMock.value) {
-      await updateAgentSession(currentSessionId, { jobDescription: jobDescription.value });
+    if (String(props.resumeId) !== String(resumeIdAtStart)
+        || String(props.section?.id) !== String(sectionIdAtStart)) {
+      return;
     }
-    await streamAgentRun(currentSessionId, {
+    generation = ++runStreamGeneration;
+    const controller = new AbortController();
+    runStreamController.value = controller;
+    const requestPayload = {
       resumeId: props.resumeId,
       sceneCode: 'JD_CUSTOMIZE',
       targetSectionId: props.section.id,
       userInput: userInput.value,
       jobDescription: jobDescription.value,
-    }, createRunHandlers(currentSessionId, generation), { mock: useMock.value });
+    };
+    const requestFingerprint = JSON.stringify([currentSessionId, requestPayload]);
+    const clientRequestId = pendingStartRequestIds.get(requestFingerprint) || createClientRequestId();
+    pendingStartRequestIds.set(requestFingerprint, clientRequestId);
+    if (!useMock.value) {
+      await updateAgentSession(currentSessionId, { jobDescription: jobDescription.value });
+    }
+    await streamAgentRun(currentSessionId, {
+      ...requestPayload,
+      clientRequestId,
+    }, createRunHandlers(currentSessionId, generation), { mock: useMock.value, signal: controller.signal });
+    pendingStartRequestIds.delete(requestFingerprint);
   } catch (err) {
     if (generation === runStreamGeneration) {
       error.value = extractApiMessage(err, 'Agent 运行失败');
@@ -391,6 +518,7 @@ async function startRun() {
   } finally {
     if (generation === runStreamGeneration) {
       running.value = false;
+      runStreamController.value = null;
     }
   }
 }
@@ -400,6 +528,8 @@ async function continueRun() {
   running.value = true;
   const currentSessionId = sessionId.value;
   const generation = ++runStreamGeneration;
+  const controller = new AbortController();
+  runStreamController.value = controller;
   try {
     const answers = Object.entries(clarificationAnswers.value)
       .filter(([, value]) => String(value || '').trim())
@@ -408,7 +538,7 @@ async function continueRun() {
       clarificationPayload.value.runId,
       { answers },
       createRunHandlers(currentSessionId, generation),
-      { mock: useMock.value },
+      { mock: useMock.value, signal: controller.signal },
     );
   } catch (err) {
     if (isCurrentSession(currentSessionId, generation)) {
@@ -417,6 +547,7 @@ async function continueRun() {
   } finally {
     if (isCurrentSession(currentSessionId, generation)) {
       running.value = false;
+      runStreamController.value = null;
     }
   }
 }
@@ -685,6 +816,16 @@ function formatJson(value) {
 .floating-copilot__row :deep(select) {
   flex: 1;
   min-width: 0;
+}
+
+.floating-copilot__legacy-note {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-left: 2px solid var(--ui-warning);
+  background: var(--ui-warning-soft);
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-xs);
+  line-height: 1.5;
 }
 
 .floating-copilot__field {

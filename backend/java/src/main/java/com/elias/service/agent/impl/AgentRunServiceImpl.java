@@ -1,6 +1,7 @@
 package com.elias.service.agent.impl;
 
 import com.elias.common.AgentRunStage;
+import com.elias.common.AgentSceneCode;
 import com.elias.common.AgentRunStatus;
 import com.elias.dto.common.request.ResumePatchApplyRequest;
 import com.elias.dto.common.request.ResumeSectionPatchRequest;
@@ -38,8 +39,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -103,16 +102,33 @@ public class AgentRunServiceImpl implements AgentRunService {
     private final ThreadPoolTaskExecutor agentStreamTaskExecutor;
     private final TransactionTemplate transactionTemplate;
 
+    /**
+     * 创建 Agent run，并在事务提交后投递到任务队列。
+     *
+     * @param sessionId 会话编号
+     * @param request run 启动请求
+     * @return 已创建或已存在的 run 摘要
+     */
     @Override
     @Transactional
     public AgentRunQueueResponse startRun(Long sessionId, AgentRunStartRequest request) {
-        // 1. 创建 run 的事务只覆盖本地库写入；MQ 投递会延迟到事务提交后执行。
-        // 2. 这样可以避免消息先发出，但 run 记录因为事务回滚而不存在。
+        // run、会话消息和 agent_task 共用同一 SQLite 事务，避免提交后进程崩溃造成任务丢失。
         Long userId = UserContext.verifyGetUserId();
         AgentSession session = getOwnedSession(userId, sessionId);
         ResumeDetailResponse resume = getOwnedResume(userId, request.getResumeId());
         if (!resume.getId().equals(session.getResumeId())) {
             throw BusinessException.badRequest("run 的 resumeId 必须和 session 关联简历一致");
+        }
+        // 模块助手必须绑定归属简历中的目标分区，避免会话上下文与实际修改位置分离。
+        if (AgentSceneCode.JD_CUSTOMIZE.equals(request.getSceneCode())) {
+            if (session.getTargetSectionId() == null
+                    || !session.getTargetSectionId().equals(request.getTargetSectionId())) {
+                throw BusinessException.badRequest("模块助手会话与目标分区不匹配，请为当前分区新建会话");
+            }
+            if (resume.getSections() == null || resume.getSections().stream()
+                    .noneMatch(section -> request.getTargetSectionId().equals(section.getId()))) {
+                throw BusinessException.badRequest("目标分区不属于当前简历");
+            }
         }
         if (request.getJobDescription() != null && !request.getJobDescription().isBlank()) {
             // JD 属于 session 级长期上下文；用户本轮传了 JD，就更新到会话供后续 run 复用。
@@ -134,20 +150,6 @@ public class AgentRunServiceImpl implements AgentRunService {
             }
         }
 
-        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
-                .eq(AiAgentRun::getUserId, userId)
-                .eq(AiAgentRun::getSessionId, sessionId)
-                .eq(AiAgentRun::getSceneCode, request.getSceneCode())
-                .eq(AiAgentRun::getTargetSectionId, request.getTargetSectionId())
-                .eq(AiAgentRun::getActiveFlag, 1)
-                .last("limit 1"));
-        if (activeRun != null) {
-            return AgentRunQueueResponse.builder()
-                    .runId(activeRun.getId())
-                    .status(activeRun.getStatus())
-                    .build();
-        }
-
         // Java 先落 run，再把任务交给 MQ；Python worker 后续按 runId 拉取权威上下文。
         AiAgentRun run = AiAgentRun.builder()
                 .userId(userId)
@@ -167,7 +169,7 @@ public class AgentRunServiceImpl implements AgentRunService {
         saveMessage(sessionId, "USER", request.getUserInput());
 
         // 这里只发最小任务消息；简历快照、schema、历史消息由 Python bootstrap 再回查 Java。
-        publishAfterCommit(AgentRunJobMessage.builder()
+        agentRunJobProducer.publish(AgentRunJobMessage.builder()
                 .jobType("START")
                 .runId(run.getId())
                 .sessionId(sessionId)
@@ -216,7 +218,7 @@ public class AgentRunServiceImpl implements AgentRunService {
             saveMessage(run.getSessionId(), "USER", writeJson(request.getAnswers()));
         }
         // CONTINUE 仍然投递同一个 runId，Python 侧用 LangGraph checkpoint 从暂停点恢复。
-        publishAfterCommit(AgentRunJobMessage.builder()
+        agentRunJobProducer.publish(AgentRunJobMessage.builder()
                 .jobType("CONTINUE")
                 .runId(run.getId())
                 .sessionId(run.getSessionId())
@@ -466,28 +468,6 @@ public class AgentRunServiceImpl implements AgentRunService {
                 .build();
     }
 
-    private void publishAfterCommit(AgentRunJobMessage message) {
-        Runnable publishTask = () -> {
-            try {
-                agentRunJobProducer.publish(message);
-            } catch (Exception e) {
-                // 入队失败时不能让 run 永远停在 QUEUED；直接标记 FAILED 方便前端展示。
-                markFailed(message.getRunId(), "Agent run 入队失败: " + e.getMessage());
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            // 事务提交后再投递 MQ，保证 Python worker 消费到消息时 run 已经可查询。
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    publishTask.run();
-                }
-            });
-            return;
-        }
-        publishTask.run();
-    }
-
     private AgentSession getOwnedSession(Long userId, Long sessionId) {
         // 前端所有 run 操作都要校验用户归属，避免跨用户读取会话和简历。
         AgentSession session = agentSessionMapper.selectById(sessionId);
@@ -536,19 +516,6 @@ public class AgentRunServiceImpl implements AgentRunService {
         if (session != null) {
             session.setLastMessageAt(LocalDateTime.now());
             agentSessionMapper.updateById(session);
-        }
-    }
-
-    private void markFailed(Long runId, String message) {
-        // 这个方法用于 MQ 投递失败等 Java 本地失败场景。
-        // Python 执行失败会通过 InternalAgentSupportServiceImpl.updateRunStatus 回写。
-        AiAgentRun run = aiAgentRunMapper.selectById(runId);
-        if (run != null) {
-            run.setStatus(AgentRunStatus.FAILED.getCode());
-            run.setErrorMessage(message);
-            run.setActiveFlag(0);
-            run.setCompletedAt(LocalDateTime.now());
-            aiAgentRunMapper.updateById(run);
         }
     }
 

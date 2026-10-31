@@ -48,6 +48,14 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
 
     private final Environment environment;
 
+    /**
+     * 初始化 DataSource 后补齐本地 SQLite 表结构。
+     *
+     * @param bean 初始化完成的 Spring Bean
+     * @param beanName Bean 名称
+     * @return 继续交给容器使用的 Bean
+     * @throws BeansException Bean 初始化异常
+     */
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof DataSource dataSource) {
@@ -60,8 +68,15 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
 
     /**
      * 从 JDBC URL 里取出文件路径并确保父目录存在。
+     *
+     * 1. 移除 SQLite URL 前缀和查询参数。
+     * 2. 跳过内存数据库，并检查文件父目录。
+     * 3. 创建缺失目录并在失败时保留底层异常。
+     *
+     * @param url SQLite 数据库连接地址
      */
     private void ensureParentDirectory(String url) {
+        // 1. 过滤非 SQLite 地址，取出数据库文件路径。
         String prefix = "jdbc:sqlite:";
         if (url == null || !url.startsWith(prefix)) {
             return;
@@ -74,12 +89,14 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
         if (filePart.isEmpty() || filePart.startsWith(":memory:")) {
             return;
         }
+        // 2. 定位数据库文件的父目录，已有目录时直接返回。
         Path path = Paths.get(filePart).toAbsolutePath();
         Path parent = path.getParent();
         if (parent == null || Files.isDirectory(parent)) {
             return;
         }
         try {
+            // 3. 创建缺少的目录；失败时保留异常原因供启动日志定位。
             Files.createDirectories(parent);
             log.info("已创建 SQLite 数据目录: {}", parent);
         } catch (IOException e) {
@@ -89,15 +106,24 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
 
     /**
      * 执行建表脚本。脚本幂等，重复执行不会报错。
+     *
+     * 1. 检查脚本资源和现有表结构。
+     * 2. 为旧会话表补加可空分区字段。
+     * 3. 执行初始化脚本并转换数据库异常。
+     *
+     * @param dataSource SQLite 数据源
      */
     private void applySchema(DataSource dataSource) {
+        // 1. 脚本缺失时跳过初始化，避免阻断后续容器启动。
         ClassPathResource resource = new ClassPathResource(SCHEMA_RESOURCE);
         if (!resource.exists()) {
             log.warn("未找到建表脚本 {}，跳过自动建表", SCHEMA_RESOURCE);
             return;
         }
         try (Connection connection = dataSource.getConnection()) {
+            // 2. 校验旧表，补加可空字段，再执行幂等建表脚本。
             validateLocalSchema(connection);
+            ensureAgentSessionTargetSectionColumn(connection);
             ScriptUtils.executeSqlScript(connection, resource);
             log.info("建表脚本执行完成: {}", SCHEMA_RESOURCE);
         } catch (IllegalStateException e) {
@@ -108,7 +134,23 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
     }
 
     /**
-     * 表结构调整期间不自动迁移本地测试库；发现旧表时在执行任何 DDL 前提示重置数据库。
+     * 添加可空的会话分区字段，保留已有的本地简历和 AI 会话数据。
+     *
+     * @param connection 当前 SQLite 连接
+     */
+    private void ensureAgentSessionTargetSectionColumn(Connection connection) throws SQLException {
+        if (!tableExists(connection, "ai_session") || hasColumn(connection, "ai_session", "target_section_id")) {
+            return;
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE ai_session ADD COLUMN target_section_id BIGINT NULL");
+        }
+    }
+
+    /**
+     * 只自动补加无损的可空字段；其它不兼容的本地测试表仍提示重置数据库。
+     *
+     * @param connection 当前 SQLite 连接
      */
     private void validateLocalSchema(Connection connection) throws SQLException {
         if (tableExists(connection, "ai_interview_round")
@@ -126,7 +168,7 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
 
     private IllegalStateException outdatedLocalDatabase() {
         return new IllegalStateException(
-                "检测到旧版本地 SQLite 表结构；测试版本不执行迁移，请清空 DB_FILE 指向的本地数据库后重启");
+                "检测到不兼容的旧版本地 SQLite 表结构；除可空会话分区字段外不执行迁移，请清空 DB_FILE 指向的测试数据库后重启");
     }
 
     private boolean tableExists(Connection connection, String tableName) throws SQLException {
@@ -140,8 +182,10 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
     }
 
     private boolean hasColumn(Connection connection, String tableName, String columnName) throws SQLException {
+        // 1. 读取 SQLite 表结构元数据。
         try (Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            // 2. 按列名匹配目标字段。
             while (resultSet.next()) {
                 if (columnName.equals(resultSet.getString("name"))) {
                     return true;
@@ -152,8 +196,10 @@ public class SqliteDatabaseInitializer implements BeanPostProcessor {
     }
 
     private boolean isNotNull(Connection connection, String tableName, String columnName) throws SQLException {
+        // 1. 读取 SQLite 表结构元数据。
         try (Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            // 2. 按列名匹配目标字段并返回非空约束。
             while (resultSet.next()) {
                 if (columnName.equals(resultSet.getString("name"))) {
                     return resultSet.getInt("notnull") == 1;

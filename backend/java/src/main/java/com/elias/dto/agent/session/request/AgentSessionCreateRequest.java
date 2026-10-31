@@ -25,6 +25,11 @@ public class AgentSessionCreateRequest {
     private String sceneCode;
 
     /**
+     * 模块助手会话所属的简历分区，可为空。
+     */
+    private Long targetSectionId;
+
+    /**
      * 会话标题，可为空
      */
     private String sessionTitle;

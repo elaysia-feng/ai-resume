@@ -8,6 +8,7 @@
   "main": "dist/electron/main.js",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build:icon": "node scripts/build-icon.mjs",
     "build:main": "node scripts/build-electron.mjs",
     "build:renderer": "vite build --config vite.config.mts",
     "build:stage": "node scripts/stage-renderer.mjs",

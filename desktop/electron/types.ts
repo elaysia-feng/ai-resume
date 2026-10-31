@@ -15,26 +15,23 @@ export interface BackendStatus {
   message: string;
 }
 
-/** Java 对话模型配置（Anthropic 兼容端点） */
-export interface ChatModelConfig {
+/** 全部 AI 功能共用的模型配置。 */
+export interface AiModelConfig {
+  /** 服务预设标识，只用于界面默认值。 */
+  provider: string;
+  /** LangChain ChatModel 集成标识。 */
+  modelProvider: string;
   baseUrl: string;
   apiKey: string;
   model: string;
   maxTokens: number;
-}
-
-/** Python Agent 模型配置（OpenAI 兼容端点） */
-export interface AgentModelConfig {
-  provider: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
+  extraHeaders: Record<string, string>;
+  providerOptions: Record<string, unknown>;
 }
 
 /** 整体应用配置（对应安装目录下的 config/application.yaml） */
 export interface AppConfig {
-  chat: ChatModelConfig;
-  agent: AgentModelConfig;
+  agent: AiModelConfig;
   server: { host: string; port: number };
   python: { host: string; port: number };
   internalToken: string;

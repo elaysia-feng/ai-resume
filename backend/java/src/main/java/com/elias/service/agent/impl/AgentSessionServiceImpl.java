@@ -48,18 +48,27 @@ public class AgentSessionServiceImpl implements AgentSessionService {
     @Override
     @Transactional
     public AgentSessionDetailResponse createSession(AgentSessionCreateRequest request) {
+        // 1. 读取并校验父会话，允许新会话沿用其简历与目标分区。
         Long userId = UserContext.verifyGetUserId();
-        validateResumeOwnership(userId, request.getResumeId());
         AgentSession parentSession = null;
         if (request.getCopyFromSessionId() != null) {
             parentSession = getOwnedSession(request.getCopyFromSessionId());
         }
 
+        Long resumeId = request.getResumeId() != null ? request.getResumeId()
+                : parentSession == null ? null : parentSession.getResumeId();
+        Long targetSectionId = request.getTargetSectionId() != null ? request.getTargetSectionId()
+                : parentSession == null ? null : parentSession.getTargetSectionId();
+        // 2. 确认用户拥有简历，并确认分区属于该简历。
+        ResumeDetailResponse resume = validateResumeOwnership(userId, resumeId);
+        validateTargetSection(resume, targetSectionId);
+
+        // 3. 持久化带分区上下文的会话并返回详情。
         AgentSession agentSession = AgentSession.builder()
                 .userId(userId)
-                .resumeId(request.getResumeId() != null ? request.getResumeId()
-                        : parentSession == null ? null : parentSession.getResumeId())
+                .resumeId(resumeId)
                 .sceneCode(normalizeSceneCode(request.getSceneCode()))
+                .targetSectionId(targetSectionId)
                 .sessionTitle(resolveSessionTitle(request))
                 .jobDescription(resolveJobDescription(request, parentSession))
                 .parentSessionId(parentSession == null ? null : parentSession.getId())
@@ -78,7 +87,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
      * @return 会话列表
      */
     @Override
-    public List<AgentSessionItemResponse> listSessions(Long resumeId, String sceneCode) {
+    public List<AgentSessionItemResponse> listSessions(Long resumeId, String sceneCode, Long targetSectionId) {
         Long userId = UserContext.verifyGetUserId();
         validateResumeOwnership(userId, resumeId);
 
@@ -92,6 +101,16 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         }
         if (sceneCode != null && !sceneCode.isBlank()) {
             queryWrapper.eq(AgentSession::getSceneCode, normalizeSceneCode(sceneCode));
+        }
+        if (targetSectionId != null) {
+            if (targetSectionId < 0) {
+                throw BusinessException.badRequest("targetSectionId 不能小于 0");
+            }
+            if (targetSectionId == 0) {
+                queryWrapper.isNull(AgentSession::getTargetSectionId);
+            } else {
+                queryWrapper.eq(AgentSession::getTargetSectionId, targetSectionId);
+            }
         }
 
         // 1. 先按用户和可选条件读取会话；空结果时无需访问 run 表。
@@ -262,16 +281,34 @@ public class AgentSessionServiceImpl implements AgentSessionService {
      *
      * @param userId   用户ID
      * @param resumeId 简历ID
+     * @return 已验证的简历详情；未关联简历时为空
      */
-    private void validateResumeOwnership(Long userId, Long resumeId) {
+    private ResumeDetailResponse validateResumeOwnership(Long userId, Long resumeId) {
         if (resumeId == null) {
-            return;
+            return null;
         }
 
         // 单体内部直接调用简历域 Service，不再走 HTTP。
         ResumeDetailResponse resume = resumeService.getDetailedResume(resumeId);
         if (resume == null || !String.valueOf(userId).equals(String.valueOf(resume.getUserId()))) {
             throw BusinessException.notFound("简历不存在或无权限访问");
+        }
+        return resume;
+    }
+
+    /**
+     * 校验会话目标分区属于关联简历。
+     *
+     * @param resume 已验证的简历详情
+     * @param targetSectionId 目标分区编号
+     */
+    private void validateTargetSection(ResumeDetailResponse resume, Long targetSectionId) {
+        if (targetSectionId == null) {
+            return;
+        }
+        if (resume == null || resume.getSections() == null
+                || resume.getSections().stream().noneMatch(section -> targetSectionId.equals(section.getId()))) {
+            throw BusinessException.badRequest("目标分区不属于当前简历");
         }
     }
 
@@ -290,6 +327,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         return AgentSessionItemResponse.builder()
                 .id(agentSession.getId())
                 .resumeId(agentSession.getResumeId())
+                .targetSectionId(agentSession.getTargetSectionId())
                 .sceneCode(agentSession.getSceneCode())
                 .sessionTitle(agentSession.getSessionTitle())
                 .jobDescription(agentSession.getJobDescription())
@@ -317,6 +355,7 @@ public class AgentSessionServiceImpl implements AgentSessionService {
         return AgentSessionDetailResponse.builder()
                 .id(agentSession.getId())
                 .resumeId(agentSession.getResumeId())
+                .targetSectionId(agentSession.getTargetSectionId())
                 .sceneCode(agentSession.getSceneCode())
                 .sessionTitle(agentSession.getSessionTitle())
                 .jobDescription(agentSession.getJobDescription())

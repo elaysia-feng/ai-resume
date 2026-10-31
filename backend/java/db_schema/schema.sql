@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS ai_session (
     resume_id BIGINT NULL,
     scene_code VARCHAR(50) NOT NULL,
     session_title VARCHAR(255),
+    target_section_id BIGINT NULL, -- SQLite 会话所属简历分区；NULL 表示通用或旧版共享会话
     job_description TEXT NULL,
     summary TEXT NULL,
     parent_session_id BIGINT NULL,
@@ -140,6 +141,9 @@ CREATE INDEX IF NOT EXISTS idx_ai_session_user_activity
 -- 为 Copilot 按用户、简历和场景筛选的列表匹配最近活动排序。
 CREATE INDEX IF NOT EXISTS idx_ai_session_user_resume_scene_activity
     ON ai_session (user_id, resume_id, scene_code, last_message_at DESC, updated_at DESC, id DESC);
+-- 按用户、简历、场景和分区筛选模块助手会话，并按最近活动排序。
+CREATE INDEX IF NOT EXISTS idx_ai_session_user_resume_scene_section_activity
+    ON ai_session (user_id, resume_id, scene_code, target_section_id, last_message_at DESC, updated_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS ai_message (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -182,10 +186,8 @@ CREATE TABLE IF NOT EXISTS ai_agent_run (
     CONSTRAINT fk_ai_agent_run_session_id FOREIGN KEY (session_id) REFERENCES ai_session (id) ON DELETE CASCADE
 );
 
--- 仅限制同一目标同时存在一个活跃 run；终态记录不参与唯一性检查。
-CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_agent_run_active_target
-    ON ai_agent_run (user_id, session_id, scene_code, target_section_id)
-    WHERE active_flag = 1;
+-- 个人本地模式允许同一目标并行运行；清理旧版本创建的活跃 run 唯一索引。
+DROP INDEX IF EXISTS uk_ai_agent_run_active_target;
 -- 幂等键为空时不进入唯一索引；非空键仍保持原有唯一性。
 CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_agent_run_user_session_client_request
     ON ai_agent_run (user_id, session_id, client_request_id)

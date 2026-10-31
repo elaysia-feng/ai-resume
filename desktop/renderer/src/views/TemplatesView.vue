@@ -3,8 +3,8 @@
     <!-- 页头：标题 + 当前状态 -->
     <header class="page-head">
       <div class="page-head__text">
-        <h1 class="ui-page-title">模板市场</h1>
-        <p class="ui-page-subtitle">选择一份已有简历来更换版式，或用选中的模板新建一份空白简历。</p>
+        <h1 class="ui-page-title">简历模板</h1>
+        <p class="ui-page-subtitle">对比 {{ templates.length }} 套 A4 版式；选中后可查看完整预览，再应用到已有简历或新建简历。</p>
       </div>
 
       <div class="page-head__actions">
@@ -135,122 +135,126 @@
           </div>
         </div>
 
-        <!-- 加载中：骨架卡片，不做整页遮罩 -->
-        <div v-if="isBooting" class="tpl-grid" aria-busy="true">
-          <div
-            v-for="index in templates.length"
-            :key="index"
-            class="tpl-card ui-panel tpl-card--skeleton"
-            aria-hidden="true"
-          >
-            <div class="tpl-card__preview">
-              <div class="ui-skeleton tpl-skeleton__thumb"></div>
+        <div class="tpl-results__content">
+          <div class="tpl-gallery">
+            <!-- 加载中：骨架卡片，不做整页遮罩 -->
+            <div v-if="isBooting" class="tpl-grid" aria-busy="true">
+              <div
+                v-for="index in templates.length"
+                :key="index"
+                class="tpl-card ui-panel tpl-card--skeleton"
+                aria-hidden="true"
+              >
+                <div class="tpl-card__preview">
+                  <div class="ui-skeleton tpl-skeleton__thumb"></div>
+                </div>
+                <div class="tpl-card__body">
+                  <span class="ui-skeleton tpl-skeleton__title"></span>
+                  <span class="ui-skeleton tpl-skeleton__line"></span>
+                  <span class="ui-skeleton tpl-skeleton__tag"></span>
+                </div>
+                <div class="tpl-card__actions">
+                  <span class="ui-skeleton tpl-skeleton__button"></span>
+                </div>
+              </div>
             </div>
-            <div class="tpl-card__body">
-              <span class="ui-skeleton tpl-skeleton__title"></span>
-              <span class="ui-skeleton tpl-skeleton__line"></span>
-              <span class="ui-skeleton tpl-skeleton__tag"></span>
-            </div>
-            <div class="tpl-card__actions">
-              <span class="ui-skeleton tpl-skeleton__button"></span>
-            </div>
-          </div>
-        </div>
 
-        <!-- 空状态 -->
-        <div v-else-if="!visibleTemplates.length" class="ui-empty">
-          <span class="ui-empty__icon">
-            <AppIcon name="magnifying-glass" :size="24" />
-          </span>
-          <p class="ui-empty__title">没有符合条件的模板</p>
-          <p class="ui-empty__hint">换一个分类或方向再看看，或清除筛选查看全部 {{ templates.length }} 套模板。</p>
-          <button type="button" class="ui-btn ui-btn--outline" @click="resetFilters">清除筛选条件</button>
-        </div>
+            <!-- 空状态 -->
+            <div v-else-if="!visibleTemplates.length" class="ui-empty">
+              <span class="ui-empty__icon">
+                <AppIcon name="magnifying-glass" :size="24" />
+              </span>
+              <p class="ui-empty__title">没有符合条件的模板</p>
+              <p class="ui-empty__hint">换一个分类或方向再看看，或清除筛选查看全部 {{ templates.length }} 套模板。</p>
+              <button type="button" class="ui-btn ui-btn--outline" @click="resetFilters">清除筛选条件</button>
+            </div>
 
-        <div v-else class="tpl-grid">
-          <article
-            v-for="tpl in visibleTemplates"
-            :key="tpl.id"
-            class="tpl-card ui-panel ui-panel--hover"
-            :class="{ 'is-selected': tpl.id === selectedId, 'is-current': tpl.id === currentTemplateId }"
-          >
-            <button
-              type="button"
-              class="tpl-card__pick"
-              :aria-pressed="tpl.id === selectedId"
-              :title="tpl.desc"
-              @click="selectTemplate(tpl.id)"
-            >
-              <span class="tpl-card__preview">
-                <span class="tpl-thumb" :class="`tpl-thumb--${tpl.thumb}`" aria-hidden="true">
-                  <span class="tpl-thumb__page">
-                    <span class="tpl-thumb__bar">
-                      <span class="tpl-thumb__bar-name"></span>
-                      <span class="tpl-thumb__bar-role"></span>
+            <div v-else class="tpl-grid">
+              <article
+                v-for="tpl in visibleTemplates"
+                :key="tpl.id"
+                class="tpl-card ui-panel ui-panel--hover"
+                :class="{ 'is-selected': tpl.id === selectedTemplate?.id, 'is-current': tpl.id === currentTemplateId }"
+              >
+                <div
+                  role="button"
+                  tabindex="0"
+                  class="tpl-card__pick"
+                  :aria-pressed="tpl.id === selectedTemplate?.id"
+                  :aria-label="`${tpl.name}，${tpl.tagline}`"
+                  :title="tpl.desc"
+                  @click="selectTemplate(tpl.id)"
+                  @keydown.enter.prevent="selectTemplate(tpl.id)"
+                  @keydown.space.prevent="selectTemplate(tpl.id)"
+                >
+                  <div class="tpl-card__preview">
+                    <TemplatePreview :template-id="tpl.id" />
+                    <span v-if="tpl.id === currentTemplateId" class="tpl-card__flag tpl-card__flag--current">
+                      <AppIcon name="check-circle" :size="12" />
+                      当前使用
                     </span>
-                    <span class="tpl-thumb__cols">
-                      <span class="tpl-thumb__aside">
-                        <span class="tpl-thumb__avatar"></span>
-                        <span class="tpl-thumb__name"></span>
-                        <span class="tpl-thumb__role"></span>
-                        <span class="tpl-thumb__chip"></span>
-                        <span class="tpl-thumb__chip"></span>
-                        <span class="tpl-thumb__chip"></span>
-                      </span>
-                      <span class="tpl-thumb__main">
-                        <span class="tpl-thumb__title"></span>
-                        <span class="tpl-thumb__sub"></span>
-                        <span class="tpl-thumb__block">
-                          <span class="tpl-thumb__label"></span>
-                          <span class="tpl-thumb__line"></span>
-                          <span class="tpl-thumb__line tpl-thumb__line--short"></span>
-                        </span>
-                        <span class="tpl-thumb__block">
-                          <span class="tpl-thumb__label"></span>
-                          <span class="tpl-thumb__line"></span>
-                          <span class="tpl-thumb__line tpl-thumb__line--short"></span>
-                          <span class="tpl-thumb__line"></span>
-                        </span>
-                      </span>
+                    <span v-else-if="tpl.id === selectedTemplate?.id" class="tpl-card__flag">
+                      <AppIcon name="check" :size="12" />
+                      已选择
+                    </span>
+                  </div>
+
+                  <span class="tpl-card__body">
+                    <span class="tpl-card__head">
+                      <span class="tpl-card__name">{{ tpl.name }}</span>
+                      <span class="ui-badge">{{ tpl.categoryLabel }}</span>
+                    </span>
+                    <span class="tpl-card__tagline">{{ tpl.tagline }}</span>
+                    <span class="tpl-card__tags">
+                      <span v-for="stage in tpl.stage" :key="stage" class="ui-badge">{{ stage }}</span>
                     </span>
                   </span>
-                </span>
+                </div>
 
-                <span v-if="tpl.id === currentTemplateId" class="tpl-card__flag tpl-card__flag--current">
-                  <AppIcon name="check-circle" :size="12" />
-                  当前使用
-                </span>
-                <span v-else-if="tpl.id === selectedId" class="tpl-card__flag">
-                  <AppIcon name="check" :size="12" />
-                  已选择
-                </span>
-              </span>
-
-              <span class="tpl-card__body">
-                <span class="tpl-card__head">
-                  <span class="tpl-card__name">{{ tpl.name }}</span>
-                  <span class="ui-badge">{{ tpl.categoryLabel }}</span>
-                </span>
-                <span class="tpl-card__tagline">{{ tpl.tagline }}</span>
-                <span class="tpl-card__tags">
-                  <span v-for="stage in tpl.stage" :key="stage" class="ui-badge">{{ stage }}</span>
-                </span>
-              </span>
-            </button>
-
-            <div class="tpl-card__actions">
-              <button
-                type="button"
-                class="ui-btn ui-btn--sm ui-btn--primary ui-btn--block"
-                :disabled="Boolean(creatingId)"
-                @click="handleUse(tpl)"
-              >
-                <AppIcon v-if="creatingId === tpl.id" name="spinner-gap" :size="14" spin />
-                <AppIcon v-else name="file-plus" :size="14" />
-                {{ creatingId === tpl.id ? '正在应用…' : selectedResumeId ? '应用到此简历' : '用此模板新建' }}
-              </button>
+                <div class="tpl-card__actions">
+                  <button
+                    type="button"
+                    class="ui-btn ui-btn--sm ui-btn--primary ui-btn--block"
+                    :disabled="Boolean(creatingId)"
+                    @click="handleUse(tpl)"
+                  >
+                    <AppIcon v-if="creatingId === tpl.id" name="spinner-gap" :size="14" spin />
+                    <AppIcon v-else name="file-plus" :size="14" />
+                    {{ creatingId === tpl.id ? '正在应用…' : selectedResumeId ? '应用到此简历' : '用此模板新建' }}
+                  </button>
+                </div>
+              </article>
             </div>
-          </article>
+          </div>
+
+          <aside v-if="selectedTemplate" class="tpl-detail ui-panel" aria-label="选中模板的完整预览" aria-live="polite">
+            <div class="tpl-detail__heading">
+              <span class="ui-label">模板预览</span>
+              <span class="ui-badge">{{ selectedTemplate.categoryLabel }}</span>
+            </div>
+            <div class="tpl-detail__sheet">
+              <TemplatePreview :template-id="selectedTemplate.id" large />
+            </div>
+            <div class="tpl-detail__copy">
+              <h3 class="tpl-detail__name">{{ selectedTemplate.name }}</h3>
+              <p class="tpl-detail__tagline">{{ selectedTemplate.tagline }}</p>
+              <p class="tpl-detail__description">{{ selectedTemplate.desc }}</p>
+              <div class="tpl-detail__tags">
+                <span v-for="stage in selectedTemplate.stage" :key="stage" class="ui-badge">{{ stage }}</span>
+                <span v-for="track in selectedTemplate.track" :key="track" class="ui-badge ui-badge--neutral">{{ track }}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="ui-btn ui-btn--primary ui-btn--block"
+              :disabled="Boolean(creatingId)"
+              @click="handleUse(selectedTemplate)"
+            >
+              <AppIcon v-if="creatingId === selectedTemplate.id" name="spinner-gap" :size="15" spin />
+              <AppIcon v-else name="file-plus" :size="15" />
+              {{ creatingId === selectedTemplate.id ? '正在应用…' : selectedResumeId ? '应用到此简历' : '用此模板新建' }}
+            </button>
+          </aside>
         </div>
       </section>
     </div>
@@ -258,104 +262,21 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '../components/common/AppIcon.vue'
+import TemplatePreview from '../components/resume/TemplatePreview.vue'
 import { useResumeStore } from '../store/resumeStore.js'
+import { RESUME_TEMPLATE_OPTIONS } from '../data/resumeTemplates.js'
 
 const router = useRouter()
 const resumeStore = useResumeStore()
 
-// 模板注册表：分类 / 适用场景 / 版式缩略图 / 排序权重
-const templates = [
-  {
-    id: 'classic',
-    name: '标准版',
-    category: 'classic',
-    categoryLabel: '经典',
-    tagline: '单栏通栏，最通用的正式投递版式',
-    desc: '姓名与联系方式置顶，模块标题下带细线分隔，层级稳定，适合正式投递与打印归档。',
-    stage: ['通用', '校招', '社招'],
-    track: ['程序员', '产品'],
-    thumb: 'classic',
-    updatedAt: '2026-09-02',
-    weight: 1,
-  },
-  {
-    id: 'modern',
-    name: '简约求职版',
-    category: 'modern',
-    categoryLabel: '现代',
-    tagline: '左侧信息栏 + 右侧主栏，留白多、层级清楚',
-    desc: '个人信息集中在左栏，正文在右栏展开，段落间距宽松，一眼能看清经历主线。',
-    stage: ['通用', '校招', '社招'],
-    track: ['程序员', '前端'],
-    thumb: 'modern',
-    updatedAt: '2026-10-06',
-    weight: 2,
-  },
-  {
-    id: 'compact',
-    name: '双列紧凑版',
-    category: 'compact',
-    categoryLabel: '紧凑',
-    tagline: '字号更小、间距更紧，一页塞下更多信息',
-    desc: '窄左栏加紧凑正文，项目、证书可以多放几条，适合实习与应届投递。',
-    stage: ['校招', '实习生'],
-    track: ['前端', '技术岗'],
-    thumb: 'compact',
-    updatedAt: '2026-09-21',
-    weight: 3,
-  },
-  {
-    id: 'academic',
-    name: '学术科研版',
-    category: 'academic',
-    categoryLabel: '学术',
-    tagline: '居中式抬头 + 全宽分隔线，严谨克制',
-    desc: '教育背景前置，模块标题用衬线体加全宽细线，适合科研、教育与技术研发方向。',
-    stage: ['校招', '社招'],
-    track: ['研究', '教育', '技术岗'],
-    thumb: 'academic',
-    updatedAt: '2026-08-27',
-    weight: 4,
-  },
-  {
-    id: 'creative',
-    name: '创意进阶版',
-    category: 'creative',
-    categoryLabel: '创意',
-    tagline: '强调色块 + 分区卡片，视觉分区更明显',
-    desc: '抬头用色块与竖向分割线切分版面，每个模块独立成卡，适合设计与品牌类岗位。',
-    stage: ['社招'],
-    track: ['设计', 'UI', '品牌'],
-    thumb: 'creative',
-    updatedAt: '2026-10-12',
-    weight: 5,
-  },
-  {
-    id: 'dual-creative',
-    name: '双列创意版',
-    category: 'dual-creative',
-    categoryLabel: '双栏创意',
-    tagline: '左右等宽双栏 + 中缝分隔线，信息密度与美感兼顾',
-    desc: '两栏等宽排布，左栏放技能与证书、右栏放经历，栏间用细线分隔，适合前端与交互岗位。',
-    stage: ['校招', '社招'],
-    track: ['前端', '设计', '产品'],
-    thumb: 'dual',
-    updatedAt: '2026-10-19',
-    weight: 6,
-  },
-]
+const templates = RESUME_TEMPLATE_OPTIONS
 
 const CATEGORY_LIST = [
   { value: 'all', label: '全部' },
-  { value: 'classic', label: '经典' },
-  { value: 'modern', label: '现代' },
-  { value: 'compact', label: '紧凑' },
-  { value: 'academic', label: '学术' },
-  { value: 'creative', label: '创意' },
-  { value: 'dual-creative', label: '双栏创意' },
+  ...RESUME_TEMPLATE_OPTIONS.map(({ category, categoryLabel }) => ({ value: category, label: categoryLabel })),
 ]
 
 const sortOptions = [
@@ -371,7 +292,7 @@ const activeCategory = ref('all')
 const activeStage = ref('')
 const activeTrack = ref('')
 const activeSort = ref('recommended')
-const selectedId = ref('')
+const selectedId = ref(templates[0]?.id || '')
 const selectedResumeId = ref('')
 
 const nameCollator = new Intl.Collator('zh-Hans-CN')
@@ -380,6 +301,10 @@ const nameCollator = new Intl.Collator('zh-Hans-CN')
 const currentTemplateId = computed(() => {
   const resume = resumeStore.resumes.find((item) => String(item.id) === String(selectedResumeId.value))
   return resume?.template || ''
+})
+
+const selectedTemplate = computed(() => {
+  return visibleTemplates.value.find((template) => template.id === selectedId.value) || visibleTemplates.value[0] || null
 })
 
 function matchCategory(tpl) {
@@ -472,6 +397,12 @@ function resetFilters() {
   activeTrack.value = ''
 }
 
+watch(visibleTemplates, (list) => {
+  if (!list.some((template) => template.id === selectedId.value)) {
+    selectedId.value = list[0]?.id || ''
+  }
+})
+
 async function handleUse(tpl) {
   if (creatingId.value) {
     return
@@ -501,10 +432,9 @@ async function handleUse(tpl) {
   }
 }
 
-onMounted(async () => {
-  await resumeStore.fetchResumes()
-  selectedId.value = currentTemplateId.value
+onMounted(() => {
   isBooting.value = false
+  void resumeStore.fetchResumes()
 })
 </script>
 
@@ -693,6 +623,72 @@ onMounted(async () => {
   align-items: flex-start;
 }
 
+.tpl-results__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  align-items: start;
+  gap: var(--ui-space-5);
+}
+
+.tpl-gallery {
+  min-width: 0;
+}
+
+.tpl-detail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+}
+
+.tpl-detail__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+}
+
+.tpl-detail__sheet {
+  height: 470px;
+  overflow: hidden;
+  border: 1px solid var(--ui-grid-line);
+  background: var(--ui-neutral-100);
+}
+
+.tpl-detail__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.tpl-detail__name,
+.tpl-detail__tagline,
+.tpl-detail__description {
+  margin: 0;
+}
+
+.tpl-detail__name {
+  color: var(--ui-fg-primary);
+  font-size: var(--ui-text-lg);
+  font-weight: 650;
+}
+
+.tpl-detail__tagline,
+.tpl-detail__description {
+  color: var(--ui-fg-secondary);
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-line-normal);
+}
+
+.tpl-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+}
+
 /* ---------- 卡片网格 ---------- */
 .tpl-grid {
   display: grid;
@@ -743,7 +739,11 @@ onMounted(async () => {
   position: relative;
   display: block;
   width: 100%;
+  height: 300px;
   flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--ui-grid-line);
+  background: var(--ui-neutral-100);
 }
 
 .tpl-card__flag {
@@ -813,8 +813,8 @@ onMounted(async () => {
 
 .tpl-skeleton__thumb {
   width: 100%;
-  aspect-ratio: 210 / 297;
-  border-radius: var(--ui-radius-md);
+  height: 100%;
+  border-radius: 0;
 }
 
 .tpl-skeleton__title {
@@ -839,352 +839,6 @@ onMounted(async () => {
   border-radius: var(--ui-radius-md);
 }
 
-/* ========================================
-   模板缩略预览（纯 CSS 版式示意）
-   ======================================== */
-.tpl-thumb {
-  display: block;
-  width: 100%;
-  /* A4 比例固定，缩略图不参与卡片高度计算 */
-  aspect-ratio: 210 / 297;
-  flex-shrink: 0;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-neutral-100);
-  overflow: hidden;
-}
-
-.tpl-thumb__page {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  background: var(--ui-neutral-0);
-}
-
-.tpl-thumb__bar {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  padding: 9% 8% 7%;
-  border-left: 4px solid var(--ui-accent);
-  background: var(--ui-accent-soft);
-}
-
-.tpl-thumb__bar-name {
-  display: block;
-  width: 44%;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--ui-neutral-800);
-}
-
-.tpl-thumb__bar-role {
-  display: block;
-  width: 26%;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--ui-neutral-400);
-}
-
-.tpl-thumb__cols {
-  display: grid;
-  flex: 1;
-  min-height: 0;
-  gap: 7%;
-  padding: 8% 8% 9%;
-}
-
-.tpl-thumb__aside {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  padding: 8%;
-  background: var(--ui-neutral-100);
-}
-
-.tpl-thumb__avatar {
-  display: block;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--ui-neutral-300);
-}
-
-.tpl-thumb__name {
-  display: block;
-  width: 78%;
-  height: 6px;
-  border-radius: 2px;
-  background: var(--ui-neutral-800);
-}
-
-.tpl-thumb__role {
-  display: block;
-  width: 56%;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--ui-neutral-400);
-}
-
-.tpl-thumb__chip {
-  display: block;
-  width: 86%;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--ui-neutral-200);
-}
-
-.tpl-thumb__main {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.tpl-thumb__title {
-  display: block;
-  width: 46%;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--ui-neutral-800);
-}
-
-.tpl-thumb__sub {
-  display: block;
-  width: 28%;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--ui-neutral-400);
-}
-
-.tpl-thumb__block {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--ui-neutral-200);
-}
-
-.tpl-thumb__label {
-  display: block;
-  width: 24%;
-  height: 5px;
-  border-radius: 2px;
-  background: var(--ui-accent);
-}
-
-.tpl-thumb__line {
-  display: block;
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--ui-neutral-200);
-}
-
-.tpl-thumb__line--short {
-  width: 56%;
-}
-
-/* 经典：单栏 + 顶部强调线 */
-.tpl-thumb--classic .tpl-thumb__cols {
-  grid-template-columns: 1fr;
-}
-
-.tpl-thumb--classic .tpl-thumb__title {
-  box-shadow: -5px 0 0 0 var(--ui-accent);
-  padding-left: 7px;
-}
-
-.tpl-thumb--classic .tpl-thumb__block {
-  border-bottom-color: var(--ui-neutral-300);
-}
-
-/* 现代：左栏 + 右主栏 */
-.tpl-thumb--modern .tpl-thumb__cols {
-  grid-template-columns: 30% minmax(0, 1fr);
-  padding: 0;
-  gap: 0;
-}
-
-.tpl-thumb--modern .tpl-thumb__aside {
-  display: flex;
-  margin: 0;
-  padding: 12% 8%;
-}
-
-.tpl-thumb--modern .tpl-thumb__main {
-  padding: 12% 9%;
-}
-
-.tpl-thumb--modern .tpl-thumb__title,
-.tpl-thumb--modern .tpl-thumb__sub {
-  display: none;
-}
-
-.tpl-thumb--modern .tpl-thumb__block {
-  padding: 7px;
-  border: 1px solid var(--ui-neutral-200);
-  border-radius: 4px;
-  background: var(--ui-neutral-50);
-}
-
-/* 紧凑：更窄左栏、行距更密 */
-.tpl-thumb--compact .tpl-thumb__cols {
-  grid-template-columns: 25% minmax(0, 1fr);
-  padding: 0;
-  gap: 0;
-}
-
-.tpl-thumb--compact .tpl-thumb__aside {
-  display: flex;
-  margin: 0;
-  padding: 10% 7%;
-  gap: 3px;
-}
-
-.tpl-thumb--compact .tpl-thumb__avatar {
-  width: 20px;
-  height: 20px;
-}
-
-.tpl-thumb--compact .tpl-thumb__main {
-  padding: 9% 8%;
-  gap: 5px;
-}
-
-.tpl-thumb--compact .tpl-thumb__title,
-.tpl-thumb--compact .tpl-thumb__sub {
-  display: none;
-}
-
-.tpl-thumb--compact .tpl-thumb__block {
-  padding-bottom: 3px;
-  gap: 2px;
-}
-
-.tpl-thumb--compact .tpl-thumb__line {
-  height: 2px;
-}
-
-/* 学术：居中抬头 + 全宽细线 */
-.tpl-thumb--academic .tpl-thumb__cols {
-  grid-template-columns: 1fr;
-}
-
-.tpl-thumb--academic .tpl-thumb__main {
-  align-items: center;
-}
-
-.tpl-thumb--academic .tpl-thumb__title {
-  width: 40%;
-  text-align: center;
-}
-
-.tpl-thumb--academic .tpl-thumb__sub {
-  width: 24%;
-  text-align: center;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--ui-neutral-700);
-  margin-bottom: 4px;
-}
-
-.tpl-thumb--academic .tpl-thumb__block {
-  width: 100%;
-  align-items: flex-start;
-}
-
-.tpl-thumb--academic .tpl-thumb__label {
-  width: 30%;
-  height: 4px;
-  background: var(--ui-neutral-700);
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--ui-neutral-400);
-}
-
-/* 创意：强调色块 + 竖向分割线 */
-.tpl-thumb--creative .tpl-thumb__bar {
-  display: flex;
-}
-
-.tpl-thumb--creative .tpl-thumb__cols {
-  grid-template-columns: 33% minmax(0, 1fr);
-  padding: 0;
-  gap: 0;
-}
-
-.tpl-thumb--creative .tpl-thumb__aside {
-  display: flex;
-  margin: 0;
-  padding: 10% 8%;
-  border-right: 2px solid var(--ui-accent);
-  background: transparent;
-}
-
-.tpl-thumb--creative .tpl-thumb__avatar,
-.tpl-thumb--creative .tpl-thumb__name,
-.tpl-thumb--creative .tpl-thumb__role {
-  display: none;
-}
-
-.tpl-thumb--creative .tpl-thumb__main {
-  padding: 10% 9%;
-}
-
-.tpl-thumb--creative .tpl-thumb__title,
-.tpl-thumb--creative .tpl-thumb__sub {
-  display: none;
-}
-
-.tpl-thumb--creative .tpl-thumb__block {
-  padding: 7px;
-  border: 1px solid var(--ui-neutral-200);
-  border-radius: 5px;
-  background: var(--ui-neutral-50);
-}
-
-.tpl-thumb--creative .tpl-thumb__block .tpl-thumb__label {
-  width: 34%;
-}
-
-/* 双栏创意：等宽双栏 + 中缝细线 */
-.tpl-thumb--dual .tpl-thumb__bar {
-  display: flex;
-}
-
-.tpl-thumb--dual .tpl-thumb__cols {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  padding: 0;
-  gap: 0;
-}
-
-.tpl-thumb--dual .tpl-thumb__aside {
-  display: flex;
-  margin: 0;
-  padding: 10% 9%;
-  border-right: 1px solid var(--ui-neutral-300);
-  background: transparent;
-}
-
-.tpl-thumb--dual .tpl-thumb__avatar,
-.tpl-thumb--dual .tpl-thumb__name,
-.tpl-thumb--dual .tpl-thumb__role {
-  display: none;
-}
-
-.tpl-thumb--dual .tpl-thumb__main {
-  padding: 10% 9%;
-}
-
-.tpl-thumb--dual .tpl-thumb__title,
-.tpl-thumb--dual .tpl-thumb__sub {
-  display: none;
-}
-
-.tpl-thumb--dual .tpl-thumb__block {
-  border-bottom-style: solid;
-}
-
 /* ---------- 窄窗口适配 ---------- */
 @media (max-width: 1100px) {
   .templates-view__body {
@@ -1202,6 +856,10 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--ui-space-4);
     align-items: start;
+  }
+
+  .tpl-detail {
+    position: static;
   }
 
   .tpl-filters__reset {

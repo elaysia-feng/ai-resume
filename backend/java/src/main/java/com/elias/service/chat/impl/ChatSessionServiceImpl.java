@@ -11,31 +11,31 @@ import com.elias.dto.chat.request.ChatSessionCreateRequest;
 import com.elias.dto.chat.response.ChatMessageResponse;
 import com.elias.dto.chat.response.ChatSessionCreateResponse;
 import com.elias.dto.chat.response.ChatSessionItemResponse;
-import com.elias.service.chat.ChatService;
+import com.elias.config.agent.PythonAgentProperties;
+import com.elias.config.common.InternalAgentProperties;
+import com.elias.service.chat.ChatSessionService;
 import com.elias.service.chat.WorkspaceService;
-import com.elias.chat.tool.ChatToolExecutor;
-import com.elias.chat.tool.ToolRegistry;
-import com.elias.chat.tool.ToolResult;
 import com.elias.common.context.UserContext;
 import com.elias.exception.BusinessException;
-import com.elias.chat.minimax.MiniMaxClient;
-import com.elias.chat.minimax.MiniMaxContentBlock;
-import com.elias.chat.minimax.MiniMaxMessage;
-import com.elias.chat.minimax.MiniMaxStreamListener;
-import com.elias.chat.minimax.MiniMaxTool;
-import com.elias.chat.minimax.MiniMaxToolUse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,16 +44,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 对话服务实现。
+ * 对话会话服务实现。
  *
- * <p>核心是对话循环：用户消息落库 -> 组装历史 -> 调 MiniMax ->
- * 模型要调工具就执行工具、把结果回填后再次调模型，直到没有工具调用。</p>
+ * <p>Java 负责会话权限、消息落库和 SSE 代理；模型调用、提示词、Agent 编排和工具执行由 Python 负责。</p>
  *
  * <p>整个过程通过 SSE 推给前端：text_delta / tool_call / tool_result / done / error。</p>
  */
 @Slf4j
 @Service
-public class ChatServiceImpl implements ChatService {
+public class ChatSessionServiceImpl implements ChatSessionService {
 
     /**
      * 会话场景
@@ -94,49 +93,60 @@ public class ChatServiceImpl implements ChatService {
      */
     private static final String DEFAULT_SESSION_TITLE = "新建对话";
 
-    /**
-     * 对话循环最大轮次，防止模型无限调工具。
-     *
-     * <p>实测在十万级文件的仓库里，模型定位一个类平均要 8~10 轮工具调用
-     * （搜 → 列目录 → 读 → 再搜），8 轮会经常在找到答案前就中止。</p>
-     */
-    private static final int MAX_TOOL_ROUNDS = 12;
-
-    /**
-     * 单次 SSE 连接最长保留时间
-     */
-    private static final long SSE_TIMEOUT = 300_000L;
-
     private final AgentSessionMapper agentSessionMapper;
     private final AgentMessageMapper agentMessageMapper;
-    private final MiniMaxClient miniMaxClient;
-    private final ToolRegistry toolRegistry;
-    private final ChatToolExecutor chatToolExecutor;
     private final WorkspaceService workspaceService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
     private final ThreadPoolTaskExecutor agentStreamTaskExecutor;
+    private final RestClient pythonAgentClient;
+    private final PythonAgentProperties pythonAgentProperties;
+    private final InternalAgentProperties internalAgentProperties;
 
-    public ChatServiceImpl(AgentSessionMapper agentSessionMapper,
+    /**
+     * 注入会话持久化、工作区解析和 Python SSE 代理依赖。
+     *
+     * @param agentSessionMapper 会话 Mapper
+     * @param agentMessageMapper 消息 Mapper
+     * @param workspaceService 当前用户工作区解析服务
+     * @param objectMapper JSON 序列化器
+     * @param transactionTemplate 消息持久化事务模板
+     * @param agentStreamTaskExecutor 聊天 SSE 线程池
+     * @param restClientBuilder HTTP 客户端构造器
+     * @param pythonAgentProperties Python 服务地址配置
+     * @param internalAgentProperties Java-Python 内部令牌配置
+     */
+    public ChatSessionServiceImpl(AgentSessionMapper agentSessionMapper,
             AgentMessageMapper agentMessageMapper,
-            MiniMaxClient miniMaxClient,
-            ToolRegistry toolRegistry,
-            ChatToolExecutor chatToolExecutor,
             WorkspaceService workspaceService,
             ObjectMapper objectMapper,
             TransactionTemplate transactionTemplate,
-            ThreadPoolTaskExecutor agentStreamTaskExecutor) {
+            ThreadPoolTaskExecutor agentStreamTaskExecutor,
+            RestClient.Builder restClientBuilder,
+            PythonAgentProperties pythonAgentProperties,
+            InternalAgentProperties internalAgentProperties) {
         this.agentSessionMapper = agentSessionMapper;
         this.agentMessageMapper = agentMessageMapper;
-        this.miniMaxClient = miniMaxClient;
-        this.toolRegistry = toolRegistry;
-        this.chatToolExecutor = chatToolExecutor;
         this.workspaceService = workspaceService;
         this.objectMapper = objectMapper;
         this.transactionTemplate = transactionTemplate;
         this.agentStreamTaskExecutor = agentStreamTaskExecutor;
+        this.pythonAgentProperties = pythonAgentProperties;
+        this.internalAgentProperties = internalAgentProperties;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(pythonAgentProperties.getReadTimeoutSeconds()));
+        this.pythonAgentClient = restClientBuilder.baseUrl(pythonAgentProperties.getBaseUrl())
+                .requestFactory(requestFactory)
+                .build();
     }
 
+    /**
+     * 创建当前用户的聊天会话。
+     *
+     * @param request 会话标题和可选简历 ID
+     * @return 新建会话 ID
+     */
     @Override
     @Transactional
     public ChatSessionCreateResponse createSession(ChatSessionCreateRequest request) {
@@ -191,6 +201,12 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    /**
+     * 查询指定会话的消息历史。
+     *
+     * @param sessionId 会话 ID
+     * @return 按顺序排列的消息列表
+     */
     @Override
     public List<ChatMessageResponse> listMessages(Long sessionId) {
         Long userId = UserContext.verifyGetUserId();
@@ -203,6 +219,11 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    /**
+     * 删除当前用户拥有的聊天会话及其消息。
+     *
+     * @param sessionId 会话 ID
+     */
     @Override
     @Transactional
     public void deleteSession(Long sessionId) {
@@ -212,8 +233,16 @@ public class ChatServiceImpl implements ChatService {
         agentSessionMapper.deleteById(session.getId());
     }
 
+    /**
+     * 保存用户消息并异步代理到 Python ChatModel 流。
+     *
+     * @param sessionId 会话 ID
+     * @param request 用户消息与工作区路径
+     * @return 聊天 SSE 事件流
+     */
     @Override
     public SseEmitter sendMessage(Long sessionId, ChatMessageRequest request) {
+        // 1. 校验会话归属与消息内容，并解析当前用户有权访问的工作区。
         Long userId = UserContext.verifyGetUserId();
         // 归属校验放在请求线程里，越权直接 404，不会走到 SSE 里
         getOwnedSession(userId, sessionId);
@@ -225,18 +254,20 @@ public class ChatServiceImpl implements ChatService {
         String workspaceRoot = workspaceService.resolveWorkspaceRoot(userId,
                 request == null ? null : request.getWorkspacePath());
 
+        // 2. 先持久化用户消息，再构造发送给 Python 的完整历史。
         saveUserMessage(sessionId, content.trim());
-        List<MiniMaxMessage> messages = buildModelMessages(sessionId);
+        List<Map<String, Object>> messages = buildChatHistory(sessionId);
 
+        // 3. 在线程池里代理 Python SSE，并把错误转换成前端事件。
         SseEmitter emitter = createEmitter();
         try {
             agentStreamTaskExecutor.execute(() -> {
                 try {
-                    runConversation(userId, sessionId, workspaceRoot, messages, emitter);
+                    proxyPythonChat(sessionId, workspaceRoot, messages, emitter);
                     emitter.complete();
                 } catch (Exception e) {
                     log.warn("对话执行失败, sessionId={}", sessionId, e);
-                    sendEvent(emitter, "error", Map.<String, Object>of("message", errorMessage(e)));
+                    sendEvent(emitter, "error", Map.<String, Object>of("message", errorMessage()));
                     emitter.complete();
                 }
             });
@@ -254,122 +285,156 @@ public class ChatServiceImpl implements ChatService {
      * <p>单独抽成方法，方便单测替换成能捕获事件的实现。</p>
      */
     SseEmitter createEmitter() {
-        return new SseEmitter(SSE_TIMEOUT);
+        return new SseEmitter(pythonAgentProperties.getReadTimeoutSeconds() * 1000L);
     }
 
     /**
-     * 对话循环：模型要调工具就执行并回填，最多 MAX_TOOL_ROUNDS 轮。
+     * 通过 Python 内部接口代理模型 SSE，并让 Java 继续作为消息持久化的唯一入口。
+     *
+     * @param sessionId 会话 ID
+     * @param workspaceRoot 当前用户选择的工作区根目录
+     * @param messages 已保存的会话消息
+     * @param emitter 返回给前端的 SSE emitter
      */
-    private void runConversation(Long userId, Long sessionId, String workspaceRoot,
-            List<MiniMaxMessage> messages, SseEmitter emitter) {
-        List<MiniMaxTool> tools = toolRegistry.toAnthropicTools();
-        String systemPrompt = buildSystemPrompt(workspaceRoot);
+    private void proxyPythonChat(Long sessionId, String workspaceRoot,
+            List<Map<String, Object>> messages, SseEmitter emitter) {
+        // 1. 传递工作区和历史消息，并使用内部令牌调用 Python。
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("workspaceRoot", workspaceRoot);
+        body.put("messages", messages);
 
-        for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            List<MiniMaxContentBlock> blocks = new ArrayList<>();
-            StringBuilder text = new StringBuilder();
-            String[] stopReasonHolder = new String[1];
+        pythonAgentClient.post()
+                .uri("/internal/chat/stream")
+                .header("X-Internal-Service-Token", internalAgentProperties.getServiceToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .body(body)
+                .exchange((request, response) -> {
+                    // 2. 校验内部响应，再交由 SSE 解析器逐事件持久化和转发。
+                    if (!response.getStatusCode().is2xxSuccessful()) {
+                        throw new IllegalStateException("Python AI 服务返回 HTTP " + response.getStatusCode().value());
+                    }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
+                        readPythonEvents(sessionId, reader, emitter);
+                    }
+                    return null;
+                });
+    }
 
-            miniMaxClient.chatStream(messages, tools, systemPrompt, new MiniMaxStreamListener() {
-                @Override
-                public void onTextDelta(String delta) {
-                    text.append(delta);
-                    sendEvent(emitter, "text_delta", Map.<String, Object>of("text", delta));
+    /**
+     * 解析 Python 传来的 SSE，并在 Java 边界保存模型消息与工具结果。
+     *
+     * @param sessionId 会话 ID
+     * @param reader Python SSE 响应体
+     * @param emitter 返回给前端的 SSE emitter
+     * @throws IOException SSE 响应体读取失败时抛出
+     */
+    private void readPythonEvents(Long sessionId, BufferedReader reader, SseEmitter emitter) throws IOException {
+        // 1. 按 SSE 空行边界收集完整事件，再转交事件分发器。
+        String eventName = "";
+        StringBuilder data = new StringBuilder();
+        StringBuilder assistantText = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isEmpty()) {
+                dispatchPythonEvent(sessionId, eventName, data.toString(), assistantText, emitter);
+                eventName = "";
+                data.setLength(0);
+            } else if (line.startsWith("event:")) {
+                eventName = line.substring("event:".length()).trim();
+            } else if (line.startsWith("data:")) {
+                if (data.length() > 0) {
+                    data.append('\n');
                 }
-
-                @Override
-                public void onToolUse(MiniMaxToolUse toolUse) {
-                    blocks.add(MiniMaxContentBlock.ofToolUse(toolUse.getId(), toolUse.getName(),
-                            toolUse.getInput()));
-                    Map<String, Object> input = toolUse.getInput() == null
-                            ? Map.of()
-                            : toolUse.getInput();
-                    sendEvent(emitter, "tool_call", Map.<String, Object>of(
-                            "id", toolUse.getId(),
-                            "name", toolUse.getName(),
-                            "input", input));
-                }
-
-                @Override
-                public void onStopReason(String stopReason) {
-                    stopReasonHolder[0] = stopReason;
-                }
-            });
-
-            List<MiniMaxToolUse> toolUses = blocks.stream()
-                    .filter(MiniMaxContentBlock::isToolUse)
-                    .map(block -> new MiniMaxToolUse(block.getId(), block.getName(), block.getInput()))
-                    .toList();
-
-            if (toolUses.isEmpty()) {
-                Long messageId = saveAssistantMessage(sessionId, text.toString());
-                sendEvent(emitter, "done", Map.<String, Object>of(
-                        "messageId", messageId == null ? 0L : messageId,
-                        "finishReason", stopReasonHolder[0] == null ? "end_turn" : stopReasonHolder[0]));
-                return;
+                data.append(line.substring("data:".length()).stripLeading());
             }
-
-            // 模型这一轮要调工具：先把工具调用本身作为助手消息落库，再回填工具结果
-            saveAssistantToolCallMessage(sessionId, blocks);
-            List<Map<String, Object>> resultBlocks = new ArrayList<>();
-            for (MiniMaxToolUse toolUse : toolUses) {
-                ToolResult result = chatToolExecutor.execute(toolUse.getName(), toolUse.getInput(),
-                        userId, workspaceRoot);
-                sendEvent(emitter, "tool_result", Map.<String, Object>of(
-                        "id", toolUse.getId(),
-                        "name", toolUse.getName(),
-                        "ok", result.isOk(),
-                        "summary", result.getSummary() == null ? "" : result.getSummary()));
-                saveToolMessage(sessionId, toolUse, result);
-                resultBlocks.add(toToolResultBlock(toolUse.getId(), result));
-            }
-            messages.add(new MiniMaxMessage("assistant", blocks));
-            messages.add(new MiniMaxMessage("user", resultBlocks));
         }
-
-        throw new BusinessException(400, "工具调用轮次超过上限（" + MAX_TOOL_ROUNDS + " 轮），本轮对话已中止");
+        // 2. EOF 前没有空行的末尾事件也要分发。
+        dispatchPythonEvent(sessionId, eventName, data.toString(), assistantText, emitter);
     }
 
     /**
-     * 组装发给模型的消息：保留完整会话历史，只读取协议转换需要的字段。
+     * 按 SSE 事件类型执行对应的消息落库或前端转发。
+     *
+     * @param sessionId 会话 ID
+     * @param eventName Python 事件名称
+     * @param rawData Python 事件 JSON
+     * @param assistantText 当前轮助手文本缓存
+     * @param emitter 返回给前端的 SSE emitter
+     * @throws JsonProcessingException 事件 JSON 无法解析时抛出
      */
-    private List<MiniMaxMessage> buildModelMessages(Long sessionId) {
-        List<MiniMaxMessage> messages = new ArrayList<>();
+    private void dispatchPythonEvent(Long sessionId, String eventName, String rawData,
+            StringBuilder assistantText, SseEmitter emitter) throws JsonProcessingException {
+        if (eventName == null || eventName.isBlank() || rawData == null || rawData.isBlank()) {
+            return;
+        }
+        // 1. 解析事件负载，再按事件类型执行持久化或前端转发。
+        Map<String, Object> payload = objectMapper.readValue(rawData, new TypeReference<>() {
+        });
+        // 2. 文本和工具调用先按前端协议转发；完整工具参数同时写入消息历史。
+        if ("text_delta".equals(eventName)) {
+            String text = String.valueOf(payload.getOrDefault("text", ""));
+            assistantText.append(text);
+            sendEvent(emitter, eventName, Map.of("text", text));
+        } else if ("tool_call".equals(eventName)) {
+            sendEvent(emitter, eventName, payload);
+        } else if ("tool_calls_complete".equals(eventName)) {
+            String historyContent = String.valueOf(payload.getOrDefault("historyContent", ""));
+            if (!historyContent.isBlank()) {
+                saveAssistantToolCallMessage(sessionId, historyContent);
+            }
+            assistantText.setLength(0);
+        // 3. 工具结果、最终回答和错误分别更新会话或通知前端。
+        } else if ("tool_result".equals(eventName)) {
+            saveToolMessage(sessionId, payload);
+            Map<String, Object> resultEvent = new LinkedHashMap<>();
+            resultEvent.put("id", payload.getOrDefault("id", ""));
+            resultEvent.put("name", payload.getOrDefault("name", ""));
+            resultEvent.put("ok", Boolean.TRUE.equals(payload.get("ok")));
+            resultEvent.put("summary", payload.getOrDefault("summary", ""));
+            sendEvent(emitter, eventName, resultEvent);
+        } else if ("done".equals(eventName)) {
+            Long messageId = saveAssistantMessage(sessionId, assistantText.toString());
+            Map<String, Object> doneEvent = new LinkedHashMap<>();
+            doneEvent.put("messageId", messageId == null ? 0L : messageId);
+            doneEvent.put("finishReason", payload.getOrDefault("finishReason", "stop"));
+            sendEvent(emitter, eventName, doneEvent);
+        } else if ("error".equals(eventName)) {
+            Map<String, Object> errorEvent = new LinkedHashMap<>();
+            errorEvent.put("message", payload.getOrDefault("message", "AI 处理失败，请检查模型配置后重试"));
+            sendEvent(emitter, eventName, errorEvent);
+        }
+    }
+
+    /**
+     * 保留会话历史的通用字段；Python 负责把旧工具块还原为 ChatModel 消息。
+     *
+     * @param sessionId 会话 ID
+     * @return 供 Python 运行时转换的有序消息列表
+     */
+    private List<Map<String, Object>> buildChatHistory(Long sessionId) {
+        List<Map<String, Object>> messages = new ArrayList<>();
         List<AgentMessage> history = agentMessageMapper.selectList(new LambdaQueryWrapper<AgentMessage>()
-                .select(AgentMessage::getRole, AgentMessage::getContent, AgentMessage::getContentType)
+                .select(AgentMessage::getRole, AgentMessage::getContent, AgentMessage::getContentType,
+                        AgentMessage::getToolName)
                 .eq(AgentMessage::getSessionId, sessionId)
                 .orderByAsc(AgentMessage::getSeqNo, AgentMessage::getId));
         for (AgentMessage message : history) {
-            MiniMaxMessage converted = toModelMessage(message);
-            if (converted != null) {
-                messages.add(converted);
-            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("role", message.getRole());
+            item.put("content", message.getContent() == null ? "" : message.getContent());
+            item.put("contentType", message.getContentType() == null ? CONTENT_TYPE_TEXT : message.getContentType());
+            item.put("toolName", message.getToolName());
+            messages.add(item);
         }
         return messages;
     }
-
     /**
-     * 把库里的消息还原成模型协议的消息
-     */
-    private MiniMaxMessage toModelMessage(AgentMessage message) {
-        if (ROLE_USER.equals(message.getRole())) {
-            return new MiniMaxMessage("user", message.getContent());
-        }
-        if (ROLE_ASSISTANT.equals(message.getRole())) {
-            if (CONTENT_TYPE_JSON.equals(message.getContentType())) {
-                return new MiniMaxMessage("assistant", readContentBlocks(message.getContent()));
-            }
-            return new MiniMaxMessage("assistant", message.getContent());
-        }
-        if (ROLE_TOOL.equals(message.getRole())) {
-            // Anthropic 兼容协议里 tool_result 走 user 角色
-            return new MiniMaxMessage("user", readToolResultBlocks(message.getContent()));
-        }
-        return null;
-    }
-
-    /**
-     * 保存用户消息
+     * 保存用户消息。
+     *
+     * @param sessionId 会话 ID
+     * @param content 用户输入文本
      */
     private void saveUserMessage(Long sessionId, String content) {
         transactionTemplate.executeWithoutResult(status -> {
@@ -386,7 +451,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 保存助手文本消息，返回消息ID
+     * 保存助手文本消息。
+     *
+     * @param sessionId 会话 ID
+     * @param text 助手文本
+     * @return 新消息 ID
      */
     private Long saveAssistantMessage(Long sessionId, String text) {
         return transactionTemplate.execute(status -> {
@@ -405,14 +474,17 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 保存助手的工具调用消息，内容是协议层的内容块数组
+     * 保存 Python 序列化的工具调用历史。
+     *
+     * @param sessionId 会话 ID
+     * @param historyContent Python 生成的通用消息 JSON
      */
-    private void saveAssistantToolCallMessage(Long sessionId, List<MiniMaxContentBlock> blocks) {
+    private void saveAssistantToolCallMessage(Long sessionId, String historyContent) {
         transactionTemplate.executeWithoutResult(status -> {
             agentMessageMapper.insert(AgentMessage.builder()
                     .sessionId(sessionId)
                     .role(ROLE_ASSISTANT)
-                    .content(writeJson(blocks))
+                    .content(historyContent)
                     .contentType(CONTENT_TYPE_JSON)
                     .seqNo(nextSeqNo(sessionId))
                     .status(MESSAGE_STATUS_SUCCESS)
@@ -422,37 +494,34 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 保存工具执行结果
+     * 保存 Python 序列化的工具结果；前端只接收简短摘要。
+     *
+     * @param sessionId 会话 ID
+     * @param payload Python 工具结果事件
      */
-    private void saveToolMessage(Long sessionId, MiniMaxToolUse toolUse, ToolResult result) {
+    private void saveToolMessage(Long sessionId, Map<String, Object> payload) {
+        // 1. 原样保留 Python 生成的通用历史内容，只在 Java 持久化状态和工具名。
+        String toolName = String.valueOf(payload.getOrDefault("name", ""));
+        boolean ok = Boolean.TRUE.equals(payload.get("ok"));
+        String historyContent = String.valueOf(payload.getOrDefault("historyContent", ""));
         transactionTemplate.executeWithoutResult(status -> {
             agentMessageMapper.insert(AgentMessage.builder()
                     .sessionId(sessionId)
                     .role(ROLE_TOOL)
-                    .content(writeJson(List.of(toToolResultBlock(toolUse.getId(), result))))
+                    .content(historyContent)
                     .contentType(CONTENT_TYPE_JSON)
-                    .toolName(toolUse.getName())
+                    .toolName(toolName)
                     .seqNo(nextSeqNo(sessionId))
-                    .status(result.isOk() ? MESSAGE_STATUS_SUCCESS : MESSAGE_STATUS_FAILED)
+                    .status(ok ? MESSAGE_STATUS_SUCCESS : MESSAGE_STATUS_FAILED)
                     .build());
             touchSession(sessionId);
         });
     }
-
     /**
-     * 构造 Anthropic 协议的 tool_result 块
-     */
-    private Map<String, Object> toToolResultBlock(String toolUseId, ToolResult result) {
-        Map<String, Object> block = new LinkedHashMap<>();
-        block.put("type", "tool_result");
-        block.put("tool_use_id", toolUseId);
-        block.put("content", result.getContent() == null ? "" : result.getContent());
-        block.put("is_error", !result.isOk());
-        return block;
-    }
-
-    /**
-     * 会话内下一个顺序号
+     * 读取会话内下一个消息顺序号。
+     *
+     * @param sessionId 会话 ID
+     * @return 下一个顺序号
      */
     private int nextSeqNo(Long sessionId) {
         AgentMessage last = agentMessageMapper.selectOne(new LambdaQueryWrapper<AgentMessage>()
@@ -466,7 +535,9 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 更新会话的最后消息时间
+     * 更新会话的最后消息时间。
+     *
+     * @param sessionId 会话 ID
      */
     private void touchSession(Long sessionId) {
         AgentSession session = agentSessionMapper.selectById(sessionId);
@@ -478,7 +549,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 校验会话归属，不是自己的会话一律 404
+     * 校验会话归属，不是自己的会话一律 404。
+     *
+     * @param userId 当前用户 ID
+     * @param sessionId 会话 ID
+     * @return 当前用户拥有的会话
      */
     private AgentSession getOwnedSession(Long userId, Long sessionId) {
         AgentSession session = agentSessionMapper.selectById(sessionId);
@@ -492,26 +567,13 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 系统提示词
-     */
-    private String buildSystemPrompt(String workspaceRoot) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("你是 AI Resume Forge 的桌面助手，运行在用户本机，可以帮用户阅读和分析工作区里的文件。\n");
-        if (workspaceRoot == null || workspaceRoot.isBlank()) {
-            prompt.append("用户还没有选择工作区目录，文件类工具会返回「尚未选择工作区目录」，"
-                    + "此时直接引导用户先在桌面端选择工作区目录。\n");
-        } else {
-            prompt.append("工作区根目录：").append(workspaceRoot).append("\n");
-            prompt.append("所有文件工具只能访问该目录内的路径，越界会被拒绝。\n");
-        }
-        prompt.append("需要文件内容时优先调用工具读取，不要凭空猜测。");
-        return prompt.toString();
-    }
-
-    /**
      * 推送一个 SSE 事件。
      *
      * <p>数据先自己序列化成 JSON 字符串，避免依赖 SSE 内部的消息转换器。</p>
+     *
+     * @param emitter 返回给前端的 SSE emitter
+     * @param eventName 事件名称
+     * @param payload 事件数据
      */
     private void sendEvent(SseEmitter emitter, String eventName, Map<String, Object> payload) {
         try {
@@ -522,39 +584,19 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 异常信息兜底，保证推给前端的消息不为空
+     * 提供不包含底层凭据或异常细节的前端提示。
+     *
+     * @return 安全的用户提示
      */
-    private String errorMessage(Exception e) {
-        String message = e.getMessage();
-        return message == null || message.isBlank() ? "对话执行失败，请稍后重试" : message;
+    private String errorMessage() {
+        return "AI 服务调用失败，请检查 Python 进程、模型端点与协议配置后重试";
     }
 
     /**
-     * 解析助手消息里的内容块数组
-     */
-    private List<MiniMaxContentBlock> readContentBlocks(String json) {
-        try {
-            return objectMapper.readValue(json, new TypeReference<List<MiniMaxContentBlock>>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw BusinessException.business("会话历史解析失败");
-        }
-    }
-
-    /**
-     * 解析工具结果块数组
-     */
-    private List<Map<String, Object>> readToolResultBlocks(String json) {
-        try {
-            return objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw BusinessException.business("工具结果解析失败");
-        }
-    }
-
-    /**
-     * 序列化成 JSON
+     * 将值序列化成 JSON。
+     *
+     * @param value 待序列化内容
+     * @return JSON 字符串
      */
     private String writeJson(Object value) {
         try {
@@ -581,7 +623,10 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 消息响应
+     * 将消息实体映射为聊天接口响应。
+     *
+     * @param message 消息实体
+     * @return 聊天消息响应
      */
     private ChatMessageResponse toMessageResponse(AgentMessage message) {
         return ChatMessageResponse.builder()

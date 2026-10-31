@@ -39,8 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,6 +55,7 @@ public class InterviewServiceImpl implements InterviewService {
     private final AiInterviewRoundMapper aiInterviewRoundMapper;
 
     @Override
+    @Transactional
     public Long startRun(StartInterviewRunRequest request) {
         Long userId = UserContext.verifyGetUserId();
         AgentSessionDetailResponse session = getSession(request.getSessionId());
@@ -321,24 +320,8 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private void sendToMq(InterviewAgentRunJobMessage message) {
-        Runnable publishTask = () -> {
-            try {
-                agentStreamClient.publish(agentStreamProperties.getInterviewRunStream(), message);
-            } catch (Exception e) {
-                // 队列投递失败不影响主流程。
-            }
-        };
-
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    publishTask.run();
-                }
-            });
-            return;
-        }
-        publishTask.run();
+        // run 状态、面试轮次和 agent_task 共用 SQLite 事务，入队失败时整体回滚。
+        agentStreamClient.publish(agentStreamProperties.getInterviewRunStream(), message);
     }
 
     private List<InterviewOptionResponse> parseOptions(String optionsJson) {

@@ -1,5 +1,8 @@
 import { resolveApiAssetUrl } from '../api/request.js'
 
+const EXPORT_SCALE = 2
+const PDF_SECTION_BREAK_SEARCH_RATIO = 0.92
+
 function waitForNextFrame() {
   return new Promise((resolve) => {
     requestAnimationFrame(() => resolve())
@@ -120,49 +123,107 @@ async function prepareExportElement(element) {
 }
 
 async function renderElementToCanvas(element) {
+  // 1. 同步准备离屏简历和画布渲染器。
   const [{ default: html2canvas }, prepared] = await Promise.all([
     import('html2canvas'),
     prepareExportElement(element),
   ])
 
   try {
-    return await html2canvas(prepared.element, {
-      scale: 2,
+    // 2. 记录章节边界并按原始宽度渲染，供后续分页使用。
+    const elementTop = prepared.element.getBoundingClientRect().top
+    const sectionBreakOffsets = Array.from(prepared.element.querySelectorAll('.resume-section-block'))
+      .map((section) => Math.round((section.getBoundingClientRect().top - elementTop) * EXPORT_SCALE))
+      .filter((offset) => offset > 0)
+
+    const canvas = await html2canvas(prepared.element, {
+      scale: EXPORT_SCALE,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
     })
+
+    // 3. 返回画布和章节位置；finally 会清理克隆的离屏节点。
+    return { canvas, sectionBreakOffsets }
   } finally {
     prepared.dispose()
   }
 }
 
-export async function exportToPDF(element, filename = 'resume') {
-  if (!element) throw new Error('导出元素不存在')
+function findPdfPageEnd(startOffset, maxEndOffset, sectionBreakOffsets) {
+  // 页面尾部 8% 内若有下一节起点，就在该处换页，避免章节标题贴在页尾。
+  const searchStartOffset = startOffset + Math.floor((maxEndOffset - startOffset) * PDF_SECTION_BREAK_SEARCH_RATIO)
+  let pageEndOffset = maxEndOffset
 
-  const [{ default: jsPDF }, canvas] = await Promise.all([
+  for (const sectionBreakOffset of sectionBreakOffsets) {
+    if (sectionBreakOffset > startOffset
+        && sectionBreakOffset >= searchStartOffset
+        && sectionBreakOffset <= maxEndOffset) {
+      pageEndOffset = sectionBreakOffset
+    }
+  }
+
+  return pageEndOffset
+}
+
+export async function exportToPDF(element, filename = 'resume') {
+  if (!element) {
+    throw new Error('导出元素不存在')
+  }
+
+  // 1. 加载 PDF 渲染器并捕获页面内容。
+  const [{ default: jsPDF }, rendered] = await Promise.all([
     import('jspdf'),
     renderElementToCanvas(element),
   ])
+  const { canvas, sectionBreakOffsets } = rendered
 
-  const imgData = canvas.toDataURL('image/png')
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   })
 
+  // 2. 根据 A4 宽度计算单页画布高度，保持文字尺寸不变。
   const pdfWidth = pdf.internal.pageSize.getWidth()
   const pdfHeight = pdf.internal.pageSize.getHeight()
-  const canvasWidth = canvas.width
-  const canvasHeight = canvas.height
-  const ratio = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight)
-  const imgWidth = canvasWidth * ratio
-  const imgHeight = canvasHeight * ratio
-  const x = (pdfWidth - imgWidth) / 2
-  const y = 0
+  const scaleToPageWidth = pdfWidth / canvas.width
+  const pageCanvasHeight = Math.max(1, Math.floor(pdfHeight / scaleToPageWidth))
+  const pageCanvas = document.createElement('canvas')
+  pageCanvas.width = canvas.width
+  const pageContext = pageCanvas.getContext('2d')
+  if (!pageContext) {
+    throw new Error('无法创建 PDF 页面画布')
+  }
 
-  pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight)
+  let sourceTop = 0
+  let pageIndex = 0
+  // 3. 按原始宽度裁成 A4 页面，避免长简历整体缩小到一页。
+  while (sourceTop < canvas.height) {
+    const maxEnd = Math.min(sourceTop + pageCanvasHeight, canvas.height)
+    const sourceBottom = findPdfPageEnd(sourceTop, maxEnd, sectionBreakOffsets)
+    const sliceHeight = sourceBottom - sourceTop
+    pageCanvas.height = sliceHeight
+    pageContext.clearRect(0, 0, pageCanvas.width, sliceHeight)
+    pageContext.drawImage(canvas, 0, sourceTop, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight)
+
+    if (pageIndex > 0) {
+      pdf.addPage()
+    }
+
+    pdf.addImage(
+      pageCanvas.toDataURL('image/png'),
+      'PNG',
+      0,
+      0,
+      pdfWidth,
+      sliceHeight * scaleToPageWidth,
+    )
+    sourceTop = sourceBottom
+    pageIndex += 1
+  }
+
+  // 4. 保存已分页的 PDF。
   pdf.save(`${filename}.pdf`)
 }
 

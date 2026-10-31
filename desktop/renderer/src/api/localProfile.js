@@ -7,6 +7,7 @@ import { apiClient, unwrapApiData } from './request.js';
  * 它是保留域名，永远收不到邮件，所以本地身份不存在密码 / 验证码登录。</p>
  */
 export const LOCAL_IDENTITY_EMAIL = 'local@local.invalid';
+export const DEFAULT_GUEST_DISPLAY_NAME = '访客';
 
 /**
  * 创建（或复用）本地身份。
@@ -16,8 +17,8 @@ export const LOCAL_IDENTITY_EMAIL = 'local@local.invalid';
  *
  * @param {string} displayName 昵称（账号身份，不是简历里的姓名）
  */
-export async function createLocalProfile(displayName) {
-  const res = await apiClient.post('/api/auth/local-profile', { displayName });
+export async function createLocalProfile(displayName = DEFAULT_GUEST_DISPLAY_NAME) {
+  const res = await apiClient.post('/api/auth/local-profile', { displayName }, { timeout: 15000 });
   return unwrapApiData(res);
 }
 

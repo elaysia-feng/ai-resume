@@ -23,4 +23,9 @@ public final class AgentSceneCode {
      *  简历改写
      */
     public static final String RESUME_REWRITE = "RESUME_REWRITE";
+
+    /**
+     * 按目标岗位改写当前简历分区。
+     */
+    public static final String JD_CUSTOMIZE = "JD_CUSTOMIZE";
 }

@@ -28,6 +28,11 @@ public class AgentSessionDetailResponse {
     private Long resumeId;
 
     /**
+     * 模块助手会话所属的简历分区；为空时表示通用或旧版共享会话。
+     */
+    private Long targetSectionId;
+
+    /**
      * 会话场景编码，例如 JD_CUSTOMIZE
      */
     private String sceneCode;

@@ -75,9 +75,6 @@ src/test/java/com/elias/            # 按领域与分层组织的单元测试
 - `MAIL_USERNAME` / `MAIL_PASSWORD`：发信邮箱
 - `AGENT_RESUME_RUN_STREAM` / `AGENT_INTERVIEW_RUN_STREAM` / `AGENT_RUN_RESULT_STREAM` / `AGENT_RUN_DLQ_STREAM`：Agent 任务流名（Java 和 Python 两端必须一致）
 - `STORAGE_ROOT`：本地磁盘存储根目录（头像等文件，留空用「用户主目录/Documents/AI-Resume-Forge」）
-- `MINIMAX_BASE_URL` / `MINIMAX_ANTHROPIC_API_KEY` / `MINIMAX_MODEL`：通用对话用的 MiniMax 模型
-  （密钥单独起名：Spring 的 relaxed binding 会把 `minimax.api-key` 映射到操作系统环境变量
-  `MINIMAX_API_KEY`，而系统环境变量优先级高于 `.env`，同名会被旧值盖掉）
 - `ALIPAY_*`：支付宝
 - `PYTHON_AGENT_BASE_URL`：Python AI 运行时地址
 - `INTERNAL_AGENT_SERVICE_TOKEN`：Python 调用内部接口时携带的令牌

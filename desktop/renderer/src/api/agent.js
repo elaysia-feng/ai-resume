@@ -25,14 +25,31 @@ export function setAgentMockEnabled(enabled) {
   }
 }
 
+export function createClientRequestId() {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi?.randomUUID) {
+    return cryptoApi.randomUUID();
+  }
+  if (cryptoApi?.getRandomValues) {
+    const randomBytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(randomBytes);
+    return Array.from(randomBytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export async function streamAgentRun(sessionId, payload, handlers = {}, options = {}) {
   if (options.mock ?? shouldUseAgentMock()) {
     return streamMockAgentRun(sessionId, payload, handlers);
   }
 
-  const queuedRun = await createAgentRun(sessionId, payload);
+  const requestPayload = {
+    ...payload,
+    clientRequestId: payload.clientRequestId || createClientRequestId(),
+  };
+  const queuedRun = await createAgentRun(sessionId, requestPayload);
   handlers.onQueued?.(queuedRun);
-  await streamAgentRunEvents(queuedRun.runId, handlers);
+  await streamAgentRunEvents(queuedRun.runId, handlers, { signal: options.signal });
   return queuedRun;
 }
 
@@ -43,7 +60,7 @@ export async function continueAgentRun(runId, payload, handlers = {}, options = 
 
   const queuedRun = await enqueueContinueAgentRun(runId, payload);
   handlers.onQueued?.(queuedRun);
-  await streamAgentRunEvents(queuedRun.runId, handlers);
+  await streamAgentRunEvents(queuedRun.runId, handlers, { signal: options.signal });
   return queuedRun;
 }
 
@@ -59,7 +76,11 @@ export async function enqueueContinueAgentRun(runId, payload) {
 
 export async function streamAgentRunEvents(runId, handlers = {}, options = {}) {
   const afterSeq = options.afterSeq || 0;
-  return streamSseGet(`/api/agent/runs/${runId}/events/stream?afterSeq=${encodeURIComponent(afterSeq)}`, handlers);
+  return streamSseGet(
+    `/api/agent/runs/${runId}/events/stream?afterSeq=${encodeURIComponent(afterSeq)}`,
+    handlers,
+    { signal: options.signal },
+  );
 }
 
 export async function approveAgentRun(runId, payload, options = {}) {
@@ -124,13 +145,14 @@ async function streamSse(path, payload, handlers) {
   }
 }
 
-async function streamSseGet(path, handlers) {
+async function streamSseGet(path, handlers, options = {}) {
   const token = localStorage.getItem('jwt_token');
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    signal: options.signal,
   });
 
   if (!response.ok || !response.body) {

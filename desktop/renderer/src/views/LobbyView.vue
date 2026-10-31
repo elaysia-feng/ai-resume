@@ -1,198 +1,245 @@
 <template>
-  <!--
-    访客首页：说明产品是什么、能做什么，并给出登录 / 注册入口。
-    克制的信息密度，不做营销 hero，也不再放装饰性插画。
-  -->
   <div class="lobby">
     <main class="lobby__inner">
-      <div class="lobby__brand">
-        <span class="lobby__mark" aria-hidden="true">
-          <AppIcon name="file-text" :size="22" />
-        </span>
-        <span class="lobby__name">AI Resume Forge</span>
-      </div>
+      <header class="lobby__top">
+        <div class="lobby__brand">
+          <AppBrandMark :size="36" />
+          <span>AI Resume Forge</span>
+        </div>
+        <nav class="lobby__actions" aria-label="账号入口">
+          <router-link class="ui-btn ui-btn--outline" to="/login">登录</router-link>
+          <router-link class="ui-btn ui-btn--primary" to="/register">注册账号</router-link>
+        </nav>
+      </header>
 
-      <h1 class="ui-page-title lobby__title">本地简历与求职准备工作台</h1>
-      <p class="ui-page-subtitle lobby__desc">
-        简历编辑、AI 对话、模板导出和模拟面试可以分别开始。简历与历史记录保存在本机；使用 AI 时，当前任务所需内容会发送到设置中配置的模型服务。
-      </p>
+      <section class="lobby__lead">
+        <div class="lobby__lead-copy">
+          <h1>本地简历与求职准备工作台</h1>
+          <p>
+            简历编辑、AI 对话、模板导出和模拟面试都可以分别开始。
+            简历与历史记录保存在本机；使用 AI 时，当前任务所需内容会发送到设置中配置的模型服务。
+          </p>
+        </div>
+        <aside class="lobby__note">
+          <AppIcon name="desktop" :size="19" />
+          <p>本机数据与模型服务边界清楚。AI 修改建议由你审阅后再决定是否应用。</p>
+        </aside>
+      </section>
 
-      <div class="lobby__actions">
-        <router-link class="ui-btn ui-btn--primary ui-btn--lg" to="/register">
-          <AppIcon name="user-plus" :size="16" />
-          注册账号
-        </router-link>
-        <router-link class="ui-btn ui-btn--outline ui-btn--lg" to="/login">
-          <AppIcon name="sign-in" :size="16" />
-          登录
-        </router-link>
-      </div>
-      <p class="lobby__hint">首次使用先注册，注册后即可进入工作台；已有账号直接登录。</p>
+      <section class="lobby__work" aria-labelledby="lobby-work-title">
+        <header class="lobby__work-head">
+          <h2 id="lobby-work-title">工作入口</h2>
+          <p>每项能力都可独立使用。</p>
+        </header>
 
-      <!-- 功能概览 -->
-      <ul class="lobby__features">
-        <li class="ui-panel lobby__feature">
-          <span class="ui-icon-tile lobby__feature-icon" aria-hidden="true">
-            <AppIcon name="chat-circle" :size="18" />
-          </span>
-          <h2 class="lobby__feature-title">AI 对话写简历</h2>
-          <p class="lobby__feature-desc">把项目经历说给 AI 听，它改写成简历语言，并按岗位 JD 调整侧重。</p>
-        </li>
+        <article class="lobby__feature">
+          <span class="lobby__feature-icon" aria-hidden="true"><AppIcon name="file-text" :size="21" /></span>
+          <div>
+            <h3>简历编辑与导出</h3>
+            <p>逐模块整理经历，保存版本，并预览模板和导出文件。</p>
+          </div>
+        </article>
 
-        <li class="ui-panel lobby__feature">
-          <span class="ui-icon-tile lobby__feature-icon" aria-hidden="true">
-            <AppIcon name="layout" :size="18" />
-          </span>
-          <h2 class="lobby__feature-title">模板市场</h2>
-          <p class="lobby__feature-desc">多套版式模板可预览、可筛选，套用后随时导出 PDF。</p>
-        </li>
+        <article class="lobby__feature">
+          <span class="lobby__feature-icon" aria-hidden="true"><AppIcon name="chat-circle" :size="21" /></span>
+          <div>
+            <h3>AI 对话与岗位分析</h3>
+            <p>围绕简历和目标岗位交流，查看分析与修改建议。</p>
+          </div>
+        </article>
 
-        <li class="ui-panel lobby__feature">
-          <span class="ui-icon-tile lobby__feature-icon" aria-hidden="true">
-            <AppIcon name="microphone" :size="18" />
-          </span>
-          <h2 class="lobby__feature-title">模拟面试</h2>
-          <p class="lobby__feature-desc">按目标岗位出题，逐轮点评应答思路与表达，并给出改进建议。</p>
-        </li>
-
-        <li class="ui-panel lobby__feature">
-          <span class="ui-icon-tile lobby__feature-icon" aria-hidden="true">
-            <AppIcon name="star" :size="18" />
-          </span>
-          <h2 class="lobby__feature-title">5star 法则评分</h2>
-          <p class="lobby__feature-desc">按情境、任务、行动、结果、量化逐条体检，指出还缺哪一环。</p>
-        </li>
-      </ul>
+        <article class="lobby__feature">
+          <span class="lobby__feature-icon" aria-hidden="true"><AppIcon name="microphone" :size="21" /></span>
+          <div>
+            <h3>模拟面试</h3>
+            <p>选择简历与岗位场景，逐轮练习并查看反馈。</p>
+          </div>
+        </article>
+      </section>
     </main>
   </div>
 </template>
-
 <script setup>
 import AppIcon from '../components/common/AppIcon.vue';
+import AppBrandMark from '../components/common/AppBrandMark.vue';
 </script>
-
 <style scoped>
-/* ========================================
-   访客欢迎页：单列居中，信息克制
-   ======================================== */
 .lobby {
   min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ui-space-10) var(--ui-space-8);
   background: var(--ui-bg-app);
   color: var(--ui-fg-primary);
-  font-family: var(--ui-font-sans);
 }
 
 .lobby__inner {
   width: 100%;
-  max-width: 880px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 56px 48px;
 }
 
-/* ---- 品牌 ---- */
+.lobby__top {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--ui-grid-line-strong);
+}
+
 .lobby__brand {
   display: inline-flex;
+  min-width: 0;
   align-items: center;
-  gap: var(--ui-space-3);
-  margin-bottom: var(--ui-space-6);
-}
-
-.lobby__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--ui-radius-lg);
-  background: var(--ui-accent-soft);
-  border: 1px solid var(--ui-accent-border);
-  color: var(--ui-fg-accent);
-}
-
-.lobby__name {
-  font-size: var(--ui-text-md);
-  font-weight: 700;
-  letter-spacing: var(--ui-tracking-snug);
+  gap: 11px;
   color: var(--ui-fg-primary);
+  font-family: var(--ui-font-display);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
-/* ---- 标题与说明 ---- */
-.lobby__title {
-  text-wrap: pretty;
-}
-
-.lobby__desc {
-  margin-top: var(--ui-space-4);
-  max-width: 40rem;
-  font-size: var(--ui-text-md);
-  line-height: var(--ui-line-relaxed);
-  text-wrap: pretty;
-}
-
-/* ---- 入口 ---- */
 .lobby__actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--ui-space-3);
-  margin-top: var(--ui-space-8);
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
 }
 
-.lobby__hint {
-  margin: var(--ui-space-4) 0 0;
-  font-size: var(--ui-text-base);
-  color: var(--ui-fg-muted);
-}
-
-/* ---- 功能概览 ---- */
-.lobby__features {
+.lobby__lead {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--ui-space-4);
-  width: 100%;
-  margin: var(--ui-space-10) 0 0;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.7fr);
+  align-items: end;
+  gap: 48px;
+  padding: 72px 0 64px;
+  border-bottom: 1px solid var(--ui-grid-line-strong);
+}
+
+.lobby__lead-copy h1 {
+  max-width: 17ch;
+  margin: 0;
+  font-family: var(--ui-font-display);
+  font-size: clamp(38px, 4.5vw, 56px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.lobby__lead-copy p {
+  max-width: 72ch;
+  margin: 20px 0 0;
+  color: var(--ui-fg-secondary);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.lobby__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--ui-grid-line);
+  background: var(--ui-bg-canvas);
+}
+
+.lobby__note .app-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--ui-accent);
+}
+
+.lobby__note p {
+  margin: 0;
+  color: var(--ui-fg-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.lobby__work {
+  padding-top: 34px;
+}
+
+.lobby__work-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--ui-grid-line-strong);
+}
+
+.lobby__work-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.lobby__work-head p {
+  margin: 0;
+  color: var(--ui-fg-muted);
+  font-size: 13px;
 }
 
 .lobby__feature {
-  padding: var(--ui-space-5);
-  text-align: left;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-height: 104px;
+  border-bottom: 1px solid var(--ui-grid-line);
 }
 
 .lobby__feature-icon {
-  margin-bottom: var(--ui-space-3);
-}
-
-.lobby__feature-title {
-  margin: 0;
-  font-size: var(--ui-text-base);
-  font-weight: 600;
-  letter-spacing: var(--ui-tracking-snug);
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--ui-grid-line);
   color: var(--ui-fg-primary);
 }
 
-.lobby__feature-desc {
-  margin: var(--ui-space-2) 0 0;
-  font-size: var(--ui-text-sm);
-  line-height: var(--ui-line-normal);
-  color: var(--ui-fg-secondary);
+.lobby__feature h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
 }
 
-@media (max-width: 720px) {
-  .lobby {
-    padding: var(--ui-space-8) var(--ui-space-5);
+.lobby__feature p {
+  margin: 5px 0 0;
+  color: var(--ui-fg-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 780px) {
+  .lobby__inner {
+    padding: 22px 24px 36px;
+  }
+
+  .lobby__lead {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 44px 0;
+  }
+
+  .lobby__work-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
   }
 
   .lobby__actions {
-    width: 100%;
-    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lobby__brand span:last-child {
+    font-size: 15px;
+  }
+
+  .lobby__actions .ui-btn {
+    padding-right: 10px;
+    padding-left: 10px;
   }
 }
 </style>

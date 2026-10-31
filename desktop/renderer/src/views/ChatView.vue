@@ -371,10 +371,12 @@ function goBack() {
 // 把后端消息转成界面用的结构
 function normalizeMessage(raw) {
   const role = String(raw?.role || '').toUpperCase();
+  const rawContent = raw?.content ?? '';
+  const storedContent = parseStoredMessageContent(raw);
   const message = {
     id: raw?.id ?? `local-${Math.random().toString(36).slice(2)}`,
     role: role === 'USER' ? 'user' : role === 'TOOL' ? 'tool' : role === 'SYSTEM' ? 'system' : 'assistant',
-    content: raw?.content ?? '',
+    content: rawContent,
     toolName: raw?.toolName ?? '',
     createdAt: raw?.createdAt ?? '',
     streaming: false,
@@ -382,10 +384,43 @@ function normalizeMessage(raw) {
   };
 
   if (message.role === 'tool') {
-    message.tools = [
-      { id: `tool-${message.id}`, name: message.toolName || 'tool', status: 'success', summary: message.content },
-    ];
+    const historyResult = isWorkspaceToolResult(storedContent)
+      ? storedContent
+      : findLegacyToolResult(storedContent);
+    message.tools = historyResult
+      ? [{
+          id: historyResult.id || `tool-${message.id}`,
+          name: historyResult.name || message.toolName || 'tool',
+          status: historyResult.ok === false || historyResult.is_error ? 'failed' : 'success',
+          summary: storedContentToText(historyResult.summary ?? historyResult.content ?? message.content),
+        }]
+      : [{ id: `tool-${message.id}`, name: message.toolName || 'tool', status: 'success', summary: message.content }];
     message.content = '';
+  } else if (message.role === 'assistant' && isWorkspaceToolCalls(storedContent)) {
+    message.content = storedContent.text || '';
+    message.tools = (storedContent.calls || []).map((call, index) => ({
+      id: call.id || `tool-${message.id}-${index}`,
+      name: call.name || 'tool',
+      input: call.input || {},
+      status: 'success',
+      summary: '工具调用',
+    }));
+  } else if (message.role === 'assistant' && Array.isArray(storedContent)) {
+    const text = storedContent
+      .filter((block) => block?.type === 'text')
+      .map((block) => block.text || '')
+      .join('');
+    const calls = storedContent.filter((block) => block?.type === 'tool_use');
+    if (calls.length) {
+      message.content = text;
+      message.tools = calls.map((call, index) => ({
+        id: call.id || `tool-${message.id}-${index}`,
+        name: call.name || 'tool',
+        input: call.input || {},
+        status: 'success',
+        summary: '工具调用',
+      }));
+    }
   } else if (message.role === 'assistant' && raw?.toolName) {
     message.tools = [
       { id: `tool-${message.id}`, name: raw.toolName, status: 'success', summary: message.content },
@@ -393,6 +428,47 @@ function normalizeMessage(raw) {
   }
 
   return message;
+}
+
+function parseStoredMessageContent(raw) {
+  if (String(raw?.contentType || '').toUpperCase() !== 'JSON' || typeof raw?.content !== 'string') {
+    return null;
+  }
+  try {
+    return JSON.parse(raw.content);
+  } catch {
+    return null;
+  }
+}
+
+function isWorkspaceToolCalls(value) {
+  return value && typeof value === 'object' && value.type === 'workspace_tool_calls';
+}
+
+function isWorkspaceToolResult(value) {
+  return value && typeof value === 'object' && value.type === 'workspace_tool_result';
+}
+
+function findLegacyToolResult(value) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  return value.find((block) => block?.type === 'tool_result') || null;
+}
+
+function storedContentToText(value) {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => (typeof part === 'string' ? part : part?.text || ''))
+      .join('');
+  }
+  if (value == null) {
+    return '';
+  }
+  return JSON.stringify(value);
 }
 
 // 后端没起来时给出可读提示，而不是抛原始网络错误

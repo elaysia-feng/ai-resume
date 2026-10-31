@@ -23,11 +23,11 @@ const ALLOWED_SIDEBAR_COLORS = ['black', 'blue', 'white', 'gray'];
 
 function readResumeBodyFontSize() {
   if (typeof window === 'undefined') {
-    return 9;
+    return 10;
   }
 
   const rawValue = Number(window.localStorage.getItem(BODY_FONT_SIZE_STORAGE_KEY));
-  return ALLOWED_BODY_FONT_SIZES.includes(rawValue) ? rawValue : 9;
+  return ALLOWED_BODY_FONT_SIZES.includes(rawValue) ? rawValue : 10;
 }
 
 function persistResumeBodyFontSize(value) {
@@ -157,7 +157,7 @@ export const useResumeStore = defineStore('resume', () => {
     error.value = null;
     try {
       await apiDeleteResume(id);
-      resumes.value = resumes.value.filter((r) => r.id !== id);
+      resumes.value = resumes.value.filter((r) => String(r.id) !== String(id));
     } catch (err) {
       error.value = err?.response?.data?.message || err.message || 'Failed to delete resume';
       throw err;

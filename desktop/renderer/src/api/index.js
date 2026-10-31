@@ -37,6 +37,7 @@ export {
   approveAgentRun,
   cancelAgentRun,
   continueAgentRun,
+  createClientRequestId,
   createAgentRun,
   enqueueContinueAgentRun,
   getAgentRun,

@@ -18,12 +18,6 @@
           </div>
         </div>
 
-        <img
-          v-if="basicProfile.avatar"
-          :src="basicProfile.avatar"
-          alt="avatar"
-          class="resume-basic-header__avatar classic-header__avatar"
-        />
       </div>
 
       <div v-if="jobIntentItems.length" class="resume-meta-pills classic-header__pills">
@@ -67,7 +61,7 @@ const layout = computed(() => {
   return buildTemplateLayout(
     props.sections,
     {
-      lead: ['SUMMARY', 'SELF_EVALUATION'],
+      lead: ['SUMMARY'],
       main: [
         'EXPERIENCE',
         'PROJECTS',
@@ -77,6 +71,7 @@ const layout = computed(() => {
         'CERTIFICATES',
         'LAC_CERTIFICATES',
         'CAMPUS',
+        'SELF_EVALUATION',
       ],
     },
     props.locale,
@@ -96,50 +91,57 @@ const orderedSections = computed(() => {
 
 <style scoped>
 /* ========================================
-   经典稳重版：单栏通排 + 竖向强调条 + 细分隔线
+   清晰投递版：单栏、无头像、按 ATS 扫读顺序排列经历
    纸面配色固定浅色（只用 --ui-* 中性 / 品牌色阶推导），
    屏幕预览、打印、导出 PDF 观感一致。
    ======================================== */
 .resume-template--classic {
   --resume-color-page: var(--ui-neutral-0);
-  --resume-color-heading: var(--ui-neutral-900);
-  --resume-color-text: var(--ui-neutral-700);
-  --resume-color-text-soft: var(--ui-neutral-600);
-  --resume-color-text-faint: var(--ui-neutral-500);
-  --resume-color-accent: var(--ui-brand-700);
-  --resume-color-accent-soft: var(--ui-brand-50);
-  --resume-color-border: var(--ui-neutral-200);
-  --resume-color-surface: var(--ui-neutral-50);
-  --resume-color-surface-strong: var(--ui-brand-50);
+  --resume-color-heading: #172633;
+  --resume-color-text: #354450;
+  --resume-color-text-soft: #5d6b75;
+  --resume-color-text-faint: #73818b;
+  --resume-color-accent: #1d4d70;
+  --resume-color-accent-soft: #eef4f7;
+  --resume-color-border: #d7e0e5;
+  --resume-color-surface: #f7f9fa;
+  --resume-color-surface-strong: #f2f6f8;
 
-  --resume-font-name: 25px;
+  --resume-font-name: 29px;
   --resume-font-title: 12px;
   --resume-font-contact: 10px;
   --resume-font-pill: 10px;
   --resume-section-title-size: 12px;
 
-  padding: 54px 58px 60px;
+  padding: 48px 56px 52px;
 }
 
 /* ---------- 抬头 ---------- */
+.classic-header {
+  gap: 13px;
+}
+
 .classic-header .resume-basic-header__identity {
-  padding-left: 14px;
-  border-left: 3px solid var(--resume-color-accent);
+  padding: 0;
+  border: 0;
 }
 
 .classic-header .resume-basic-header__name {
   font-size: var(--resume-font-name);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
 }
 
 .classic-header .resume-basic-header__title {
-  margin-top: 6px;
-  letter-spacing: 0.02em;
+  margin-top: 7px;
+  color: var(--resume-color-accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .classic-header .resume-basic-header__contacts {
-  gap: 2px var(--ui-space-5);
-  margin-top: var(--ui-space-3);
+  gap: 4px 17px;
+  margin-top: 13px;
 }
 
 .classic-header .resume-basic-header__contact {
@@ -151,65 +153,96 @@ const orderedSections = computed(() => {
   font-weight: 600;
 }
 
-.classic-header__avatar {
-  width: 88px;
-  height: 88px;
-  border-radius: var(--ui-radius-md);
-  border: 1px solid var(--resume-color-border);
-}
-
 .classic-header__pills {
-  padding-top: var(--ui-space-2);
+  gap: 8px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--resume-color-border);
 }
 
-/* 抬头与正文之间：左侧一段强调色，右侧渐隐到分隔线 */
+.classic-header__pills .resume-meta-pill {
+  padding: 0 12px 0 0;
+  border-right: 1px solid var(--resume-color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--resume-color-text);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.classic-header__pills .resume-meta-pill:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.classic-header__pills .resume-meta-pill__label {
+  color: var(--resume-color-text-faint);
+  font-weight: 500;
+}
+
+/* 抬头以单一实线收束，维持机器和人工都容易识别的阅读顺序。 */
 .classic-header__divider {
   height: 2px;
-  margin-top: var(--ui-space-6);
-  background: linear-gradient(90deg, var(--resume-color-accent) 0%, var(--resume-color-border) 62%);
+  margin-top: 17px;
+  background: var(--resume-color-accent);
 }
 
 /* ---------- 正文 ---------- */
 .classic-body {
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-6);
-  margin-top: var(--ui-space-6);
+  gap: 18px;
+  margin-top: 18px;
 }
 
 /* 模块标题：克制的通栏细线，标题本身不上色 */
 .resume-template--classic :deep(.resume-section-block__head) {
-  padding-bottom: 7px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
 .resume-template--classic :deep(.resume-section-block__title) {
-  color: var(--resume-color-heading);
-  letter-spacing: 0.06em;
+  color: var(--resume-color-accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
 }
 
-/* 经历条目之间用细线分隔，末条不加分隔线 */
+/* 记录条目以紧凑的横向节奏分隔，避免装饰卡片影响 ATS 解析。 */
 .resume-template--classic :deep(.resume-entry) {
-  padding-bottom: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--resume-color-border);
 }
 
 .resume-template--classic :deep(.resume-entry:last-child) {
+  margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: none;
 }
 
 .resume-template--classic :deep(.resume-entry__title) {
-  letter-spacing: 0.01em;
+  color: var(--resume-color-heading);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.resume-template--classic :deep(.resume-entry__subtitle) {
+  margin-top: 2px;
+  color: var(--resume-color-text-soft);
 }
 
 .resume-template--classic :deep(.resume-entry__date) {
-  padding-top: 2px;
-  letter-spacing: 0.02em;
+  padding-top: 1px;
+  color: var(--resume-color-accent);
+  font-size: 8px;
+  letter-spacing: 0.04em;
 }
 
 .resume-template--classic :deep(.resume-chip) {
   border: 1px solid var(--resume-color-border);
+  border-radius: 2px;
+  background: var(--ui-neutral-0);
+  color: var(--resume-color-text);
 }
 
 /* 打印时保留强调色块，避免只剩颜色区分的关键信息丢失 */

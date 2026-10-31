@@ -220,10 +220,6 @@ export class BackendSupervisor {
       JWT_SECRET: config.internalToken,
       INTERNAL_AGENT_SERVICE_TOKEN: config.internalToken,
       PYTHON_AGENT_BASE_URL: `http://${config.python.host}:${config.python.port}`,
-      MINIMAX_BASE_URL: config.chat.baseUrl,
-      MINIMAX_ANTHROPIC_API_KEY: config.chat.apiKey,
-      MINIMAX_MODEL: config.chat.model,
-      MINIMAX_MAX_TOKENS: String(config.chat.maxTokens),
       STORAGE_ROOT: path.join(dataDir, 'storage'),
     };
 
@@ -264,8 +260,13 @@ export class BackendSupervisor {
       JAVA_INTERNAL_BASE_URL: `http://${config.server.host}:${config.server.port}`,
       INTERNAL_AGENT_SERVICE_TOKEN: config.internalToken,
       LLM_PROVIDER: config.agent.provider,
-      DEEPSEEK_API_KEY: config.agent.apiKey,
-      MIMO_API_KEY: config.agent.apiKey,
+      LLM_MODEL_PROVIDER: config.agent.modelProvider,
+      LLM_BASE_URL: config.agent.baseUrl,
+      LLM_API_KEY: config.agent.apiKey,
+      LLM_MODEL: config.agent.model,
+      LLM_MAX_TOKENS: String(config.agent.maxTokens),
+      LLM_EXTRA_HEADERS: JSON.stringify(config.agent.extraHeaders || {}),
+      LLM_PROVIDER_OPTIONS: JSON.stringify(config.agent.providerOptions || {}),
       AI_RESUME_PYTHON_HOST: config.python.host,
       AI_RESUME_PYTHON_PORT: String(config.python.port),
     };

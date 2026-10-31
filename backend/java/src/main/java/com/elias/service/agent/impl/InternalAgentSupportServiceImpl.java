@@ -229,20 +229,6 @@ public class InternalAgentSupportServiceImpl implements InternalAgentSupportServ
             }
         }
 
-        AiAgentRun activeRun = aiAgentRunMapper.selectOne(new LambdaQueryWrapper<AiAgentRun>()
-                .eq(AiAgentRun::getUserId, request.getUserId())
-                .eq(AiAgentRun::getSessionId, request.getSessionId())
-                .eq(AiAgentRun::getSceneCode, request.getSceneCode())
-                .eq(AiAgentRun::getTargetSectionId, targetSectionId)
-                .eq(AiAgentRun::getActiveFlag, 1)
-                .last("limit 1"));
-        if (activeRun != null) {
-            return InternalAgentRunCreateResponse.builder()
-                    .runId(activeRun.getId())
-                    .status(activeRun.getStatus())
-                    .build();
-        }
-
         AiAgentRun run = AiAgentRun.builder()
                 .userId(request.getUserId())
                 .sessionId(request.getSessionId())

@@ -1,84 +1,50 @@
 <template>
-  <article
-    class="resume-template resume-template--modern"
-    :class="{ 'resume-template--modern-single': !hasSidebarContent }"
-  >
-    <aside v-if="hasSidebarContent" class="modern-sidebar">
-      <section class="modern-profile">
-        <div v-if="basicProfile.avatar" class="modern-profile__avatar-wrap">
-          <img :src="basicProfile.avatar" alt="avatar" class="resume-basic-header__avatar modern-profile__avatar" />
-        </div>
-
-        <div class="modern-profile__identity">
-          <h1 class="modern-profile__name">{{ basicProfile.name }}</h1>
-          <p v-if="basicProfile.title" class="modern-profile__title">{{ basicProfile.title }}</p>
-        </div>
-      </section>
-
-      <section v-if="jobIntentItems.length" class="modern-sidebar__panel">
-        <h2 class="modern-sidebar__panel-title">{{ locale === 'en' ? 'Target' : '求职意向' }}</h2>
-        <div class="modern-intent-list">
-          <div v-for="item in jobIntentItems" :key="item.field" class="modern-intent-item">
-            <span class="modern-intent-item__label">{{ item.label }}</span>
-            <span class="modern-intent-item__value">{{ item.value }}</span>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="basicProfile.contacts.length" class="modern-sidebar__panel">
-        <h2 class="modern-sidebar__panel-title">{{ locale === 'en' ? 'Contact' : '联系方式' }}</h2>
-        <div class="modern-contact-list">
-          <div v-for="item in basicProfile.contacts" :key="item.field" class="modern-contact-item">
-            <span class="modern-contact-item__label">{{ item.label }}</span>
-            <span class="modern-contact-item__value">{{ item.value }}</span>
-          </div>
-        </div>
-      </section>
-
-      <div class="modern-sidebar__sections">
-        <ResumeSection
-          v-for="section in layout.asideSections"
-          :key="section.id"
-          :section="section"
-          :locale="locale"
-          compact
-        />
-      </div>
-    </aside>
-
-    <main class="modern-main">
-      <header v-if="!hasSidebarContent" class="modern-hero">
-        <div class="modern-hero__intro">
+  <article class="resume-template resume-template--modern">
+    <header class="modern-hero">
+      <div class="modern-hero__top">
+        <div class="modern-hero__identity">
+          <p class="modern-hero__eyebrow">职业履历 / CAREER PROFILE</p>
           <h1 class="modern-hero__name">{{ basicProfile.name }}</h1>
           <p v-if="basicProfile.title" class="modern-hero__title">{{ basicProfile.title }}</p>
-          <div v-if="!hasSidebarContent && basicProfile.contacts.length" class="resume-basic-header__contacts modern-hero__contacts">
-            <span
-              v-for="item in basicProfile.contacts"
-              :key="item.field"
-              class="resume-basic-header__contact"
-            >
-              <span class="resume-basic-header__contact-label">{{ item.label }}</span>
-              <span>{{ item.value }}</span>
-            </span>
-          </div>
         </div>
-
-        <div v-if="jobIntentItems.length" class="resume-meta-pills modern-hero__pills">
-          <span v-for="item in jobIntentItems" :key="item.field" class="resume-meta-pill">
-            <span class="resume-meta-pill__label">{{ item.label }}</span>
-            <span>{{ item.value }}</span>
-          </span>
-        </div>
-      </header>
-
-      <div class="modern-main__sections" :class="{ 'modern-main__sections--with-header': !hasSidebarContent }">
-        <ResumeSection
-          v-for="section in orderedSections"
-          :key="section.id"
-          :section="section"
-          :locale="locale"
+        <img
+          v-if="basicProfile.avatar"
+          :src="basicProfile.avatar"
+          alt=""
+          class="resume-basic-header__avatar modern-hero__avatar"
         />
       </div>
+
+      <div v-if="basicProfile.contacts.length" class="modern-hero__contacts">
+        <span v-for="item in basicProfile.contacts" :key="item.field">
+          <span>{{ item.label }}</span>
+          {{ item.value }}
+        </span>
+      </div>
+
+      <div v-if="jobIntentItems.length" class="modern-hero__intent">
+        <span v-for="item in jobIntentItems" :key="item.field">
+          {{ item.label }} <strong>{{ item.value }}</strong>
+        </span>
+      </div>
+    </header>
+
+    <section v-if="layout.leadSections.length" class="modern-impact" aria-label="核心优势">
+      <ResumeSection
+        v-for="section in layout.leadSections"
+        :key="section.id"
+        :section="section"
+        :locale="locale"
+      />
+    </section>
+
+    <main class="modern-main">
+      <ResumeSection
+        v-for="section in contentSections"
+        :key="section.id"
+        :section="section"
+        :locale="locale"
+      />
     </main>
   </article>
 </template>
@@ -86,7 +52,7 @@
 <script setup>
 import { computed } from 'vue'
 import ResumeSection from './ResumeSection.vue'
-import { buildBasicProfile, buildJobIntentItems, buildTemplateLayout, formatNaturalText } from '../../utils/resumeTemplate.js'
+import { buildBasicProfile, buildJobIntentItems, buildTemplateLayout } from '../../utils/resumeTemplate.js'
 
 const props = defineProps({
   sections: {
@@ -103,14 +69,16 @@ const layout = computed(() => {
   return buildTemplateLayout(
     props.sections,
     {
-      aside: ['SKILLS', 'CERTIFICATES', 'LAC_CERTIFICATES', 'CAMPUS'],
+      lead: ['SUMMARY', 'SELF_EVALUATION'],
       main: [
-        'SUMMARY',
-        'SELF_EVALUATION',
         'EXPERIENCE',
         'PROJECTS',
         'INTERNSHIP',
         'EDUCATION',
+        'CAMPUS',
+        'SKILLS',
+        'CERTIFICATES',
+        'LAC_CERTIFICATES',
       ],
     },
     props.locale,
@@ -119,304 +87,248 @@ const layout = computed(() => {
 
 const basicProfile = computed(() => buildBasicProfile(layout.value.basic, props.locale))
 const jobIntentItems = computed(() => buildJobIntentItems(layout.value.jobIntent, props.locale))
-const rawBasicContent = computed(() => layout.value.basic?.content || {})
-const hasSidebarContent = computed(() => {
-  return Boolean(
-    basicProfile.value.avatar
-    || basicProfile.value.contacts.length
-    || jobIntentItems.value.length
-    || layout.value.asideSections.length
-    || formatNaturalText(rawBasicContent.value.name)
-    || formatNaturalText(rawBasicContent.value.title),
-  )
-})
-const orderedSections = computed(() => {
-  return [
-    ...layout.value.leadSections,
-    ...layout.value.mainSections,
-    ...layout.value.remainingSections,
-  ]
-})
+const contentSections = computed(() => [
+  ...layout.value.mainSections,
+  ...layout.value.remainingSections,
+])
 </script>
 
 <style scoped>
-/* ========================================
-   现代风：左侧信息栏 + 右侧主栏，留白多、层级清楚
-   左栏配色跟随编辑器的「左栏配色」设置。
-   ======================================== */
 .resume-template--modern {
   --resume-color-page: var(--ui-neutral-0);
-  --resume-color-heading: var(--ui-neutral-900);
-  --resume-color-text: var(--ui-neutral-700);
-  --resume-color-text-soft: var(--ui-neutral-600);
-  --resume-color-text-faint: var(--ui-neutral-500);
-  --resume-color-accent: var(--ui-brand-700);
-  --resume-color-accent-soft: var(--ui-brand-50);
-  --resume-color-border: var(--ui-neutral-200);
-  --resume-color-surface: var(--ui-neutral-50);
-  --resume-color-surface-strong: var(--ui-brand-50);
-
-  --resume-font-name: 23px;
-  --resume-font-title: 11px;
-  --resume-font-contact: 9.5px;
-  --resume-font-pill: 9.5px;
-  --resume-section-title-size: 12px;
-
-  display: grid;
-  grid-template-columns: 218px minmax(0, 1fr);
+  --resume-color-heading: #1c2d28;
+  --resume-color-text: #394842;
+  --resume-color-text-soft: #65736c;
+  --resume-color-text-faint: #78857e;
+  --resume-color-accent: #987238;
+  --resume-color-accent-soft: #f4efe4;
+  --resume-color-border: #ded8ca;
+  --resume-color-surface: #faf8f2;
+  --resume-color-surface-strong: #f4efe4;
+  --resume-font-name: 28px;
+  --resume-font-title: 12px;
+  --resume-font-contact: 9px;
+  --resume-font-pill: 9px;
+  --resume-section-title-size: 11px;
+  --resume-text-size: 9px;
   min-height: 1123px;
-}
-
-.resume-template--modern-single {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* ---------- 左栏 ---------- */
-.modern-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 30px 20px 32px;
-  background: var(--resume-sidebar-bg, var(--resume-color-surface));
-  border-right: 1px solid var(--resume-sidebar-border, var(--resume-color-border));
-}
-
-.modern-profile {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.modern-profile__avatar-wrap {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.modern-profile__avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--ui-radius-md);
-  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
-}
-
-.modern-profile__identity {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.modern-profile__name {
-  margin: 0;
-  color: var(--resume-sidebar-heading, var(--resume-color-heading));
-  font-size: 21px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-}
-
-/* 姓名下方一条短强调线，代替彩色装饰 */
-.modern-profile__name::after {
-  content: '';
-  display: block;
-  width: 32px;
-  height: 2px;
-  margin-top: 8px;
-  background: var(--resume-sidebar-accent, var(--resume-color-accent));
-}
-
-.modern-profile__title {
-  margin: 0;
-  color: var(--resume-sidebar-text-soft, var(--resume-color-text-soft));
-  font-size: var(--resume-font-title);
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.modern-sidebar__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 12px 13px;
-  border-radius: var(--ui-radius-lg);
-  background: var(--resume-sidebar-panel-bg, var(--resume-color-page));
-  border: 1px solid var(--resume-sidebar-panel-border, var(--resume-color-border));
-}
-
-.modern-sidebar__panel-title {
-  margin: 0;
-  color: var(--resume-sidebar-heading, var(--resume-color-heading));
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.modern-intent-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.modern-intent-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.modern-intent-item__label {
-  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-
-.modern-intent-item__value {
-  color: var(--resume-sidebar-text, var(--resume-color-text));
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.5;
-}
-
-.modern-contact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.modern-contact-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.modern-contact-item__label {
-  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-
-.modern-contact-item__value {
-  color: var(--resume-sidebar-text, var(--resume-color-text));
-  font-size: 10.5px;
-  line-height: 1.55;
-  word-break: break-word;
-}
-
-.modern-sidebar__sections {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ---------- 右栏 ---------- */
-.modern-main {
-  padding: 32px 32px 36px;
+  padding: 0 46px 42px;
+  background: var(--resume-color-page);
 }
 
 .modern-hero {
+  margin: 0 -46px 18px;
+  padding: 34px 46px 22px;
+  background: #17322b;
+  color: #f7f5ef;
+}
+
+.modern-hero__top {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--resume-color-border);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.modern-hero__identity {
+  min-width: 0;
+}
+
+.modern-hero__eyebrow {
+  margin: 0 0 11px;
+  color: #c6b17f;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .modern-hero__name {
   margin: 0;
-  color: var(--resume-color-heading);
-  font-size: 23px;
-  font-weight: 800;
+  color: #fffdf8;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   line-height: 1.1;
-  letter-spacing: 0.01em;
 }
 
 .modern-hero__title {
-  margin: 8px 0 0;
-  color: var(--resume-color-text-soft);
-  font-size: 12px;
-  font-weight: 600;
+  margin: 7px 0 0;
+  color: #e1e7df;
+  font-size: 13px;
+  font-weight: 550;
 }
 
-.modern-hero__contacts {
-  margin-top: 14px;
+.modern-hero__avatar {
+  width: 58px;
+  height: 72px;
+  flex: 0 0 auto;
+  border: 1px solid #b7a474;
+  border-radius: 0;
+  object-fit: cover;
 }
 
-.modern-main__sections {
+.modern-hero__contacts,
+.modern-hero__intent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 18px;
+  color: #e6e9df;
+  font-size: var(--resume-font-contact);
+}
+
+.modern-hero__contacts > span > span {
+  margin-right: 4px;
+  color: #c6b17f;
+}
+
+.modern-hero__intent {
+  padding-top: 11px;
+  border-top: 1px solid #52675c;
+  color: #d0d7ca;
+}
+
+.modern-hero__intent strong {
+  color: #f4d78e;
+  font-weight: 650;
+}
+
+.modern-impact {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr);
+  gap: 18px;
+  padding: 13px 15px 14px;
+  border-top: 2px solid var(--resume-color-accent);
+  border-bottom: 1px solid var(--resume-color-border);
+  background: var(--resume-color-accent-soft);
+}
+
+.modern-impact :deep(.resume-section-block__head) {
+  grid-column: 1;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  padding-top: 2px;
+}
+
+.modern-impact :deep(.resume-section-block__body) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.modern-impact :deep(.resume-section-block__title) {
+  color: var(--resume-color-accent);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+
+.modern-impact :deep(.resume-rich-text) {
+  color: var(--resume-color-heading);
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.62;
+}
+
+.modern-main {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 17px;
 }
 
-.modern-main__sections--with-header {
-  margin-top: 16px;
+.modern-main :deep(.resume-section-block) {
+  display: grid;
+  grid-template-columns: 106px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
-/* 模块标题：通栏细线 + 标题左侧强调条 */
-.resume-template--modern :deep(.resume-section-block__head) {
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--resume-color-border);
+.modern-main :deep(.resume-section-block__head) {
+  grid-column: 1;
+  margin: 0;
+  padding: 5px 0 0;
+  border: 0;
 }
 
-.resume-template--modern :deep(.resume-section-block__title) {
-  padding-left: 9px;
-  border-left: 3px solid var(--resume-color-accent);
-  letter-spacing: 0.06em;
+.modern-main :deep(.resume-section-block__title) {
+  color: var(--resume-color-accent);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
 }
 
-/* 条目做成浅底卡片，和正文拉开层次 */
-.resume-template--modern :deep(.resume-entry) {
-  padding: 10px 12px;
-  border-radius: var(--ui-radius-md);
-  background: var(--resume-color-surface);
-  border: 1px solid var(--resume-color-border);
+.modern-main :deep(.resume-section-block__body) {
+  grid-column: 2;
+  min-width: 0;
+  padding-top: 4px;
+  border-top: 1px solid var(--resume-color-border);
 }
 
-.resume-template--modern :deep(.resume-entry__title) {
-  letter-spacing: 0.01em;
+.modern-main :deep(.resume-entry) {
+  position: relative;
+  margin: 0 0 7px;
+  padding: 0 0 7px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
-.resume-template--modern :deep(.resume-section-block--compact .resume-entry) {
-  padding: 9px 10px;
+.modern-main :deep(.resume-entry:last-child) {
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
-/* 左栏内的文字改用左栏配色变量，深色左栏也能读 */
-.modern-sidebar :deep(.resume-section-block__head) {
-  border-bottom-color: var(--resume-sidebar-divider, var(--resume-color-border));
+.modern-main :deep(.resume-entry::before) {
+  position: absolute;
+  top: 4px;
+  bottom: -7px;
+  left: 2px;
+  width: 1px;
+  background: #c8bd9f;
+  content: '';
 }
 
-.modern-sidebar :deep(.resume-entry),
-.modern-sidebar :deep(.resume-kv) {
-  background: var(--resume-sidebar-panel-bg, transparent);
-  border-color: var(--resume-sidebar-panel-border, transparent);
+.modern-main :deep(.resume-entry::after) {
+  position: absolute;
+  top: 4px;
+  left: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--resume-color-accent);
+  content: '';
 }
 
-.modern-sidebar :deep(.resume-section-block__title),
-.modern-sidebar :deep(.resume-entry__title) {
-  color: var(--resume-sidebar-heading, var(--resume-color-heading));
+.modern-main :deep(.resume-entry:last-child::before) {
+  bottom: auto;
+  height: 8px;
 }
 
-.modern-sidebar :deep(.resume-entry__subtitle),
-.modern-sidebar :deep(.resume-entry__meta),
-.modern-sidebar :deep(.resume-entry__date),
-.modern-sidebar :deep(.resume-kv__label),
-.modern-sidebar :deep(.resume-chip__meta) {
-  color: var(--resume-sidebar-text-faint, var(--resume-color-text-faint));
+.modern-main :deep(.resume-entry__title) {
+  color: var(--resume-color-heading);
+  font-weight: 700;
 }
 
-.modern-sidebar :deep(.resume-rich-text),
-.modern-sidebar :deep(.resume-entry__description),
-.modern-sidebar :deep(.resume-entry__bullets),
-.modern-sidebar :deep(.resume-kv__value),
-.modern-sidebar :deep(.resume-bullet-list) {
-  color: var(--resume-sidebar-text, var(--resume-color-text));
+.modern-main :deep(.resume-entry__date) {
+  color: var(--resume-color-accent);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  font-size: 8px;
 }
 
-.modern-sidebar :deep(.resume-chip) {
-  background: var(--resume-sidebar-chip-bg, var(--resume-color-surface-strong));
-  color: var(--resume-sidebar-accent, var(--resume-color-accent));
+.modern-main :deep(.resume-entry__subtitle),
+.modern-main :deep(.resume-entry__meta) {
+  color: var(--resume-color-text-soft);
 }
 
-/* 打印时保留左栏底色 */
+.modern-main :deep(.resume-chip) {
+  border: 1px solid #e3dac4;
+  border-radius: 2px;
+  background: var(--resume-color-accent-soft);
+  color: var(--resume-color-accent);
+}
+
 @media print {
   .resume-template--modern {
     -webkit-print-color-adjust: exact;

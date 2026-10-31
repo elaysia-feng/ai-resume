@@ -3,7 +3,7 @@
     <header class="page-head">
       <div class="page-head__text">
         <h1 class="ui-page-title">模拟面试</h1>
-        <p class="ui-page-subtitle">基于当前后端的 interview run、board 和 question-rounds 接口，逐轮作答并查看结构化反馈。</p>
+        <p class="ui-page-subtitle">结合简历和目标岗位进行多轮模拟，逐题作答并查看结构化反馈。</p>
       </div>
       <div class="page-head__actions">
         <span v-if="runBadge" class="ui-badge" :class="runBadge.tone">

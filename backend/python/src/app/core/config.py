@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import Field
@@ -8,7 +9,16 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    """统一管理 Python 服务运行所需的环境配置。"""
+    """统一管理 Python 服务运行所需的环境配置。
+
+    Attributes:
+        llm_provider: 设置页使用的服务预设标识。
+        llm_model_provider: LangChain ChatModel 集成标识。
+        llm_api_key: 模型服务鉴权密钥。
+        llm_base_url: 模型服务或中转站 API 地址。
+        llm_chat_model: 服务商提供的模型 ID。
+        llm_provider_options: 所选集成的原生初始化参数。
+    """
 
     # 统一从 .env 读取配置，未声明的额外字段直接忽略。
     model_config = SettingsConfigDict(
@@ -22,42 +32,48 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_debug: bool = False
 
-    # 文本模型配置，后续由 LangChain ChatModel 使用。
-    # llm_* 是 agent_factory 实际读取的"生效配置"；effective_* 属性按 LLM_PROVIDER 选择。
+    # 所有 AI 功能共用一套 LangChain ChatModel 配置。
     # default 必须是空串而不是 os.getenv(...):
     #   - os.getenv 在类定义时求值，key 会被冻结进字段 default（还可能把 .env 的真实 key
     #     带进 model_json_schema / repr）；
     #   - 环境变量不存在时 os.getenv 返回 None，与 str 类型冲突，pydantic 直接校验失败。
     # pydantic-settings 自身会按 init > 环境变量 > .env > default 的顺序取值。
-    llm_provider: str = Field(default="mimo", alias="LLM_PROVIDER")
-    llm_api_key: str = Field(default="", alias="MIMO_API_KEY")
-    llm_base_url: str = Field(
-        default="https://api.xiaomimimo.com/v1",
-        alias="MIMO_BASE_URL",
-    )
-    llm_chat_model: str = Field(
-        default="mimo-v2.5-pro",
-        alias="MIMO_CHAT_MODEL",
-    )
+    llm_provider: str = Field(default="deepseek", alias="LLM_PROVIDER")
+    llm_model_provider: str = Field(default="deepseek", alias="LLM_MODEL_PROVIDER")
+    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
+    llm_base_url: str = Field(default="https://api.deepseek.com", alias="LLM_BASE_URL")
+    llm_chat_model: str = Field(default="deepseek-flash", alias="LLM_MODEL")
+    llm_max_tokens: int = Field(default=4096, alias="LLM_MAX_TOKENS")
+    llm_extra_headers: dict[str, str] = Field(default_factory=dict, alias="LLM_EXTRA_HEADERS")
+    llm_provider_options: dict[str, Any] = Field(default_factory=dict, alias="LLM_PROVIDER_OPTIONS")
     llm_timeout_seconds: int = Field(default=60, alias="LLM_TIMEOUT_SECONDS")
-
-    # DeepSeek 配置（LLM_PROVIDER=deepseek 时生效，通过 effective_* 属性切换）。
-    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
-    deepseek_base_url: str = Field(default="https://api.deepseek.com/v1", alias="DEEPSEEK_BASE_URL")
-    # deepseek-chat 为快速非推理模型（结构化输出稳定）；deepseek-v4-flash 为推理模型（更慢更贵）。
-    deepseek_chat_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_CHAT_MODEL")
 
     @property
     def effective_llm_api_key(self) -> str:
-        return self.deepseek_api_key if self.llm_provider.lower() == "deepseek" else self.llm_api_key
+        """返回当前统一模型密钥。
+
+        Returns:
+            当前配置的 API Key。
+        """
+        return self.llm_api_key
 
     @property
     def effective_llm_base_url(self) -> str:
-        return self.deepseek_base_url if self.llm_provider.lower() == "deepseek" else self.llm_base_url
+        """返回当前统一模型端点。
+
+        Returns:
+            当前配置的 Base URL。
+        """
+        return self.llm_base_url
 
     @property
     def effective_llm_chat_model(self) -> str:
-        return self.deepseek_chat_model if self.llm_provider.lower() == "deepseek" else self.llm_chat_model
+        """返回当前统一模型 ID。
+
+        Returns:
+            当前配置的模型 ID。
+        """
+        return self.llm_chat_model
 
     # 是否用 LLM 给优化结果做 rubric 打分(评测系统用);false 时只跑确定性规则。
     agent_quality_llm_scoring: bool = Field(default=True, alias="AGENT_QUALITY_LLM_SCORING")
@@ -109,10 +125,6 @@ class Settings(BaseSettings):
     agent_result_consumer_group: str = Field(default="java-result-consumer", alias="AGENT_RESULT_CONSUMER_GROUP")
     agent_dlq_consumer_group: str = Field(default="java-dlq-reader", alias="AGENT_DLQ_CONSUMER_GROUP")
 
-    # 单个 Python worker 进程的 run 并发上限。
-    # 单次拉取条数和 worker semaphore 都会使用这个值，不是整个集群的全局上限。
-    python_agent_max_concurrent_runs: int = Field(default=4, alias="PYTHON_AGENT_MAX_CONCURRENT_RUNS")
-
     # 任务队列空轮询间隔（秒）。
     # 桌面端把 worker 挂在 FastAPI 的 lifespan 里，轮询循环必须周期性让出
     # event loop，否则队列空闲时会把 HTTP 服务饿死。
@@ -126,9 +138,6 @@ class Settings(BaseSettings):
         alias="AGENT_TASK_CLAIM_TIMEOUT_SECONDS",
     )
 
-    # 单个 Python 进程内同时调用 LLM 的上限。
-    # 一个 run 里可能有多个节点调用模型，所以它和 run 并发是两层不同的保护。
-    agent_llm_max_concurrent_calls: int = Field(default=8, alias="AGENT_LLM_MAX_CONCURRENT_CALLS")
     java_internal_timeout_seconds: int = Field(
         default=30,
         alias="JAVA_INTERNAL_TIMEOUT_SECONDS",
@@ -137,5 +146,9 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """返回配置单例，避免重复解析环境变量。"""
+    """返回配置单例，避免重复解析环境变量。
+
+    Returns:
+        当前进程共享的 Settings 实例。
+    """
     return Settings()

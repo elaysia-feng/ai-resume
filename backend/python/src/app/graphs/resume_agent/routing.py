@@ -7,7 +7,14 @@ MEMORY_ROUTE_SUMMARIZE = "summarize_conversation"
 
 
 def decide_supervisor_route(state: ResumeAgentState) -> str:
-    """根据 Supervisor Agent 输出决定下一节点。"""
+    """根据 Supervisor Agent 输出决定下一节点。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+
+    Returns:
+        规范化后的下一节点名称。
+    """
     decision = state.get("route_decision", {})
     if decision.get("clarificationNeeded"):
         # 信息不足时先进入 clarifier，让用户补充 JD 或关键事实。
@@ -17,14 +24,29 @@ def decide_supervisor_route(state: ResumeAgentState) -> str:
 
 
 def decide_memory_route(state: ResumeAgentState) -> str:
-    """根据消息数量和上下文占比决定是否进入摘要节点。"""
+    """根据消息数量和上下文占比决定是否进入摘要节点。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+
+    Returns:
+        摘要节点或 Supervisor 节点名称。
+    """
     if should_summarize_memory(state):
         return MEMORY_ROUTE_SUMMARIZE
     return "supervisor"
 
 
 def should_summarize_memory(state: ResumeAgentState) -> bool:
-    """判断当前 messages 是否已经需要压缩。"""
+    """判断当前 messages 是否已经需要压缩。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+
+    Returns:
+        是否应先进入摘要节点。
+    """
+    # 1. 无消息时无需摘要；消息数达到阈值时按摘要快照判断是否有新内容。
     messages = state.get("messages") or []
     if not messages:
         return False
@@ -36,15 +58,23 @@ def should_summarize_memory(state: ResumeAgentState) -> bool:
         # 只有上下文消息达到阈值时才进入摘要节点，避免每次 run 都经过 summary。
         return token_count != state.get("memory_last_summary_token_count")
 
+    # 2. 消息数未达阈值时，再比较估算 token 与模型上下文比例。
     trigger_tokens = int(settings.agent_model_context_length * settings.agent_summary_trigger_context_ratio)
     if token_count >= trigger_tokens:
-        # MiniMax 上下文接近上限时先摘要，摘要完成后图会继续进入 supervisor。
+        # 上下文接近配置上限时先摘要，摘要完成后图会继续进入 supervisor。
         return token_count != state.get("memory_last_summary_token_count")
     return False
 
 
 def decide_review_route(state: ResumeAgentState) -> str:
-    """根据 Reviewer Agent 输出决定下一节点。"""
+    """根据 Reviewer Agent 输出决定下一节点。
+
+    Args:
+        state: 当前简历 Agent 图状态。
+
+    Returns:
+        审批、重写或失败节点名称。
+    """
     if state.get("review_passed"):
         # 审查通过后不直接写简历，而是进入审批打包，等待用户确认 patch。
         return AgentRoute.APPROVAL_PACKAGER
@@ -58,7 +88,14 @@ def decide_review_route(state: ResumeAgentState) -> str:
 
 
 def normalize_route(route: str | None) -> str:
-    """规范化路由结果。"""
+    """规范化路由结果。
+
+    Args:
+        route: 模型输出的路由名称。
+
+    Returns:
+        小写路由名称；缺失时返回失败节点。
+    """
     if not route:
         return AgentRoute.FAILED
     return route.strip().lower()
