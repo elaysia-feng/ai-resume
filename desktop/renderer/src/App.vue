@@ -1,11 +1,6 @@
 <template>
   <div class="app-shell">
-    <div v-if="isGuest" class="app-guest">
-      <router-view />
-    </div>
-
-    <template v-else>
-      <aside class="app-sidebar" :class="{ 'app-sidebar--collapsed': collapsed }">
+    <aside class="app-sidebar" :class="{ 'app-sidebar--collapsed': collapsed }">
         <div class="sidebar-brand">
           <AppBrandMark :size="collapsed ? 24 : 32" />
           <span class="sidebar-brand__text">
@@ -47,21 +42,13 @@
 
         <div class="sidebar-footer">
           <div class="sidebar-footer__row">
-            <router-link class="sidebar-user" to="/dashboard/profile" :title="displayName">
-              <AppIcon name="user-circle" :size="18" class="sidebar-user__icon" />
+            <div class="sidebar-user" title="数据保存在本机">
+              <AppIcon name="desktop" :size="18" class="sidebar-user__icon" />
               <span class="sidebar-user__meta">
-                <span class="sidebar-user__name">{{ displayName }}</span>
-                <span class="sidebar-user__email">{{ displayEmail }}</span>
+                <span class="sidebar-user__name">本地工作区</span>
+                <span class="sidebar-user__email">数据保存在本机</span>
               </span>
-            </router-link>
-            <button v-if="guestIdentity" type="button" class="sidebar-action" aria-label="账号登录" title="账号登录" @click="goToAccountLogin">
-              <AppIcon name="sign-in" :size="17" class="sidebar-action__icon" />
-              <span class="sidebar-action__label">账号登录</span>
-            </button>
-            <button v-else type="button" class="sidebar-action" aria-label="退出登录" title="退出登录" @click="handleLogout">
-              <AppIcon name="sign-out" :size="17" class="sidebar-action__icon" />
-              <span class="sidebar-action__label">退出登录</span>
-            </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -75,27 +62,18 @@
           </div>
         </main>
       </div>
-    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from './store/authStore.js';
-import { isLocalIdentity } from './api/localProfile.js';
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 import AppIcon from './components/common/AppIcon.vue';
 import AppBrandMark from './components/common/AppBrandMark.vue';
 
 const COLLAPSE_STORAGE_KEY = 'resume_forge_sidebar_collapsed';
 
 const route = useRoute();
-const router = useRouter();
-const authStore = useAuthStore();
-const isDesktopApp = typeof window !== 'undefined' && !!window.desktop;
-
-// 访客页（欢迎页 / 登录 / 注册）不显示应用壳
-const isGuest = computed(() => !!route.meta.guest);
 
 // 侧边栏收起状态（本地记忆）
 const collapsed = ref(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1');
@@ -131,36 +109,6 @@ function isActive(item) {
   return route.path === item.path || route.path.startsWith(item.path + '/');
 }
 
-const displayName = computed(() => authStore.currentUser?.username || (isDesktopApp ? '访客模式' : '用户'));
-// 游客身份没有真实邮箱，侧边栏显示模式说明而不是占位邮箱。
-const displayEmail = computed(() => {
-  if (isLocalIdentity(authStore.currentUser)) {
-    return '游客模式';
-  }
-  if (isDesktopApp && !authStore.isAuthenticated) {
-    return authStore.guestSessionState === 'error' ? '游客模式未连接' : '正在连接游客模式';
-  }
-  return authStore.currentUser?.email || '未绑定邮箱';
-});
-const guestIdentity = computed(() => isDesktopApp && (!authStore.isAuthenticated || isLocalIdentity(authStore.currentUser)));
-
-function goToAccountLogin() {
-  router.push('/login');
-}
-
-async function handleLogout() {
-  authStore.logout();
-  if (isDesktopApp) {
-    try {
-      await authStore.loginAsGuest();
-    } catch {
-      // 游客模式仍会显示工作台，并在页面里提供重试入口。
-    }
-    router.push('/dashboard');
-    return;
-  }
-  router.push('/login');
-}
 </script>
 <style scoped>
 .app-shell {
@@ -172,13 +120,6 @@ async function handleLogout() {
   background: var(--ui-bg-app);
   color: var(--ui-fg-primary);
   font-family: var(--ui-font-sans);
-}
-
-.app-guest {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  overflow-y: auto;
 }
 
 .app-sidebar {
@@ -389,41 +330,6 @@ async function handleLogout() {
   font-size: 11px;
 }
 
-.sidebar-user:hover .sidebar-user__name {
-  color: var(--ui-accent);
-}
-
-.sidebar-action {
-  display: flex;
-  min-height: 34px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--ui-fg-secondary);
-  font: inherit;
-  font-size: 12px;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.sidebar-action:hover {
-  border-color: var(--ui-grid-line);
-  background: var(--ui-bg-hover);
-  color: var(--ui-fg-primary);
-}
-
-.sidebar-action:focus-visible {
-  outline: 2px solid var(--ui-accent);
-  outline-offset: -2px;
-}
-
-.sidebar-action__icon {
-  flex: 0 0 auto;
-}
-
 .app-sidebar--collapsed .sidebar-brand {
   justify-content: center;
   gap: 0;
@@ -434,13 +340,11 @@ async function handleLogout() {
 .app-sidebar--collapsed .sidebar-brand__text,
 .app-sidebar--collapsed .nav-group__title,
 .app-sidebar--collapsed .nav-item__label,
-.app-sidebar--collapsed .sidebar-user__meta,
-.app-sidebar--collapsed .sidebar-action__label {
+.app-sidebar--collapsed .sidebar-user__meta {
   display: none;
 }
 
-.app-sidebar--collapsed .nav-item,
-.app-sidebar--collapsed .sidebar-action {
+.app-sidebar--collapsed .nav-item {
   justify-content: center;
   padding-right: 0;
   padding-left: 0;

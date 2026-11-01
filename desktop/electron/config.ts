@@ -111,7 +111,7 @@ export function saveConfig(installDir: string, config: AppConfig): void {
 
 /** 用已有配置逐字段覆盖默认值，缺字段补默认 */
 function mergeConfig(base: AppConfig, override: LegacyAppConfig): AppConfig {
-  let agentOverride = override.agent ?? {};
+  let agentOverride: Partial<AiModelConfig> = override.agent ?? {};
   const legacyChat = override.chat;
   if (!agentOverride.apiKey?.trim() && legacyChat?.apiKey?.trim()) {
     const baseUrl = legacyChat.baseUrl ?? '';

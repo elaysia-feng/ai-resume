@@ -1,17 +1,13 @@
 package com.elias.service.auth.impl;
 
-import com.elias.config.auth.AuthMailProperties;
 import com.elias.dto.auth.request.LocalProfileRequest;
 import com.elias.dto.auth.response.AuthResponse;
 import com.elias.entity.auth.User;
 import com.elias.mapper.auth.UserMapper;
 import com.elias.security.common.JwtUtil;
-import com.elias.storage.LocalFileStorage;
-import com.elias.service.notification.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,28 +30,19 @@ import static org.mockito.Mockito.when;
 class AuthServiceImplLocalProfileTest {
 
     private UserMapper userMapper;
-    private PasswordEncoder passwordEncoder;
     private JwtUtil jwtUtil;
     private AuthServiceImpl authService;
 
     @BeforeEach
     void setUp() {
         userMapper = mock(UserMapper.class);
-        passwordEncoder = mock(PasswordEncoder.class);
         jwtUtil = mock(JwtUtil.class);
 
-        when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> "encoded:" + invocation.getArgument(0));
         when(jwtUtil.generateToken(anyString(), anyLong()))
                 .thenAnswer(invocation -> "jwt-for-" + invocation.getArgument(1));
         when(userMapper.exists(any())).thenReturn(false);
 
-        authService = new AuthServiceImpl(
-                userMapper,
-                passwordEncoder,
-                jwtUtil,
-                mock(NotificationService.class),
-                mock(LocalFileStorage.class),
-                mock(AuthMailProperties.class));
+        authService = new AuthServiceImpl(userMapper, jwtUtil);
     }
 
     @Test

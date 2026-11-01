@@ -3,7 +3,6 @@ import com.elias.security.common.JwtUtil;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +18,6 @@ import java.util.Date;
  */
 @Component
 @ConfigurationProperties(prefix = "jwt")
-@Slf4j
 public class JwtUtilImpl implements JwtUtil {
 
     /**
@@ -49,8 +47,23 @@ public class JwtUtilImpl implements JwtUtil {
         this.expiration = expiration;
     }
 
-    public JwtUtilImpl(){}
+    /** Spring 配置绑定使用的无参构造器。 */
+    /** Spring 配置绑定使用的无参构造器。 */
+    public JwtUtilImpl() {
+    }
 
+    /**
+     * 创建测试或独立令牌工具。
+     *
+     * @param secret 签名密钥
+     * @param expiration 令牌有效期，单位为毫秒
+     */
+    /**
+     * 创建测试或独立令牌工具。
+     *
+     * @param secret 签名密钥
+     * @param expiration 令牌有效期，单位为毫秒
+     */
     public JwtUtilImpl(String secret, Long expiration) {
         this.secret = secret;
         this.expiration = expiration;
@@ -61,18 +74,20 @@ public class JwtUtilImpl implements JwtUtil {
      *
      * HS256 要求密钥至少 256 bit（32 字节）。配置里的 secret 往往是
      * "change-me" 这种短字符串，直接当密钥会在签发时抛 WeakKeyException ——
-     * 表现是注册接口返回「key byte array is 72 bits ... not secure enough」，
-     * 而且用户已经写进库了（半成品数据），用户根本注册不进去。
+     * 表现是本地会话令牌无法签发，且本机数据记录已写入数据库。
      *
      * 这里统一处理：长度够就直接用（保持与旧行为一致，旧 token 继续有效）；
-     * 不够就用 SHA-256 派生到 32 字节 —— 任意长度的配置都能得到合法密钥，
-     * 且同一 secret 派生结果稳定，重启后已签发的 token 依然有效。
+     * 不够就用 SHA-256 派生到 32 字节，保持重启后的签名稳定。
+     *
+     * @return 可供 HS256 使用的签名密钥
      */
     private SecretKey getSigningKey() {
+        // 1. 密钥长度足够时保留现有签名方式。
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length >= 32) {
             return Keys.hmacShaKeyFor(keyBytes);
         }
+        // 2. 短密钥使用 SHA-256 派生到 HS256 要求的长度。
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(keyBytes);
             return Keys.hmacShaKeyFor(digest);
@@ -104,7 +119,7 @@ public class JwtUtilImpl implements JwtUtil {
     /**
      * 从Token中获取用户名
      *
-     * @param token JWT Token
+     * @param token 已签发的本地 API 令牌
      * @return 用户名
      */
     public String getUsernameFromToken(String token) {
@@ -119,7 +134,7 @@ public class JwtUtilImpl implements JwtUtil {
     /**
      * 从Token中获取用户ID
      *
-     * @param token JWT Token
+     * @param token 已签发的本地 API 令牌
      * @return 用户ID
      */
     public Long getUserIdFromToken(String token) {
@@ -134,7 +149,7 @@ public class JwtUtilImpl implements JwtUtil {
     /**
      * 验证Token是否有效
      *
-     * @param token JWT Token
+     * @param token 已签发的本地 API 令牌
      * @return true-有效，false-无效
      */
     public boolean validateToken(String token) {
@@ -150,53 +165,4 @@ public class JwtUtilImpl implements JwtUtil {
         }
     }
 
-    /**
-     * 生成验证码验证凭证（临时token，用于注册时设置密码）
-     * 有效期短（5分钟）
-     *
-     * @param email 邮箱
-     * @return 验证凭证token
-     */
-    public String generateVerifyToken(String email) {
-        Date now = new Date();
-        // 验证token有效期5分钟
-        Date expiryDate = new Date(now.getTime() + 5 * 60 * 1000);
-
-        String token = Jwts.builder()
-                .subject(email)                    // subject存储邮箱
-                .claim("type", "verify")          // 标记为验证token
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
-        log.debug("[JwtUtil] generateVerifyToken: email={}", email);
-        return token;
-    }
-
-    /**
-     * 从验证凭证中获取邮箱
-     *
-     * @param token 验证凭证
-     * @return 邮箱，如果token无效返回null
-     */
-    public String getEmailFromVerifyToken(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            // 检查是否是验证token
-            if (!"verify".equals(claims.get("type", String.class))) {
-                log.warn("[JwtUtil] getEmailFromVerifyToken: type claim 不匹配");
-                return null;
-            }
-            String email = claims.getSubject();
-            log.debug("[JwtUtil] getEmailFromVerifyToken: 解析成功, email={}", email);
-            return email;
-        } catch (JwtException | IllegalArgumentException e) {
-            log.warn("[JwtUtil] getEmailFromVerifyToken: JWT解析失败, error={}", e.getMessage());
-            return null;
-        }
-    }
 }

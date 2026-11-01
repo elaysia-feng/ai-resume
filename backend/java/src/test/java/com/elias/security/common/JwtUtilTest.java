@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,6 +53,9 @@ class JwtUtilTest {
      * <p>不能改最后两个字符：base64url 末位有几个字符只有低位是冗余位，
      * 换成别的字符解出来的签名字节可能一模一样，token 照样验签通过——
      * 那样这个用例就成了随机失败（约千分之几会红），而不是真的在测篡改。</p>
+     *
+     * @param token 原始 JWT
+     * @return 签名段被修改的 JWT
      */
     private String tamperSignature(String token) {
         String[] parts = token.split("\\.");
@@ -78,17 +80,6 @@ class JwtUtilTest {
         String token = jwtUtil.generateToken("alice", 42L);
 
         assertFalse(jwtUtil.validateToken(token));
-    }
-
-    @Test
-    @DisplayName("验证码凭证和登录 token 不能混用")
-    void verifyTokenTypeIsChecked() {
-        JwtUtil jwtUtil = newJwtUtil();
-        String verifyToken = jwtUtil.generateVerifyToken("a@b.com");
-
-        assertEquals("a@b.com", jwtUtil.getEmailFromVerifyToken(verifyToken));
-        // 登录 token 没有 type=verify，取邮箱时必须返回 null 而不是 subject
-        assertNull(jwtUtil.getEmailFromVerifyToken(jwtUtil.generateToken("alice", 42L)));
     }
 
     @Test

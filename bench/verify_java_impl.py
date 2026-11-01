@@ -17,6 +17,17 @@ BASE = "http://127.0.0.1:8080"
 
 
 def http(method, path, body=None, token=None):
+    """发送一条 Java API 请求并返回状态码与响应文本。
+
+    Args:
+        method: HTTP 方法。
+        path: API 路径。
+        body: 可选 JSON 请求体。
+        token: 可选本机 API 令牌。
+
+    Returns:
+        tuple[int, str]: HTTP 状态码与响应文本。
+    """
     data = json.dumps(body).encode("utf-8") if body is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
     if token:
@@ -30,11 +41,22 @@ def http(method, path, body=None, token=None):
 
 
 def sse(path, body, token):
+    """发送流式聊天请求并按 SSE 事件边界解析响应。
+
+    Args:
+        path: SSE API 路径。
+        body: 请求体。
+        token: 本机 API 令牌。
+
+    Returns:
+        list[tuple[str, str]]: 事件名称与事件数据。
+    """
     req = urllib.request.Request(
         BASE + path, data=json.dumps(body).encode("utf-8"),
         headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}, method="POST")
     events = []
     with urllib.request.urlopen(req, timeout=900) as resp:
+        # 1. 累积当前事件的 event 与 data 字段。
         name, data = None, []
         for raw in resp:
             line = raw.decode("utf-8", "replace").rstrip("\r\n")
@@ -47,20 +69,27 @@ def sse(path, body, token):
                 name = line[6:].strip()
             elif line.startswith("data:"):
                 data.append(line[5:].lstrip())
+    # 2. 返回解析后的事件序列供基准计分。
     return events
 
 
 def main():
+    """运行聊天工具调用题目并保存回答记录。
+
+    Returns:
+        int: 全部题目完成时返回 0。
+    """
+    # 1. 创建本机数据会话并准备聊天工作区。
     runs = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     suffix = str(int(time.time() * 1000))[-9:]
     username = "javabench_" + suffix
-    _, payload = http("POST", "/api/auth/register", {
-        "username": username, "email": username + "@example.com", "password": "Passw0rd!2026"})
+    _, payload = http("POST", "/api/auth/local-profile", {"displayName": username})
     token = json.loads(payload)["data"]["token"]
 
     _, payload = http("POST", "/api/chat/workspace", {"path": str(WORKSPACE)}, token)
     print("工作区:", json.loads(payload).get("data"))
 
+    # 2. 逐轮运行问题、累计得分并记录工具调用。
     out = []
     totals = []
     for run in range(runs):
@@ -86,8 +115,9 @@ def main():
         totals.append((total_hit, total_full))
         print("  >>> 第%d轮合计 %d/%d" % (run + 1, total_hit, total_full))
 
-    print("\n==== Java 实现（后端 tool calling）各轮得分: %s ====" %
+    print("\n==== Java Chat API + Python Agent 各轮得分: %s ====" %
           ", ".join("%d/%d" % t for t in totals))
+    # 3. 保存回答，便于后续人工复核。
     Path("bench/answers_java.md").write_text(
         "\n\n".join("## 第%d轮 %s\n\n```\n%s\n```" % (o["run"], o["question"], o["answer"].strip())
                     for o in out),

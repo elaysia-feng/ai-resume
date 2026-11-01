@@ -21,8 +21,8 @@ import java.time.Duration;
  * 本地文件读取接口。
  *
  * <p>头像存在服务所在机器的磁盘上，前端不能再直接拿文件路径，
- * 统一走这里按「当前登录用户 + 子目录 + 文件名」取，
- * 归属从登录态取，不接受前端指定 userId。</p>
+ * 统一走这里按「当前本地用户 + 子目录 + 文件名」取，
+ * 归属从 API 请求上下文取，不接受前端指定 userId。</p>
  */
 @Slf4j
 @RestController
@@ -36,6 +36,10 @@ public class FileController {
      * 读取当前用户的本地文件。
      *
      * <p>路径里的文件名带扩展名，用 {@code :.+} 约束保证后缀不会被吞掉。</p>
+     *
+     * @param kind 文件分类
+     * @param name 文件名
+     * @return 当前本地用户对应的文件内容
      */
     @GetMapping("/{kind}/{name:.+}")
     public ResponseEntity<Resource> read(@PathVariable String kind, @PathVariable String name) {
@@ -49,6 +53,7 @@ public class FileController {
     }
 
     private MediaType guessContentType(String fileName) {
+        // 1. 根据常见图片扩展名返回准确的媒体类型。
         String lower = fileName.toLowerCase();
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
             return MediaType.IMAGE_JPEG;
@@ -62,6 +67,7 @@ public class FileController {
         if (lower.endsWith(".bmp")) {
             return MediaType.parseMediaType("image/bmp");
         }
+        // 2. 未匹配的文件按 PNG 处理，兼容已有头像文件。
         return MediaType.IMAGE_PNG;
     }
 }

@@ -35,9 +35,7 @@ public class User {
      */
     private String email;
 
-    /**
-     * 密码，BCrypt加密存储
-     */
+    /** 历史 users 表非空列；本地工作区不提供密码登录。 */
     private String password;
 
     /**

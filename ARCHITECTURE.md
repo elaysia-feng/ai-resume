@@ -18,9 +18,8 @@
 
 ## 形态说明
 
-Java 后端是**单体应用**：原先拆成 gateway、auth-service、resume-service、agent-service、
-interview-service、order、payment、notification 八个进程的代码，已经合并为一个 Spring Boot 进程
-（`com.elias.AiResumeForgeApplication`，端口 8080）。一次构建、一次启动、一个数据库文件。
+Java 后端是供桌面端使用的**单体本机服务**：简历、Agent、面试和本地 API 会话在一个 Spring Boot 进程中运行
+（`com.elias.AiResumeForgeApplication`，端口 8080），业务数据保存在本机 SQLite。
 
 Python 后端仍是独立进程：LangGraph 编排、LLM 调用天然属于 Python 运行时，
 与 Java 之间通过 **HTTP 内部接口** + **共享 SQLite 任务队列** 协作，不做语言层面的合并。
@@ -33,14 +32,12 @@ Python 后端仍是独立进程：LangGraph 编排、LLM 调用天然属于 Pyth
 backend/java/src/main/java/com/elias/
 ├── AiResumeForgeApplication.java   # 唯一启动类，扫描 com.elias
 ├── common/                         # 跨模块公共层：DTO、异常、MQ、JWT、本地文件存储、UserContext
-├── auth/                           # 用户注册登录、验证码、JWT 签发
+├── auth/                           # 本地数据记录与 API JWT 令牌
 ├── resume/                         # 简历、段落、版本、patch 应用
 ├── agent/                          # Agent 会话与 run 生命周期、SSE、任务派发
 ├── chat/                           # 通用对话：MiniMax 对话循环、工具调用、工作区
 ├── interview/                      # 模拟面试会话、轮次、答题
-├── order/                          # 套餐、订单、订阅配额
-├── payment/                        # 支付宝下单与回调
-└── notification/                   # 邮件验证码、站内信、订单 MQ 消费
+└── security/                       # 本地 API JWT 与 Python 内部服务令牌
 ```
 
 模块边界靠**包 + 接口**表达，而不是靠进程边界。
@@ -53,19 +50,9 @@ backend/java/src/main/java/com/elias/
 | --- | --- | --- |
 | interview | agent | Service（`InternalAgentSupportService` / `AgentSessionService`） |
 | agent | resume | Service（`ResumeService` / `ResumePatchService`） |
-| order | payment | Service（`AlipayService`） |
-| auth | notification | Service（`NotificationService`） |
-| notification | order | Service（`OrderService` / `SubscriptionService`） |
-| notification | auth | Mapper（`UserMapper`） |
-| payment | order | Mapper（`OrderMapper`） |
 | agent | interview | Mapper（`AiInterviewRoundMapper`） |
 
-规律：**反向依赖一律降级到 Mapper 层**。例如 order 依赖 payment、payment 又要改订单状态，
-如果 payment 反过来调 order 的 Service，就会形成 `order → payment → order` 的循环；
-因此 payment 侧直接用 `OrderMapper` 更新订单，依赖被单向化。
-
-同理 `auth → notification → order` 已经是一条链，所以 order 侧查用户信息时用
-`UserMapper` 而不是 `AuthService`，避免链条首尾相接。
+跨模块依赖保持单向；需要回读或更新其他领域数据时，使用明确的 Service 契约或 Mapper 查询，避免绕回调用方形成循环。
 
 ## 鉴权
 
@@ -74,7 +61,7 @@ backend/java/src/main/java/com/elias/
 1. `InternalAgentTokenFilter` 先校验 `/internal/**` 的 `X-Internal-Service-Token`，拦掉非内部调用；
 2. `JwtAuthFilter` 解析 `Authorization: Bearer <token>`，把 userId 写进 `UserContext`（TransmittableThreadLocal），
    并把用户写入 `SecurityContext`；
-3. 白名单（登录注册、验证码、密码设置、验证码登录、通知验证码）放行，其余接口一律要求登录。
+3. `/api/auth/local-profile` 用于首次创建或复用本机数据记录；其余业务接口使用应用自动管理的 JWT，不提供账号注册、登录或邮箱验证码流程。
 
 原先网关负责的 JWT 全局校验与 CORS，现在由应用内的过滤器与 `CorsConfig` 承担。
 
@@ -112,8 +99,7 @@ Python 侧通过 `JAVA_INTERNAL_BASE_URL`（默认 `http://localhost:8080`）访
 建表脚本 `backend/java/db_schema/schema.sql`。
 表前缀沿用各域语义：`users`、`resumes` / `resume_sections` / `resume_versions`、
 `ai_agent_run` / `ai_run_event` / `ai_session` / `ai_message`、`ai_interview_round`、
-`user_setting`；另外两张是为顶替 Redis 建的 `verification_code`（验证码）和
-`agent_task` / `agent_stream_group`（任务队列）。
+`user_setting`；`agent_task` / `agent_stream_group` 替代 Redis Stream 作为本机 Agent 任务队列。
 
 ## 中间件
 
@@ -121,7 +107,7 @@ Python 侧通过 `JAVA_INTERNAL_BASE_URL`（默认 `http://localhost:8080`）访
 
 | 组件 | 用途 |
 | --- | --- |
-| SQLite（业务库） | 业务数据 + Agent 任务队列 + 邮箱验证码（`backend/java/data/ai_resume.db`） |
+| SQLite（业务库） | 本机业务数据 + Agent 任务队列（`backend/java/data/ai_resume.db`） |
 | SQLite（checkpoint） | Python 侧 LangGraph checkpoint（`backend/python/data/checkpoints.db`） |
 | 本地磁盘 | 头像与附件（根目录 `storage.root`，用户可自选） |
 

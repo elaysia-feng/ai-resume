@@ -1,7 +1,6 @@
 # ============================================================
-# AI Resume Forge - Java 后端单体应用配置
-# 原先 auth / resume / agent / interview / order / payment / notification
-# 七个微服务 + 网关合并为一个 Spring Boot 进程，配置在此集中管理。
+# AI Resume Forge - 本机 Java 服务配置
+# 桌面端在一个 Spring Boot 进程中运行简历、Agent、面试和本地 API 会话。
 # ============================================================
 server:
   port: 8080
@@ -16,11 +15,9 @@ spring:
   config:
     # 单体应用只需要一份环境变量文件：优先读 backend/java/.env，其次读仓库根目录 .env
     import: "optional:file:.env[.properties],optional:file:../../.env[.properties]"
-  main:
-    allow-bean-definition-overriding: true
   autoconfigure:
-    # 本应用只用 JWT 认证，没有自定义 UserDetailsService；
-    # 不排除的话 Boot 会生成一个随机密码的内存用户并打印警告
+    # 桌面端自动使用本机身份取得 API 令牌，不提供用户登录流程；
+    # 不排除的话 Boot 会生成随机密码的内存用户并打印警告
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
@@ -42,37 +39,16 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-  mail:
-    host: smtp.qq.com
-    port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-
 jwt:
   # 签名密钥不写默认值：必须在 .env 或环境变量里配置
   secret: ${JWT_SECRET:}
   expiration: 86400000
-
-# 验证码有效期（分钟）
-email:
-  code:
-    expiration: 5
 
 # Python Agent Runtime（AI 编排服务，独立进程，通过 HTTP + MQ 与本应用协作）
 python:
   agent:
     base-url: ${PYTHON_AGENT_BASE_URL:http://localhost:8000}
     read-timeout-seconds: 300
-    # Java 代理 Python SSE 的专用线程池，避免每个 Agent run 都无限 new Thread。
-    stream-core-pool-size: ${PYTHON_AGENT_STREAM_CORE_POOL_SIZE:8}
-    stream-max-pool-size: ${PYTHON_AGENT_STREAM_MAX_POOL_SIZE:32}
-    stream-queue-capacity: ${PYTHON_AGENT_STREAM_QUEUE_CAPACITY:100}
 
 # Python 调 Java 内部接口时携带的令牌
 internal:

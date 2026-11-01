@@ -121,9 +121,9 @@ npm run smoke        # CDP 冒烟验证（需先起 dev server）
 ```bash
 cd desktop
 npm run build                       # 先出产物
-AI_RESUME_JWT=<登录后的 JWT> node scripts/verify-production.mjs
+AI_RESUME_JWT=<本地 API 会话令牌> node scripts/verify-production.mjs
 ```
 
 脚本会起 Electron 生产模式（`file://`），通过 CDP 检查：渲染层加载、router-view 非空白、
-hash 路由生效、`window.desktop` 齐全、后端探活在线、注入登录态后 `#/dashboard` 能渲染多入口工作台。
+hash 路由生效、`window.desktop` 齐全、后端探活在线、注入本地 API 会话令牌后 `#/dashboard` 能渲染多入口工作台。
 

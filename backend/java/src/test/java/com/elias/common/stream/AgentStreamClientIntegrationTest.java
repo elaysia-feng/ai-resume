@@ -53,7 +53,10 @@ class AgentStreamClientIntegrationTest {
         }
 
         objectMapper = new ObjectMapper();
-        client = new AgentStreamClientImpl(jdbcTemplate, objectMapper, new AgentStreamProperties());
+        AgentStreamProperties properties = new AgentStreamProperties();
+        properties.setDeadLetterStream("agent.run.dlq");
+        properties.setDeadLetterGroup("java-dlq-reader");
+        client = new AgentStreamClientImpl(jdbcTemplate, objectMapper, properties);
     }
 
     @AfterAll

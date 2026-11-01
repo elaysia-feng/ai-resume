@@ -1,8 +1,8 @@
 // Axios instance with interceptors
 export { apiClient, unwrapApiData, extractApiMessage } from './request.js';
 
-// Auth API
-export { login, register, logout, loginByCode, sendCode, verifyCode, setPassword, getCurrentUser } from './auth.js';
+// 本地 API 会话
+export { getCurrentUser } from './auth.js';
 
 // Resume CRUD API
 export {

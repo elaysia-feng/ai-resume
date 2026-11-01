@@ -26,9 +26,9 @@
     <section class="work-ledger" aria-label="独立工作入口">
       <article class="work-row">
         <div class="work-row__status" aria-live="polite">
-          <template v-if="!authStore.isAuthenticated">
-            <span class="entry-status__label">{{ authStore.guestSessionState === 'error' ? '未连接' : '连接中' }}</span>
-            <button v-if="authStore.guestSessionState === 'error'" type="button" class="entry-status__retry" @click="retryGuestLogin">重试</button>
+          <template v-if="!authStore.hasLocalSession">
+            <span class="entry-status__label">{{ authStore.localSessionState === 'error' ? '未连接' : '连接中' }}</span>
+            <button v-if="authStore.localSessionState === 'error'" type="button" class="entry-status__retry" @click="retryLocalSession">重试</button>
           </template>
           <template v-else-if="loadingResumes && !resumes.length">
             <span class="entry-status__label">读取中</span>
@@ -70,9 +70,9 @@
 
       <article class="work-row">
         <div class="work-row__status" aria-live="polite">
-          <template v-if="!authStore.isAuthenticated">
-            <span class="entry-status__label">{{ authStore.guestSessionState === 'error' ? '未连接' : '连接中' }}</span>
-            <button v-if="authStore.guestSessionState === 'error'" type="button" class="entry-status__retry" @click="retryGuestLogin">重试</button>
+          <template v-if="!authStore.hasLocalSession">
+            <span class="entry-status__label">{{ authStore.localSessionState === 'error' ? '未连接' : '连接中' }}</span>
+            <button v-if="authStore.localSessionState === 'error'" type="button" class="entry-status__retry" @click="retryLocalSession">重试</button>
           </template>
           <template v-else-if="loadingChats && !chatSessions.length">
             <span class="entry-status__label">读取中</span>
@@ -109,9 +109,9 @@
 
       <article class="work-row">
         <div class="work-row__status" aria-live="polite">
-          <template v-if="!authStore.isAuthenticated">
-            <span class="entry-status__label">{{ authStore.guestSessionState === 'error' ? '未连接' : '连接中' }}</span>
-            <button v-if="authStore.guestSessionState === 'error'" type="button" class="entry-status__retry" @click="retryGuestLogin">重试</button>
+          <template v-if="!authStore.hasLocalSession">
+            <span class="entry-status__label">{{ authStore.localSessionState === 'error' ? '未连接' : '连接中' }}</span>
+            <button v-if="authStore.localSessionState === 'error'" type="button" class="entry-status__retry" @click="retryLocalSession">重试</button>
           </template>
           <template v-else-if="loadingAgents && !interviewSessions.length">
             <span class="entry-status__label">读取中</span>
@@ -156,16 +156,16 @@
           </router-link>
         </header>
 
-        <p v-if="!authStore.isAuthenticated && authStore.guestSessionState === 'loading'" class="home-empty" aria-live="polite">正在进入游客模式…</p>
-        <div v-else-if="!authStore.isAuthenticated" class="home-inline-error" role="alert">
-          <span>游客模式暂时无法连接。</span>
-          <button type="button" @click="retryGuestLogin">重试</button>
+        <p v-if="!authStore.hasLocalSession && authStore.localSessionState === 'loading'" class="home-empty" aria-live="polite">正在连接本机服务…</p>
+        <div v-else-if="!authStore.hasLocalSession" class="home-inline-error" role="alert">
+          <span>本机服务暂时无法连接。</span>
+          <button type="button" @click="retryLocalSession">重试</button>
         </div>
-        <div v-if="authStore.isAuthenticated && activityError" class="home-inline-error" role="alert">
+        <div v-if="authStore.hasLocalSession && activityError" class="home-inline-error" role="alert">
           <span>{{ activityError }}</span>
           <button type="button" @click="reloadActivity">重试</button>
         </div>
-        <ul v-if="authStore.isAuthenticated && recentActivity.length" class="activity-list">
+        <ul v-if="authStore.hasLocalSession && recentActivity.length" class="activity-list">
           <li v-for="item in recentActivity.slice(0, 3)" :key="item.key">
             <button type="button" class="activity-item" @click="item.open()">
               <span class="activity-item__icon"><AppIcon :name="item.icon" :size="17" /></span>
@@ -178,8 +178,8 @@
             </button>
           </li>
         </ul>
-        <p v-else-if="authStore.isAuthenticated && (loadingAgents || loadingChats)" class="home-empty" aria-live="polite">正在整理最近工作…</p>
-        <p v-else-if="authStore.isAuthenticated && !activityError" class="home-empty">这里还没有近期记录。开始一次工作后，记录会显示在这里。</p>
+        <p v-else-if="authStore.hasLocalSession && (loadingAgents || loadingChats)" class="home-empty" aria-live="polite">正在整理最近工作…</p>
+        <p v-else-if="authStore.hasLocalSession && !activityError" class="home-empty">这里还没有近期记录。开始一次工作后，记录会显示在这里。</p>
       </article>
 
       <article id="resume-list" class="home-column home-column--resumes">
@@ -207,10 +207,10 @@
           </div>
         </header>
 
-        <p v-if="!authStore.isAuthenticated && authStore.guestSessionState === 'loading'" class="home-empty" aria-live="polite">正在进入游客模式…</p>
-        <div v-else-if="!authStore.isAuthenticated" class="home-inline-error" role="alert">
-          <span>游客模式暂时无法连接。</span>
-          <button type="button" @click="retryGuestLogin">重试</button>
+        <p v-if="!authStore.hasLocalSession && authStore.localSessionState === 'loading'" class="home-empty" aria-live="polite">正在连接本机服务…</p>
+        <div v-else-if="!authStore.hasLocalSession" class="home-inline-error" role="alert">
+          <span>本机服务暂时无法连接。</span>
+          <button type="button" @click="retryLocalSession">重试</button>
         </div>
         <p v-else-if="loadingResumes && !resumes.length" class="home-empty" aria-live="polite">正在读取简历…</p>
         <div v-else-if="resumeError && !resumes.length" class="home-inline-error" role="alert">
@@ -236,7 +236,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../components/common/AppIcon.vue';
 import { createResume as createResumeApi, getResumes } from '../api/resumes.js';
@@ -263,6 +263,7 @@ const agentError = ref('');
 const creationNotice = ref('');
 const resumeActionNotice = ref('');
 const showAllResumes = ref(false);
+let stopWatchingBackend = null;
 
 watch(() => route.query.resumeCreateError, (code) => {
   if (!code) {
@@ -317,27 +318,22 @@ watch(() => route.query.section, (section) => {
 });
 
 onMounted(() => {
-  if (authStore.isAuthenticated) {
-    loadOverview();
-  } else {
-    authStore.loginAsGuest().catch(() => {});
+  const desktop = window.desktop;
+  if (typeof desktop?.onBackendStatusChanged === 'function') {
+    stopWatchingBackend = desktop.onBackendStatusChanged(handleBackendStatus);
   }
+  if (typeof desktop?.getBackendStatus === 'function') {
+    desktop.getBackendStatus().then(handleBackendStatus).catch(() => {});
+  }
+  connectLocalWorkspace();
   if (route.query.section === 'resumes') {
     showAllResumes.value = true;
     nextTick(openResumeList);
   }
 });
 
-watch(() => authStore.token, (token) => {
-  resumes.value = [];
-  chatSessions.value = [];
-  agentSessions.value = [];
-  resumeError.value = '';
-  chatError.value = '';
-  agentError.value = '';
-  if (token) {
-    loadOverview();
-  }
+onBeforeUnmount(() => {
+  stopWatchingBackend?.();
 });
 
 function loadOverview() {
@@ -346,23 +342,31 @@ function loadOverview() {
   loadAgentSessions();
 }
 
-async function retryGuestLogin() {
+function handleBackendStatus(status) {
+  if (status.online && !authStore.hasLocalSession) {
+    connectLocalWorkspace();
+  }
+}
+
+function connectLocalWorkspace() {
+  authStore.ensureLocalSession().then(loadOverview).catch(() => {});
+}
+
+async function retryLocalSession() {
   try {
-    await authStore.loginAsGuest();
+    await authStore.ensureLocalSession();
+    loadOverview();
   } catch {
     return;
   }
 }
 
-async function ensureGuestSession() {
-  if (authStore.isAuthenticated) {
-    return true;
-  }
+async function ensureLocalSessionReady() {
   try {
-    await authStore.loginAsGuest();
-    return authStore.isAuthenticated;
+    await authStore.ensureLocalSession();
+    return true;
   } catch (error) {
-    creationNotice.value = extractApiMessage(error, '游客模式暂时无法连接，请稍后重试。');
+    creationNotice.value = extractApiMessage(error, '本机服务暂时无法连接，请稍后重试。');
     return false;
   }
 }
@@ -418,7 +422,7 @@ async function createResume() {
   if (creatingResume.value) {
     return;
   }
-  if (!await ensureGuestSession()) {
+  if (!await ensureLocalSessionReady()) {
     return;
   }
   creatingResume.value = true;
@@ -447,7 +451,7 @@ function openResumeList() {
 }
 
 async function startResumeWorkflow() {
-  if (!await ensureGuestSession()) {
+  if (!await ensureLocalSessionReady()) {
     return;
   }
   if (!resumes.value.length && !resumeError.value) {
@@ -470,7 +474,7 @@ function openChat(sessionId) {
 }
 
 async function startChat() {
-  if (await ensureGuestSession()) {
+  if (await ensureLocalSessionReady()) {
     openChat();
   }
 }
@@ -481,7 +485,7 @@ function openInterview(sessionId) {
 }
 
 async function startInterview() {
-  if (await ensureGuestSession()) {
+  if (await ensureLocalSessionReady()) {
     openInterview();
   }
 }

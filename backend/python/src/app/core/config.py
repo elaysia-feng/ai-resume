@@ -97,16 +97,11 @@ class Settings(BaseSettings):
         default="../java/data/ai_resume.db",
         alias="AGENT_TASK_DB_PATH",
     )
-    agent_checkpoint_ttl_seconds: int = Field(
-        default=3600,
-        alias="AGENT_CHECKPOINT_TTL_SECONDS",
-    )
     agent_summary_trigger_message_count: int = Field(default=12, alias="AGENT_SUMMARY_TRIGGER_MESSAGE_COUNT")
     agent_summary_trigger_context_ratio: float = Field(default=0.9, alias="AGENT_SUMMARY_TRIGGER_CONTEXT_RATIO")
     agent_model_context_length: int = Field(default=196608, alias="AGENT_MODEL_CONTEXT_LENGTH")
     agent_summary_keep_recent_messages: int = Field(default=6, alias="AGENT_SUMMARY_KEEP_RECENT_MESSAGES")
     agent_review_max_retry: int = Field(default=2, alias="AGENT_REVIEW_MAX_RETRY")
-    agent_event_flush_size: int = Field(default=10, alias="AGENT_EVENT_FLUSH_SIZE")
 
     # SQLite 任务队列配置。
     # Java 负责投递消息，Python worker 负责消费；这组名字必须和 Java agent.stream.* 对齐。

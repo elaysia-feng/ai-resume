@@ -16,14 +16,13 @@
     <version>0.1.0</version>
     <packaging>jar</packaging>
     <name>AI Resume Forge - Java Backend (Monolith)</name>
-    <description>AI Resume Forge Java 后端单体应用：原先 auth/resume/agent/interview/order/payment/notification 七个子服务与网关合并为一个 Spring Boot 进程</description>
+    <description>AI Resume Forge 本机 Java 服务：提供本地数据、简历、Agent 和面试 API</description>
 
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <sqlite-jdbc.version>3.46.1.3</sqlite-jdbc.version>
-        <bouncycastle.version>1.78</bouncycastle.version>
         <jjwt.version>0.12.5</jjwt.version>
         <json-schema-validator.version>1.0.87</json-schema-validator.version>
         <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
@@ -82,21 +81,6 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis-plus.version}</version>
-        </dependency>
-
-        <!-- 密码哈希：Argon2PasswordEncoder 依赖 BouncyCastle。
-             这个依赖以前是 alipay-sdk-java 传递带进来的，支付功能移除后就没了，
-             必须显式声明，否则注册/登录会在 encode 时抛 ClassNotFoundException。 -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-
-        <!-- 邮件 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
         <!-- 简历 schema 校验 -->

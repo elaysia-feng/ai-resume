@@ -13,9 +13,8 @@
 --    - 原 ai_agent_run 的 information_schema 幂等 ALTER 段全部删除：
 --      SQLite 没有 information_schema 也没有 PREPARE，且本脚本建表时已是最新结构
 -- 2. 表结构与原 MySQL 版逐字段对齐（字段名、类型语义、中文注释保持原样）。
--- 3. 新增两张表，用来顶替原先的 Redis：
---    - agent_task          ：Agent 任务队列（原来用 Redis Stream）
---    - verification_code   ：邮箱验证码（原来用 Redis 缓存）
+-- 3. 新增一张表，用来顶替原先的 Redis Stream：
+--    - agent_task          ：Agent 任务队列
 -- 4. 外键需要 PRAGMA foreign_keys=ON 才会生效，
 --    由 application.yaml 的 datasource.hikari.connection-init-sql 打开。
 -- SQLite 不提供表/列 COMMENT 元数据；表、索引用途使用本脚本的 SQL 注释说明。
@@ -25,7 +24,7 @@
 PRAGMA foreign_keys = ON;
 
 -- ============================================================
--- 一、用户与鉴权
+-- 一、本机数据归属记录
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS users (
@@ -256,22 +255,7 @@ CREATE TABLE IF NOT EXISTS user_setting (
 );
 
 -- ============================================================
--- 六、邮箱验证码（顶替原来的 Redis 缓存）
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS verification_code (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email VARCHAR(255) NOT NULL,
-    code VARCHAR(16) NOT NULL,
-    expires_at DATETIME NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uk_verification_code_email ON verification_code (email);
-CREATE INDEX IF NOT EXISTS idx_verification_code_expires_at ON verification_code (expires_at);
-
--- ============================================================
--- 七、Agent 任务队列（顶替原来的 Redis Stream）
+-- 六、Agent 任务队列（顶替原来的 Redis Stream）
 --
 -- 一条任务 = 一个消费组视角下的一行。
 -- - publish : 插入一行 PENDING

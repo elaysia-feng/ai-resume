@@ -1,13 +1,12 @@
 # AI Resume Forge - Java Backend（单体）
 
-Spring Boot 单体后端：认证、简历、Agent、面试、订单支付、通知等模块合并在一个进程内，
-按包隔离领域边界，一次构建、一次启动。
+Spring Boot 本机服务：为桌面工作台提供本地数据、简历、Agent 和模拟面试 API。
 
 ## 环境要求
 
 - Java 17+（运行可用 JDK 21）
 - Maven 3.8+
-- **不需要外部数据库**：业务数据、Agent 任务队列、邮箱验证码都落在 SQLite 单文件上
+- **不需要外部数据库**：业务数据和 Agent 任务队列都落在 SQLite 单文件上
   （默认 `backend/java/data/ai_resume.db`，可用 `DB_FILE` 覆盖）
 
 ## 构建与运行
@@ -24,9 +23,8 @@ java -jar target/ai-resume-forge-backend.jar
 mvn spring-boot:run
 ```
 
-> `JWT_SECRET`、`DB_PASSWORD`、`INTERNAL_AGENT_SERVICE_TOKEN` 没有默认值，
-> 缺任何一个都会**启动直接失败**并给出提示，不会带着空密钥跑起来。
-> 这三个值放在仓库根目录 `.env`（已被 git 忽略）或环境变量里。
+> 独立启动时需要在仓库根目录 `.env`（已被 git 忽略）或环境变量中配置 `JWT_SECRET` 和 `INTERNAL_AGENT_SERVICE_TOKEN`。
+> Electron 桌面端会从本机配置生成这两个运行时令牌。
 
 ## 数据库
 
@@ -70,11 +68,9 @@ src/test/java/com/elias/            # 按领域与分层组织的单元测试
 
 配置集中在 `src/main/resources/application.yaml`，敏感项走环境变量（见仓库根目录 `.env.example`）：
 
-- `DB_FILE`：SQLite 数据文件路径（业务数据 + Agent 任务队列 + 验证码）
+- `DB_FILE`：SQLite 数据文件路径（业务数据 + Agent 任务队列）
 - `JWT_SECRET`：JWT 签名密钥
-- `MAIL_USERNAME` / `MAIL_PASSWORD`：发信邮箱
 - `AGENT_RESUME_RUN_STREAM` / `AGENT_INTERVIEW_RUN_STREAM` / `AGENT_RUN_RESULT_STREAM` / `AGENT_RUN_DLQ_STREAM`：Agent 任务流名（Java 和 Python 两端必须一致）
-- `STORAGE_ROOT`：本地磁盘存储根目录（头像等文件，留空用「用户主目录/Documents/AI-Resume-Forge」）
-- `ALIPAY_*`：支付宝
+- `STORAGE_ROOT`：本地磁盘存储根目录（简历文件，留空用「用户主目录/Documents/AI-Resume-Forge」）
 - `PYTHON_AGENT_BASE_URL`：Python AI 运行时地址
 - `INTERNAL_AGENT_SERVICE_TOKEN`：Python 调用内部接口时携带的令牌

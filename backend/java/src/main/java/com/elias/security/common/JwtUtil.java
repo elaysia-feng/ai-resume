@@ -10,8 +10,4 @@ public interface JwtUtil {
     Long getUserIdFromToken(String token);
 
     boolean validateToken(String token);
-
-    String generateVerifyToken(String email);
-
-    String getEmailFromVerifyToken(String token);
 }

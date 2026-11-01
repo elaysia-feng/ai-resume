@@ -32,13 +32,28 @@ public class InternalAgentTokenFilter extends OncePerRequestFilter {
 
     private final InternalAgentProperties internalAgentProperties;
 
+    /**
+     * 只在内部 API 路径上校验 Python 服务令牌。
+     *
+     * @param request 当前 HTTP 请求
+     * @return 非内部 API 请求返回 {@code true}
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // 非 /internal/** 请求继续走正常用户登录鉴权，不在这里处理。
+        // 非 /internal/** 请求继续走本地 API JWT 校验，不在这里处理。
         String path = request.getRequestURI();
         return path == null || !path.startsWith(INTERNAL_PATH_PREFIX);
     }
 
+    /**
+     * 校验内部服务令牌，通过后继续处理请求。
+     *
+     * @param request 当前 HTTP 请求
+     * @param response 当前 HTTP 响应
+     * @param filterChain 后续过滤器链
+     * @throws ServletException 过滤器链处理失败时抛出
+     * @throws IOException 请求或响应读写失败时抛出
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -47,7 +62,7 @@ public class InternalAgentTokenFilter extends OncePerRequestFilter {
         String requestToken = request.getHeader(TOKEN_HEADER);
 
         if (!StringUtils.hasText(configuredToken) || !configuredToken.equals(requestToken)) {
-            // 内部接口不返回登录页，直接给 JSON，方便 Python 侧识别鉴权失败。
+            // 内部接口直接返回 JSON，方便 Python 侧识别令牌错误。
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":401,\"message\":\"内部服务令牌无效\",\"data\":null}");

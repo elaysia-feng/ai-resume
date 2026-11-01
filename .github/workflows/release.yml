@@ -296,7 +296,7 @@ jobs:
           $notesTemplate = @'
           # AI Resume Forge __VERSION__
 
-          Windows 桌面端（Electron）预发布版本。
+          Windows 桌面端（Electron）版本，数据默认保存在本机 SQLite 文件中。
 
           ## 产物
 
@@ -305,11 +305,12 @@ jobs:
 
           ## 本版要点
 
-          - 桌面端形态：Electron 主进程 + Vue3 渲染层，前端已并入 `desktop/renderer/`
-          - 后端单体化：七个微服务合并为一个 Spring Boot 进程（:8080）
-          - 存储全 SQLite：MySQL / Redis / RabbitMQ / Qdrant 全部移除，本地零外部中间件
-          - 去掉支付功能与向量检索链路
-          - 5star 法则（STAR + 量化结果）纳入评分：规则层 + LLM rubric
+          - 启动后直接进入本地工作台，不再显示账号注册、密码登录或邮箱验证流程
+          - 重做工作台首页与应用品牌图标，简历、模板、AI 对话和模拟面试保持独立入口
+          - 增加 12 套可筛选、可预览的简历模板
+          - AI 功能统一由 Python/LangChain ChatModel 运行时处理，支持多种集成与自定义兼容端点
+          - 本地用户数据与任务队列使用 SQLite；移除 SMTP、邮箱验证码和密码登录配置
+          - 修复简历删除链路，并移除 Agent 流式请求的应用级并发与排队上限
 
           ## 校验
 
