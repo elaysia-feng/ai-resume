@@ -33,6 +33,9 @@ backend/java/代码问题/
 *.db-wal
 *.db-shm
 data/
+# 模板注册表虽位于 data 目录，但属于桌面端源码。
+!desktop/renderer/src/data/
+!desktop/renderer/src/data/resumeTemplates.js
 backend/java/data/
 backend/python/data/
 # 运行时验收的临时日志与临时库
